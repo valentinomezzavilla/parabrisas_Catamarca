@@ -53,7 +53,7 @@ La lógica pura (firmar y verificar token, hashear y verificar contraseña, regl
 - **`/usuarios`** (solo `ADMIN`): lista, alta, cambio de rol, activar/desactivar y reseteo de contraseña. Reglas:
   - Nadie puede desactivarse ni cambiarse el rol a sí mismo.
   - No se puede dejar al sistema sin al menos un `ADMIN` activo.
-  - Contraseña mínima de 10 caracteres.
+  - Contraseña: mínimo 5 y máximo 128 caracteres, sin reglas de composición (decisión del usuario; originalmente eran 10).
 - **`EMPLEADO`:** accede a Panel, Turnos y Stock. `/servicios/*` y `/usuarios/*` lo redirigen a `/`.
 
 ## Primer administrador

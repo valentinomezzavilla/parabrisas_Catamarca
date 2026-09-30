@@ -2,8 +2,8 @@ import { z } from "@/lib/zod";
 
 export const rolSchema = z.enum(["ADMIN", "EMPLEADO"]);
 
-/** Las contraseñas no se recortan: los espacios también cuentan. */
-export const passwordSchema = z.string().min(10).max(128);
+/** 5 a 128 caracteres y nada más: sin reglas de mayúsculas, números o símbolos. No se recorta: los espacios cuentan. */
+export const passwordSchema = z.string().min(5).max(128);
 
 /** Nombre de usuario para el login: minúsculas, 3–60 caracteres, letras, números y . _ @ - (un email también sirve). */
 const usuarioSchema = z

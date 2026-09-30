@@ -29,7 +29,7 @@ export function FormularioUsuario() {
         <input id="usuario" name="usuario" type="text" autoCapitalize="none" spellCheck={false} autoComplete="off" className={input} aria-invalid={!!error("usuario")} />
       </Campo>
 
-      <Campo etiqueta="Contraseña" htmlFor="password" error={error("password")} ayuda="Mínimo 10 caracteres. Se la pasás vos a la persona.">
+      <Campo etiqueta="Contraseña" htmlFor="password" error={error("password")} ayuda="Mínimo 5 caracteres, sin otras reglas. Se la pasás vos a la persona.">
         <input id="password" name="password" type="password" autoComplete="new-password" className={input} aria-invalid={!!error("password")} />
       </Campo>
 

@@ -21,7 +21,7 @@ export function FormularioPassword({ id }: { id: string }) {
           name="password"
           type="password"
           autoComplete="new-password"
-          placeholder="Mínimo 10 caracteres"
+          placeholder="Mínimo 5 caracteres"
           aria-label="Nueva contraseña"
           aria-invalid={!!error("password")}
           className={`${input} max-w-56`}

@@ -18,7 +18,7 @@
 - Cookie `sesion`: `httpOnly`, `sameSite=lax`, `secure` solo en producción, `path=/`, vence en 8 h. JWT `HS256` con `sub` (id de usuario) y `exp`; **no** lleva el rol.
 - `SESSION_SECRET` obligatoria, mínimo 32 caracteres; si falta o es corta, falla con mensaje claro.
 - Roles: `ADMIN` y `EMPLEADO`. El Empleado ve Panel, Turnos y Stock; no accede a `/servicios/*` ni `/usuarios/*` (redirige a `/`).
-- Contraseña mínima de 10 caracteres (máximo 128).
+- Contraseña: mínimo 5 y máximo 128 caracteres, sin reglas de composición (cambio posterior pedido por el usuario; el plan original decía 10 y su código de ejemplo no se actualizó).
 - El login se identifica por **nombre de usuario** (campo `usuario`, único): en minúsculas, 3–60 caracteres, solo letras, números y `. _ @ -`, empezando por letra o número. Un email sigue siendo un usuario válido.
 - Error de login genérico: "Usuario o contraseña incorrectos" (usuario inexistente, clave errónea o usuario inactivo).
 - Nadie puede desactivarse ni cambiarse el rol a sí mismo; tiene que quedar siempre al menos un ADMIN activo.

@@ -22,11 +22,17 @@ describe("loginSchema", () => {
 });
 
 describe("passwordSchema", () => {
-  it("exige entre 10 y 128 caracteres", () => {
-    expect(passwordSchema.safeParse("a".repeat(9)).success).toBe(false);
-    expect(passwordSchema.safeParse("a".repeat(10)).success).toBe(true);
+  it("exige entre 5 y 128 caracteres", () => {
+    expect(passwordSchema.safeParse("a".repeat(4)).success).toBe(false);
+    expect(passwordSchema.safeParse("a".repeat(5)).success).toBe(true);
     expect(passwordSchema.safeParse("a".repeat(128)).success).toBe(true);
     expect(passwordSchema.safeParse("a".repeat(129)).success).toBe(false);
+  });
+
+  it("acepta cualquier contenido: no exige mayúsculas, números ni símbolos", () => {
+    for (const clave of ["aaaaa", "12345", "ABCDE", "     ", "ñandú", "!!!!!", "admin.demo"]) {
+      expect(passwordSchema.safeParse(clave).success).toBe(true);
+    }
   });
 
   it("conserva los espacios del borde", () => {
@@ -49,7 +55,7 @@ describe("crearUsuarioSchema", () => {
   });
 
   it("marca el campo password cuando es corta", () => {
-    const r = crearUsuarioSchema.safeParse({ ...valido, password: "corta" });
+    const r = crearUsuarioSchema.safeParse({ ...valido, password: "abcd" });
     expect(r.success).toBe(false);
     expect(r.error?.issues[0].path).toEqual(["password"]);
   });
@@ -63,7 +69,7 @@ describe("rolSchema / resetPasswordSchema", () => {
   });
 
   it("resetPasswordSchema aplica las mismas reglas de contraseña", () => {
-    expect(resetPasswordSchema.safeParse({ password: "corta" }).success).toBe(false);
-    expect(resetPasswordSchema.safeParse({ password: "una-clave-larga" }).success).toBe(true);
+    expect(resetPasswordSchema.safeParse({ password: "abcd" }).success).toBe(false);
+    expect(resetPasswordSchema.safeParse({ password: "abcde" }).success).toBe(true);
   });
 });

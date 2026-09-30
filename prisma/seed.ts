@@ -145,7 +145,7 @@ async function sembrarAdmin() {
     console.warn("No hay usuarios y faltan ADMIN_USUARIO / ADMIN_PASSWORD en .env: no se creó ningún administrador.");
     return;
   }
-  if (ADMIN_PASSWORD.length < 10) throw new Error("ADMIN_PASSWORD debe tener al menos 10 caracteres.");
+  if (ADMIN_PASSWORD.length < 5) throw new Error("ADMIN_PASSWORD debe tener al menos 5 caracteres.");
 
   const usuario = ADMIN_USUARIO.trim().toLowerCase();
   await db.usuario.create({
