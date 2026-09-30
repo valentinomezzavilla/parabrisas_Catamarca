@@ -22,7 +22,7 @@ Descartados: sesiones en tabla (más piezas de las que un local necesita) y JWT 
 
 Nuevo modelo Prisma `Usuario`, tabla `usuarios`:
 
-- `id`, `email` (único, en minúsculas), `nombre`
+- `id`, `usuario` (único; nombre de usuario en minúsculas, 3–60 caracteres, solo letras, números y `. _ @ -`; un email también sirve), `nombre`
 - `passwordHash` (formato `scrypt$<sal>$<hash>` en base64)
 - `rol`: enum `RolUsuario { ADMIN, EMPLEADO }`
 - `activo` (por defecto `true`), `ultimoAcceso` (nulo hasta el primer ingreso), `creadoEn`
@@ -34,7 +34,7 @@ Una sola migración. No se toca ninguna tabla existente.
 - Cookie `sesion`: `httpOnly`, `sameSite=lax`, `secure` en producción, `path=/`, vence en 8 h.
 - El JWT (HS256, clave `SESSION_SECRET`) contiene solo `sub` (id del usuario) y `exp`. No contiene el rol: el rol siempre se lee de la base.
 - `iniciarSesion(usuarioId)` y `cerrarSesion()` escriben y borran la cookie.
-- `verificarSesion()` (memoizada con `cache` de React): valida la firma y el vencimiento, busca al usuario y exige `activo`. Si falla, redirige a `/login` (un Server Component no puede borrar cookies: la cookie inválida se pisa en el próximo login). Devuelve `{ id, nombre, email, rol }`. Existe también `obtenerSesion()`, igual pero sin redirigir (la usa `/login`).
+- `verificarSesion()` (memoizada con `cache` de React): valida la firma y el vencimiento, busca al usuario y exige `activo`. Si falla, redirige a `/login` (un Server Component no puede borrar cookies: la cookie inválida se pisa en el próximo login). Devuelve `{ id, nombre, usuario, rol }`. Existe también `obtenerSesion()`, igual pero sin redirigir (la usa `/login`).
 - `requerirRol("ADMIN")`: llama a `verificarSesion()` y, si el rol no alcanza, redirige a `/`. Sirve igual en páginas y en Server Actions (la redirección corta la acción sin ejecutarla).
 - `SESSION_SECRET` es obligatoria, mínimo 32 caracteres. Si falta o es corta, la app falla al arrancar con un mensaje claro. Se documenta en `.env.example`.
 
@@ -48,7 +48,7 @@ La lógica pura (firmar y verificar token, hashear y verificar contraseña, regl
 
 ## Pantallas
 
-- **`/login`** (grupo de rutas `(auth)`, sin barra lateral): email y contraseña. Error genérico ("Email o contraseña incorrectos") tanto si el email no existe como si la clave es errónea o el usuario está inactivo. Para no filtrar si el email existe, se verifica un hash ficticio cuando el usuario no existe. Si ya hay sesión válida, redirige a `/`. Tras iniciar sesión actualiza `ultimoAcceso`.
+- **`/login`** (grupo de rutas `(auth)`, sin barra lateral): usuario y contraseña. Error genérico ("Usuario o contraseña incorrectos") tanto si el usuario no existe como si la clave es errónea o el usuario está inactivo. Para no filtrar si el usuario existe, se verifica un hash ficticio cuando el usuario no existe. Si ya hay sesión válida, redirige a `/`. Tras iniciar sesión actualiza `ultimoAcceso`.
 - **Barra lateral:** muestra nombre y rol del usuario y un botón "Cerrar sesión". Oculta "Servicios" y "Usuarios" al `EMPLEADO`.
 - **`/usuarios`** (solo `ADMIN`): lista, alta, cambio de rol, activar/desactivar y reseteo de contraseña. Reglas:
   - Nadie puede desactivarse ni cambiarse el rol a sí mismo.
@@ -58,7 +58,7 @@ La lógica pura (firmar y verificar token, hashear y verificar contraseña, regl
 
 ## Primer administrador
 
-El seed (`prisma/seed.ts`) crea un `ADMIN` desde `ADMIN_EMAIL`, `ADMIN_PASSWORD` y opcionalmente `ADMIN_NOMBRE`, solo si no existe ningún usuario. Si faltan las variables y no hay usuarios, avisa por consola y no crea nada.
+El seed (`prisma/seed.ts`) crea un `ADMIN` desde `ADMIN_USUARIO`, `ADMIN_PASSWORD` y opcionalmente `ADMIN_NOMBRE`, solo si no existe ningún usuario. Si faltan las variables y no hay usuarios, avisa por consola y no crea nada.
 
 ## Código nuevo y tocado
 

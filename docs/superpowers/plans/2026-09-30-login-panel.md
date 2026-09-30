@@ -18,8 +18,9 @@
 - Cookie `sesion`: `httpOnly`, `sameSite=lax`, `secure` solo en producción, `path=/`, vence en 8 h. JWT `HS256` con `sub` (id de usuario) y `exp`; **no** lleva el rol.
 - `SESSION_SECRET` obligatoria, mínimo 32 caracteres; si falta o es corta, falla con mensaje claro.
 - Roles: `ADMIN` y `EMPLEADO`. El Empleado ve Panel, Turnos y Stock; no accede a `/servicios/*` ni `/usuarios/*` (redirige a `/`).
-- Contraseña mínima de 10 caracteres (máximo 128). Email siempre en minúsculas y sin espacios.
-- Error de login genérico: "Email o contraseña incorrectos" (email inexistente, clave errónea o usuario inactivo).
+- Contraseña mínima de 10 caracteres (máximo 128).
+- El login se identifica por **nombre de usuario** (campo `usuario`, único): en minúsculas, 3–60 caracteres, solo letras, números y `. _ @ -`, empezando por letra o número. Un email sigue siendo un usuario válido.
+- Error de login genérico: "Usuario o contraseña incorrectos" (usuario inexistente, clave errónea o usuario inactivo).
 - Nadie puede desactivarse ni cambiarse el rol a sí mismo; tiene que quedar siempre al menos un ADMIN activo.
 - Rutas públicas: `/login`, `/reservar` (y subrutas), `/_next`, `/brand` y archivos estáticos. `/reservar` no se toca.
 - Todo el texto de interfaz en español rioplatense (voseo: "Ingresá", "Revisá"), como el resto de la app.
@@ -31,7 +32,7 @@
 
 Entradas o condiciones que el spec implica pero que ninguna tarea prueba "de casualidad"; cada una tiene su test o verificación en la tarea indicada.
 
-1. **Email con mayúsculas y espacios** (`"  Admin@Local.COM "`) debe entrar igual que `admin@local.com` → Task 4 (`schemas.test.ts`).
+1. **Usuario con mayúsculas y espacios** (`"  Admin.Demo "`) debe entrar igual que `admin.demo`; usuarios con espacios internos, tildes o demasiado cortos se rechazan → Task 4 (`schemas.test.ts`).
 2. **Token alterado, vencido, firmado con otra clave o con `alg: none`** debe tratarse como "sin sesión" y nunca lanzar → Task 3 (`token.test.ts`).
 3. **Contraseñas con `$`, tildes/ñ, espacios al borde o de más de 128 caracteres:** el hash y la verificación funcionan; el schema rechaza las largas y no recorta espacios → Task 2 y Task 4.
 4. **Último administrador / autodesactivación / autodegradación:** no se puede dejar al sistema sin Admin ni que alguien se saque el rol → Task 5 (`reglas.test.ts`).
@@ -67,7 +68,7 @@ Limitación conocida (fuera de alcance, ya anotada en el spec): resetear una con
 - Modify (local, no se commitea): `.env`
 
 **Interfaces:**
-- Produces: paquete `jose` instalado; `SESSION_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NOMBRE` documentadas en `.env.example`; una base Postgres accesible con las migraciones existentes aplicadas.
+- Produces: paquete `jose` instalado; `SESSION_SECRET`, `ADMIN_USUARIO`, `ADMIN_PASSWORD`, `ADMIN_NOMBRE` documentadas en `.env.example`; una base Postgres accesible con las migraciones existentes aplicadas.
 
 - [ ] **Step 1: Instalar `jose`**
 
@@ -88,7 +89,7 @@ SESSION_SECRET=""
 
 # Primer administrador. Solo los usa `npm run db:seed`, y solo si todavía no hay usuarios.
 # Después del primer seed se pueden borrar de este archivo.
-ADMIN_EMAIL=""
+ADMIN_USUARIO=""
 ADMIN_PASSWORD=""
 ADMIN_NOMBRE="Administrador"
 ```
@@ -103,10 +104,10 @@ Expected: imprime la URL de conexión (`postgres://…`). Copiarla a `DATABASE_U
 Run:
 
 ```bash
-node -e "const c=require('crypto');const fs=require('fs');const add='\nSESSION_SECRET=\"'+c.randomBytes(32).toString('base64url')+'\"\nADMIN_EMAIL=\"admin@parabrisascatamarca.local\"\nADMIN_PASSWORD=\"'+c.randomBytes(12).toString('base64url')+'\"\nADMIN_NOMBRE=\"Administrador\"\n';fs.appendFileSync('.env',add)"
+node -e "const c=require('crypto');const fs=require('fs');const add='\nSESSION_SECRET=\"'+c.randomBytes(32).toString('base64url')+'\"\nADMIN_USUARIO=\"admin.demo\"\nADMIN_PASSWORD=\"admin.demo\"\nADMIN_NOMBRE=\"Administrador\"\n';fs.appendFileSync('.env',add)"
 ```
 
-Expected: `.env` tiene las cuatro variables nuevas. Leer `ADMIN_PASSWORD` de `.env`: hay que dárselo al usuario al final (Task 11).
+Expected: `.env` tiene las cuatro variables nuevas. El Admin inicial (`admin.demo` / `admin.demo`) lo pidió el usuario; hay que advertirle al final que la clave es fácil de adivinar y que la cambie desde Usuarios → Nueva contraseña antes de publicar el panel.
 
 - [ ] **Step 5: Aplicar las migraciones existentes y verificar la conexión**
 
@@ -246,7 +247,7 @@ export async function verificarPassword(password: string, almacenado: string): P
 let ficticio: Promise<string> | undefined;
 
 /**
- * Hash válido de una clave al azar. Se verifica contra él cuando el email no existe,
+ * Hash válido de una clave al azar. Se verifica contra él cuando el usuario no existe,
  * para que el login tarde lo mismo y no revele qué cuentas existen.
  */
 export function hashFicticio(): Promise<string> {
@@ -428,8 +429,8 @@ git commit -m "feat: token de sesion firmado con jose" -m "Co-Authored-By: Claud
 - Produces (`schemas.ts`):
   - `rolSchema` (`z.enum(["ADMIN", "EMPLEADO"])`)
   - `passwordSchema` (string 10–128, sin recortar)
-  - `loginSchema` → `{ email: string (minúsculas), password: string }`
-  - `crearUsuarioSchema` → `{ nombre: string, email: string, password: string, rol: "ADMIN" | "EMPLEADO" }`; tipo `CrearUsuarioInput = z.infer<typeof crearUsuarioSchema>`
+  - `loginSchema` → `{ usuario: string (minúsculas), password: string }`
+  - `crearUsuarioSchema` → `{ nombre: string, usuario: string, password: string, rol: "ADMIN" | "EMPLEADO" }`; tipo `CrearUsuarioInput = z.infer<typeof crearUsuarioSchema>`
   - `resetPasswordSchema` → `{ password: string }`
 - Produces (`rutas.ts`): `esRutaPublica(ruta: string): boolean`
 
@@ -442,19 +443,22 @@ import { describe, expect, it } from "vitest";
 import { crearUsuarioSchema, loginSchema, passwordSchema, resetPasswordSchema, rolSchema } from "./schemas";
 
 describe("loginSchema", () => {
-  it("normaliza el email: sin espacios y en minúsculas", () => {
-    const r = loginSchema.parse({ email: "  Admin@Local.COM ", password: "x" });
-    expect(r.email).toBe("admin@local.com");
+  it("normaliza el usuario: sin espacios y en minúsculas", () => {
+    const r = loginSchema.parse({ usuario: "  Admin.Demo ", password: "x" });
+    expect(r.usuario).toBe("admin.demo");
+    expect(loginSchema.parse({ usuario: "  Admin@Local.COM ", password: "x" }).usuario).toBe("admin@local.com");
   });
 
-  it("rechaza email inválido o faltante y contraseña vacía", () => {
-    expect(loginSchema.safeParse({ email: "no-es-un-email", password: "x" }).success).toBe(false);
-    expect(loginSchema.safeParse({ email: undefined, password: "x" }).success).toBe(false);
-    expect(loginSchema.safeParse({ email: "a@b.com", password: "" }).success).toBe(false);
+  it("rechaza usuario inválido o faltante y contraseña vacía", () => {
+    for (const malo of ["ab", "con espacios", "ñandú", "-empieza-mal", "a".repeat(61), ""]) {
+      expect(loginSchema.safeParse({ usuario: malo, password: "x" }).success).toBe(false);
+    }
+    expect(loginSchema.safeParse({ usuario: undefined, password: "x" }).success).toBe(false);
+    expect(loginSchema.safeParse({ usuario: "admin.demo", password: "" }).success).toBe(false);
   });
 
   it("no recorta la contraseña", () => {
-    expect(loginSchema.parse({ email: "a@b.com", password: "  hola  " }).password).toBe("  hola  ");
+    expect(loginSchema.parse({ usuario: "admin.demo", password: "  hola  " }).password).toBe("  hola  ");
   });
 });
 
@@ -472,12 +476,12 @@ describe("passwordSchema", () => {
 });
 
 describe("crearUsuarioSchema", () => {
-  const valido = { nombre: "  Ana Pérez ", email: " ANA@Local.com", password: "clave-larga-123", rol: "EMPLEADO" };
+  const valido = { nombre: "  Ana Pérez ", usuario: " Ana.Perez", password: "clave-larga-123", rol: "EMPLEADO" };
 
-  it("acepta un usuario válido y normaliza nombre y email", () => {
+  it("acepta un usuario válido y normaliza nombre y usuario", () => {
     const r = crearUsuarioSchema.parse(valido);
     expect(r.nombre).toBe("Ana Pérez");
-    expect(r.email).toBe("ana@local.com");
+    expect(r.usuario).toBe("ana.perez");
   });
 
   it("rechaza un rol inexistente y un nombre vacío", () => {
@@ -550,16 +554,23 @@ export const rolSchema = z.enum(["ADMIN", "EMPLEADO"]);
 /** Las contraseñas no se recortan: los espacios también cuentan. */
 export const passwordSchema = z.string().min(10).max(128);
 
-const emailSchema = z.string().trim().toLowerCase().pipe(z.email());
+/** Nombre de usuario para el login: minúsculas, 3–60 caracteres, letras, números y . _ @ - (un email también sirve). */
+const usuarioSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(3)
+  .max(60)
+  .regex(/^[a-z0-9][a-z0-9._@-]*$/, "Usar solo letras, números y . _ @ -, sin espacios");
 
 export const loginSchema = z.object({
-  email: emailSchema,
+  usuario: usuarioSchema,
   password: z.string().min(1).max(128),
 });
 
 export const crearUsuarioSchema = z.object({
   nombre: z.string().trim().min(1).max(80),
-  email: emailSchema,
+  usuario: usuarioSchema,
   password: passwordSchema,
   rol: rolSchema,
 });
@@ -760,12 +771,12 @@ git commit -m "feat: reglas de roles y cambios permitidos de usuarios" -m "Co-Au
 **Interfaces:**
 - Consumes: `hashearPassword`, `verificarPassword`, `hashFicticio` (Task 2); `motivoDeRechazo`, `Rol`, `Cambio` (Task 5); `CrearUsuarioInput` (Task 4).
 - Produces (`usuario.service.ts`):
-  - `interface UsuarioSesion { id: string; nombre: string; email: string; rol: Rol }`
+  - `interface UsuarioSesion { id: string; nombre: string; usuario: string; rol: Rol }`
   - `class CambioNoPermitidoError extends Error`
-  - `autenticar(email: string, password: string): Promise<UsuarioSesion | null>`
+  - `autenticar(nombreUsuario: string, password: string): Promise<UsuarioSesion | null>`
   - `obtenerUsuarioActivo(id: string): Promise<UsuarioSesion | null>`
   - `listarUsuarios(): Promise<(UsuarioSesion & { activo: boolean; ultimoAcceso: Date | null; creadoEn: Date })[]>`
-  - `crearUsuario(datos: CrearUsuarioInput): Promise<UsuarioSesion>` (lanza el error `P2002` de Prisma si el email ya existe)
+  - `crearUsuario(datos: CrearUsuarioInput): Promise<UsuarioSesion>` (lanza el error `P2002` de Prisma si el usuario ya existe)
   - `cambiarRol(actor: { id: string }, id: string, rol: Rol): Promise<void>` y `cambiarActivo(actor: { id: string }, id: string, activo: boolean): Promise<void>` (lanzan `CambioNoPermitidoError`)
   - `resetearPassword(id: string, password: string): Promise<void>` (lanza `CambioNoPermitidoError` si el usuario no existe)
 
@@ -786,7 +797,7 @@ enum RolUsuario {
 /// Persona con acceso al panel. `passwordHash` tiene el formato `scrypt$<sal>$<clave>`.
 model Usuario {
   id           String     @id @default(cuid())
-  email        String     @unique // siempre en minúsculas
+  usuario        String     @unique // siempre en minúsculas
   nombre       String
   passwordHash String     @map("password_hash")
   rol          RolUsuario @default(EMPLEADO)
@@ -814,7 +825,7 @@ import type { CrearUsuarioInput } from "./schemas";
 export interface UsuarioSesion {
   id: string;
   nombre: string;
-  email: string;
+  usuario: string;
   rol: Rol;
 }
 
@@ -826,18 +837,18 @@ export class CambioNoPermitidoError extends Error {
   }
 }
 
-const datosDeSesion = { id: true, nombre: true, email: true, rol: true } as const;
+const datosDeSesion = { id: true, nombre: true, usuario: true, rol: true } as const;
 
-/** Devuelve el usuario si email y contraseña coinciden y la cuenta está activa. */
-export async function autenticar(email: string, password: string): Promise<UsuarioSesion | null> {
-  const usuario = await db.usuario.findUnique({ where: { email } });
-  // Con un email inexistente se verifica igual contra un hash ficticio:
+/** Devuelve el usuario si el nombre de usuario y la contraseña coinciden y la cuenta está activa. */
+export async function autenticar(nombreUsuario: string, password: string): Promise<UsuarioSesion | null> {
+  const usuario = await db.usuario.findUnique({ where: { usuario: nombreUsuario } });
+  // Con un usuario inexistente se verifica igual contra un hash ficticio:
   // el tiempo de respuesta no revela qué cuentas existen.
   const coincide = await verificarPassword(password, usuario?.passwordHash ?? (await hashFicticio()));
   if (!usuario || !usuario.activo || !coincide) return null;
 
   await db.usuario.update({ where: { id: usuario.id }, data: { ultimoAcceso: new Date() } });
-  return { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol };
+  return { id: usuario.id, nombre: usuario.nombre, usuario: usuario.usuario, rol: usuario.rol };
 }
 
 /** Se consulta en cada request: desactivar a alguien o cambiarle el rol surte efecto de inmediato. */
@@ -856,7 +867,7 @@ export async function crearUsuario(datos: CrearUsuarioInput): Promise<UsuarioSes
   return db.usuario.create({
     data: {
       nombre: datos.nombre,
-      email: datos.email,
+      usuario: datos.usuario,
       rol: datos.rol,
       passwordHash: await hashearPassword(datos.password),
     },
@@ -912,22 +923,22 @@ Agregar esta función antes de `async function main()`:
 async function sembrarAdmin() {
   if ((await db.usuario.count()) > 0) return; // ya hay usuarios: no se toca nada
 
-  const { ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NOMBRE } = process.env;
-  if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
-    console.warn("No hay usuarios y faltan ADMIN_EMAIL / ADMIN_PASSWORD en .env: no se creó ningún administrador.");
+  const { ADMIN_USUARIO, ADMIN_PASSWORD, ADMIN_NOMBRE } = process.env;
+  if (!ADMIN_USUARIO || !ADMIN_PASSWORD) {
+    console.warn("No hay usuarios y faltan ADMIN_USUARIO / ADMIN_PASSWORD en .env: no se creó ningún administrador.");
     return;
   }
   if (ADMIN_PASSWORD.length < 10) throw new Error("ADMIN_PASSWORD debe tener al menos 10 caracteres.");
 
   await db.usuario.create({
     data: {
-      email: ADMIN_EMAIL.trim().toLowerCase(),
+      usuario: ADMIN_USUARIO.trim().toLowerCase(),
       nombre: ADMIN_NOMBRE?.trim() || "Administrador",
       passwordHash: await hashearPassword(ADMIN_PASSWORD),
       rol: "ADMIN",
     },
   });
-  console.log(`Administrador creado: ${ADMIN_EMAIL.trim().toLowerCase()}`);
+  console.log(`Administrador creado: ${ADMIN_USUARIO.trim().toLowerCase()}`);
 }
 ```
 
@@ -1092,12 +1103,12 @@ import { autenticar } from "@/modules/usuarios/usuario.service";
 
 export async function iniciarSesionAccion(_previo: EstadoFormulario, fd: FormData): Promise<EstadoFormulario> {
   const password = fd.get("password");
-  const datos = loginSchema.safeParse({ email: texto(fd, "email"), password: typeof password === "string" ? password : "" });
+  const datos = loginSchema.safeParse({ usuario: texto(fd, "usuario"), password: typeof password === "string" ? password : "" });
   if (!datos.success) return fallo(erroresDeZod(datos.error));
 
-  const usuario = await autenticar(datos.data.email, datos.data.password);
-  // Mismo mensaje para email inexistente, clave incorrecta y cuenta inactiva.
-  if (!usuario) return { ok: false, mensaje: "Email o contraseña incorrectos" };
+  const usuario = await autenticar(datos.data.usuario, datos.data.password);
+  // Mismo mensaje para usuario inexistente, clave incorrecta y cuenta inactiva.
+  if (!usuario) return { ok: false, mensaje: "Usuario o contraseña incorrectos" };
 
   await iniciarSesion(usuario.id);
   redirect("/");
@@ -1151,8 +1162,8 @@ export function FormularioLogin() {
         </p>
       )}
 
-      <Campo etiqueta="Email" htmlFor="email" error={error("email")}>
-        <input id="email" name="email" type="email" autoComplete="username" autoFocus required className={input} aria-invalid={!!error("email")} />
+      <Campo etiqueta="Usuario" htmlFor="usuario" error={error("usuario")}>
+        <input id="usuario" name="usuario" type="text" autoCapitalize="none" spellCheck={false} autoComplete="username" autoFocus required className={input} aria-invalid={!!error("usuario")} />
       </Campo>
 
       <Campo etiqueta="Contraseña" htmlFor="password" error={error("password")}>
@@ -1494,7 +1505,7 @@ export async function crearUsuarioAccion(_previo: EstadoFormulario, fd: FormData
   await requerirRol("ADMIN");
   const datos = crearUsuarioSchema.safeParse({
     nombre: texto(fd, "nombre"),
-    email: texto(fd, "email"),
+    usuario: texto(fd, "usuario"),
     password: clave(fd, "password"),
     rol: texto(fd, "rol"),
   });
@@ -1503,7 +1514,7 @@ export async function crearUsuarioAccion(_previo: EstadoFormulario, fd: FormData
   try {
     await crearUsuario(datos.data);
   } catch (e) {
-    if (esDuplicado(e)) return fallo({ email: "Ya existe un usuario con ese email" });
+    if (esDuplicado(e)) return fallo({ usuario: "Ese nombre de usuario ya está en uso" });
     throw e;
   }
 
@@ -1695,8 +1706,8 @@ export function FormularioUsuario() {
         <input id="nombre" name="nombre" autoComplete="off" className={input} aria-invalid={!!error("nombre")} />
       </Campo>
 
-      <Campo etiqueta="Email" htmlFor="email" error={error("email")}>
-        <input id="email" name="email" type="email" autoComplete="off" className={input} aria-invalid={!!error("email")} />
+      <Campo etiqueta="Usuario" htmlFor="usuario" error={error("usuario")}>
+        <input id="usuario" name="usuario" type="text" autoCapitalize="none" spellCheck={false} autoComplete="off" className={input} aria-invalid={!!error("usuario")} />
       </Campo>
 
       <Campo etiqueta="Contraseña" htmlFor="password" error={error("password")} ayuda="Mínimo 10 caracteres. Se la pasás vos a la persona.">
@@ -1796,7 +1807,7 @@ export default async function PaginaUsuarios({ searchParams }: { searchParams: P
                 <Insignia tono={u.rol === "ADMIN" ? "marca" : "neutro"}>{u.rol === "ADMIN" ? "Admin" : "Empleado"}</Insignia>
                 {!u.activo && <Insignia tono="peligro">Desactivado</Insignia>}
               </p>
-              <p className="text-sm text-texto-suave">{u.email}</p>
+              <p className="text-sm text-texto-suave">{u.usuario}</p>
               <p className="text-xs text-texto-suave">
                 {u.ultimoAcceso ? `Último acceso: ${fechaHora(u.ultimoAcceso)}` : "Todavía no ingresó"}
               </p>
@@ -1844,7 +1855,7 @@ En "Puesta en marcha", reemplazar el bloque de comandos y las líneas siguientes
 ````markdown
 ```bash
 npm install
-cp .env.example .env          # completar DATABASE_URL, SESSION_SECRET, ADMIN_EMAIL y ADMIN_PASSWORD
+cp .env.example .env          # completar DATABASE_URL, SESSION_SECRET, ADMIN_USUARIO y ADMIN_PASSWORD
 npx prisma migrate deploy     # crea las tablas
 npm run db:seed               # catálogos, servicios y el primer administrador
 npm run dev                   # http://localhost:3000
@@ -1857,7 +1868,7 @@ Si no tenés un Postgres a mano, `npx prisma dev --name local --detach` levanta 
 
 ## Acceso al panel
 
-El seed crea un administrador con `ADMIN_EMAIL` y `ADMIN_PASSWORD` del `.env` (solo si todavía no hay usuarios). Después del primer seed podés borrar `ADMIN_PASSWORD` del `.env` y crear el resto de los usuarios desde **Usuarios** en el panel.
+El seed crea un administrador con `ADMIN_USUARIO` y `ADMIN_PASSWORD` del `.env` (solo si todavía no hay usuarios). Después del primer seed podés borrar `ADMIN_PASSWORD` del `.env` y crear el resto de los usuarios desde **Usuarios** en el panel.
 
 | Rol | Puede |
 |---|---|
@@ -1880,7 +1891,7 @@ c) Antes de "## Identidad visual", agregar la sección:
 ```markdown
 ## Acceso y sesión
 
-Tabla `usuarios`: `email` (único, minúsculas), `nombre`, `password_hash` (`scrypt$sal$clave`), `rol` (`ADMIN` | `EMPLEADO`), `activo`, `ultimo_acceso`.
+Tabla `usuarios`: `usuario` (único, minúsculas), `nombre`, `password_hash` (`scrypt$sal$clave`), `rol` (`ADMIN` | `EMPLEADO`), `activo`, `ultimo_acceso`.
 
 La cookie `sesion` (httpOnly, sameSite=lax, 8 h) guarda un JWT firmado con `SESSION_SECRET` que solo contiene el id del usuario. En **cada request** se vuelve a leer al usuario en la base: desactivarlo o cambiarle el rol surte efecto de inmediato.
 
@@ -1928,14 +1939,14 @@ Expected: las seis rutas del panel devuelven `307` con `redirect_url` terminando
 - [ ] **Step 6: Verificación manual en el navegador (Claude in Chrome, o el usuario)**
 
 Checklist (marcar cada uno):
-1. `/login` con clave incorrecta → "Email o contraseña incorrectos"; con email mal escrito (sin @) → "Email inválido".
-2. Login con el Admin (email y `ADMIN_PASSWORD` del `.env`, con el email en MAYÚSCULAS para probar la normalización) → entra al Panel; la barra lateral muestra nombre, "Administrador", "Servicios", "Usuarios" y "Salir".
+1. `/login` con clave incorrecta → "Usuario o contraseña incorrectos"; con un usuario de 2 letras → "Debe tener al menos 3 caracteres".
+2. Login con el Admin (`admin.demo` / `admin.demo`, escribiendo el usuario en MAYÚSCULAS para probar la normalización) → entra al Panel; la barra lateral muestra nombre, "Administrador", "Servicios", "Usuarios" y "Salir".
 3. `/usuarios` → lista con "Vos" y "Admin"; los botones "Pasar a Empleado" y "Desactivar" **no aparecen** en la propia fila.
-4. Crear un Empleado (`empleado@parabrisascatamarca.local`, clave de 10+ caracteres): aparece en la lista. Crear otro con el mismo email → "Ya existe un usuario con ese email". Clave de 5 caracteres → "Debe tener al menos 10 caracteres".
+4. Crear un Empleado (usuario `empleado1`, clave de 10+ caracteres): aparece en la lista. Crear otro con el mismo usuario → "Ese nombre de usuario ya está en uso". Clave de 5 caracteres → "Debe tener al menos 10 caracteres".
 5. Nueva contraseña para el Empleado con 5 caracteres → error; con 10+ → "Contraseña actualizada." y el campo se vacía.
 6. "Salir" → vuelve a `/login`; `/` redirige a `/login`.
 7. Login como Empleado → la barra **no** muestra Servicios ni Usuarios; navegar a `/servicios`, `/servicios/nuevo` y `/usuarios` a mano → vuelve a `/`. Stock y Turnos funcionan (crear un movimiento de stock).
-8. **Corte inmediato:** con el Empleado logueado en una pestaña, desde el Admin (otra ventana/perfil) desactivarlo. En la pestaña del Empleado, recargar cualquier página → redirige a `/login`; intentar loguearse de nuevo → "Email o contraseña incorrectos".
+8. **Corte inmediato:** con el Empleado logueado en una pestaña, desde el Admin (otra ventana/perfil) desactivarlo. En la pestaña del Empleado, recargar cualquier página → redirige a `/login`; intentar loguearse de nuevo → "Usuario o contraseña incorrectos".
 9. Desde el Admin, intentar degradarse o desactivarse: no hay botones; no se puede dejar sin Admin (con un solo Admin activo, degradar/desactivar a otro Admin no existe todavía; crear un segundo Admin, degradarlo y volver a probar que siempre queda uno).
 10. `/reservar` sigue abierta sin sesión y permite completar una reserva.
 
