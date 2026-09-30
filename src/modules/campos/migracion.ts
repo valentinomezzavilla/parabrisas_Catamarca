@@ -1,4 +1,4 @@
-import { claveUnica } from "./clave";
+import { claveUnica, generarClave } from "./clave";
 import { crearOpciones, generarIdOpcion, type GeneradorId } from "./opciones";
 import type { Extras, OpcionCampo, TipoCampo, ValorExtra } from "./tipos";
 
@@ -18,7 +18,16 @@ export interface ValorAntiguo {
   valor: string;
 }
 
+/** Campo propio que ya está creado (p. ej. por el seed, que corrió antes que la migración). */
+export interface CampoExistente {
+  clave: string;
+  tipo: TipoCampo;
+  opciones: OpcionCampo[];
+}
+
 export interface CampoMigrado {
+  /** `true` si ya existía: no se crea de nuevo; solo se actualizan sus opciones si cambiaron. */
+  existente: boolean;
   idAntiguo: string;
   clave: string;
   etiqueta: string;
@@ -64,14 +73,31 @@ export function convertirCaracteristicas(
   valores: ValorAntiguo[],
   clavesOcupadas: string[],
   generarId: GeneradorId = generarIdOpcion,
+  existentes: CampoExistente[] = [],
 ): { campos: CampoMigrado[]; extrasPorCristal: Record<string, Extras> } {
-  const ocupadas = new Set(clavesOcupadas);
+  const ocupadas = new Set([...clavesOcupadas, ...existentes.map((e) => e.clave)]);
   const ordenadas = [...caracteristicas].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 
   const campos = ordenadas.map((c, i): CampoMigrado => {
+    const tipo = TIPO[c.tipoDato];
+    // Si el seed ya creó este campo (misma clave y tipo), se reutiliza y solo se le copian los valores.
+    const previo = existentes.find((e) => e.clave === generarClave(c.nombre) && e.tipo === tipo);
+    if (previo) {
+      return {
+        existente: true,
+        idAntiguo: c.id,
+        clave: previo.clave,
+        etiqueta: c.nombre.trim(),
+        tipo,
+        unidad: c.tipoDato === "NUMERO" ? c.unidad : null,
+        opciones: previo.opciones.map((o) => ({ ...o })),
+        orden: (i + 1) * 10,
+      };
+    }
     const clave = claveUnica(c.nombre, ocupadas);
     ocupadas.add(clave);
     return {
+      existente: false,
       idAntiguo: c.id,
       clave,
       etiqueta: c.nombre.trim(),

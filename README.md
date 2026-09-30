@@ -36,6 +36,16 @@ El seed crea un administrador con `ADMIN_USUARIO` y `ADMIN_PASSWORD` del `.env` 
 
 Con el rol Administrador, el menú **Administración** permite ver el tipo de cada campo de Stock, renombrarlo, ocultarlo, reordenarlo, sumar campos propios y administrar las listas (marcas, tipos, ubicaciones, vehículos). Los campos que el sistema necesita para funcionar (código, marca, cantidad…) se pueden renombrar pero no ocultar ni borrar.
 
+### Si actualizás una base que ya tenía características
+
+La versión anterior guardaba atributos extra en las tablas `caracteristicas` y `cristal_caracteristicas`; ahora son campos propios. Para no perder datos, en este orden:
+
+1. `npx prisma migrate deploy`: aplica la migración de campos. La migración que **elimina** las tablas viejas frena con el mensaje "Corré primero: npm run db:migrar-caracteristicas".
+2. `npm run db:migrar-caracteristicas`: copia las características y sus valores. Se puede correr las veces que haga falta y en cualquier orden respecto de `npm run db:seed` (reutiliza los campos que ya existan y no pisa valores).
+3. Si el paso 1 frenó: `npx prisma migrate resolve --rolled-back 20260930140000_eliminar_caracteristicas` y de nuevo `npx prisma migrate deploy`.
+
+En una base nueva no hace falta nada de esto.
+
 ## Scripts
 
 | Comando | Qué hace |

@@ -91,3 +91,60 @@ describe("convertirCaracteristicas: valores", () => {
     expect(convertirCaracteristicas([], [val("c1", "fantasma", "x")], [], ids()).extrasPorCristal).toEqual({});
   });
 });
+
+describe("convertirCaracteristicas: campos que ya existen (el seed corrió antes que la migración)", () => {
+  const existente = (clave: string, tipo: "SI_NO" | "LISTA" | "TEXTO", opciones: { id: string; etiqueta: string; activo: boolean }[] = []) => ({ clave, tipo, opciones });
+  const verdeGris = [
+    { id: "x1", etiqueta: "Verde", activo: true },
+    { id: "x2", etiqueta: "Gris", activo: true },
+  ];
+
+  it("reutiliza un campo existente con la misma clave y tipo, en lugar de crear uno con sufijo", () => {
+    const { campos } = convertirCaracteristicas([car("b", "Antena", "BOOLEANO")], [], [], ids(), [existente("antena", "SI_NO")]);
+    expect(campos).toHaveLength(1);
+    expect(campos[0]).toMatchObject({ clave: "antena", existente: true });
+  });
+
+  it("copia los valores al campo existente; una lista usa los ids de las opciones que ya tiene", () => {
+    const { campos, extrasPorCristal } = convertirCaracteristicas(
+      [car("o", "Tono", "OPCION", { opciones: ["Verde", "Gris"] }), car("b", "Antena", "BOOLEANO")],
+      [val("c1", "o", "Gris"), val("c1", "b", "true")],
+      [],
+      ids(),
+      [existente("tono", "LISTA", verdeGris), existente("antena", "SI_NO")],
+    );
+    expect(extrasPorCristal.c1).toEqual({ tono: "x2", antena: true });
+    expect(campos.find((c) => c.clave === "tono")?.opciones).toEqual(verdeGris);
+  });
+
+  it("una etiqueta que el campo existente no tiene se agrega como opción inactiva y no se pierde el dato", () => {
+    const { campos, extrasPorCristal } = convertirCaracteristicas(
+      [car("o", "Tono", "OPCION", { opciones: ["Verde"] })],
+      [val("c1", "o", "Bronce")],
+      [],
+      ids(),
+      [existente("tono", "LISTA", verdeGris)],
+    );
+    const tono = campos[0];
+    expect(tono.opciones).toHaveLength(3);
+    const bronce = tono.opciones.find((o) => o.etiqueta === "Bronce");
+    expect(bronce).toMatchObject({ activo: false });
+    expect(extrasPorCristal.c1).toEqual({ tono: bronce!.id });
+  });
+
+  it("no modifica las opciones del campo existente que recibió", () => {
+    const original = verdeGris.map((o) => ({ ...o }));
+    convertirCaracteristicas([car("o", "Tono", "OPCION", { opciones: [] })], [val("c1", "o", "Nueva")], [], ids(), [existente("tono", "LISTA", original)]);
+    expect(original).toEqual(verdeGris);
+  });
+
+  it("si el campo existente es de otro tipo, crea uno nuevo con sufijo y no lo pisa", () => {
+    const { campos } = convertirCaracteristicas([car("b", "Antena", "BOOLEANO")], [], [], ids(), [existente("antena", "TEXTO")]);
+    expect(campos[0]).toMatchObject({ clave: "antena_2", existente: false });
+  });
+
+  it("sin campos existentes todos se crean nuevos (comportamiento anterior)", () => {
+    const { campos } = convertirCaracteristicas([car("b", "Antena", "BOOLEANO")], [], [], ids());
+    expect(campos[0]).toMatchObject({ clave: "antena", existente: false });
+  });
+});
