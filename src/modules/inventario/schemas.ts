@@ -15,34 +15,41 @@ export const compatibilidadSchema = z
     path: ["anioHasta"],
   });
 
-export const valorCaracteristicaSchema = z.object({
-  caracteristicaId: z.string().min(1),
-  valor: z.string().trim().min(1),
-});
-
-export const crearCristalSchema = z.object({
+/** Campos de un cristal SIN valores por defecto: sirve de base para alta y edición. */
+const camposCristal = {
   codigo: z.string().trim().min(1).max(40).toUpperCase(),
   codigoFabricante: z.string().trim().max(40).optional(),
   descripcion: z.string().trim().min(3).max(200),
   marcaId: z.string().min(1),
   tipoId: z.string().min(1),
   ubicacionId: z.string().min(1),
-  lado: z.enum(["NO_APLICA", "IZQUIERDO", "DERECHO"]).default("NO_APLICA"),
+  lado: z.enum(["NO_APLICA", "IZQUIERDO", "DERECHO"]),
   anchoMm: z.number().int().positive().optional(),
   altoMm: z.number().int().positive().optional(),
   espesorMm: z.number().positive().max(99).optional(),
-  cantidadInicial: z.number().int().min(0).default(0),
-  stockMinimo: z.number().int().min(0).default(0),
+  stockMinimo: z.number().int().min(0),
   ubicacionDeposito: z.string().trim().max(40).optional(),
   costo: z.number().min(0).optional(),
   precioVenta: z.number().min(0).optional(),
-  caracteristicas: z.array(valorCaracteristicaSchema).default([]),
-  compatibilidades: z.array(compatibilidadSchema).default([]),
+  compatibilidades: z.array(compatibilidadSchema),
+  /** Valores del formulario de los campos propios (`extra_<clave>`); el servicio los valida con la definición de cada campo. */
+  extrasEntrada: z.record(z.string(), z.unknown()),
+};
+
+export const crearCristalSchema = z.object({
+  ...camposCristal,
+  lado: camposCristal.lado.default("NO_APLICA"),
+  cantidadInicial: z.number().int().min(0).default(0),
+  stockMinimo: camposCristal.stockMinimo.default(0),
+  compatibilidades: camposCristal.compatibilidades.default([]),
+  extrasEntrada: camposCristal.extrasEntrada.default({}),
 });
 
-export const actualizarCristalSchema = crearCristalSchema
-  .omit({ cantidadInicial: true }) // el stock solo cambia con movimientos
-  .partial();
+/**
+ * Edición: todo opcional y SIN valores por defecto (Zod 4 los aplica aun dentro de `.partial()`).
+ * Un campo oculto o ausente no viaja en el formulario y no debe pisar lo que ya está guardado.
+ */
+export const actualizarCristalSchema = z.object(camposCristal).partial();
 
 export const movimientoStockSchema = z
   .object({

@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Pencil } from "lucide-react";
-import { Aviso, boton, EncabezadoPagina, Insignia, tarjeta } from "@/components/ui";
+import { Aviso, boton, EncabezadoPagina, tarjeta } from "@/components/ui";
 import { BotonConfirmar, BotonEnviar } from "@/components/ui/cliente";
 import { medidas, NOMBRE_LADO, pesos } from "@/lib/formato";
 import { ZONA_HORARIA } from "@/lib/tiempo";
+import { obtenerCampos } from "@/modules/campos/campo.service";
+import { formatearValor } from "@/modules/campos/extras";
+import type { Extras } from "@/modules/campos/tipos";
 import { obtenerCristal } from "@/modules/inventario/cristal.service";
 import { alternarCristal } from "../acciones";
 import { FormularioMovimiento } from "./FormularioMovimiento";
@@ -33,13 +36,17 @@ export default async function PaginaCristal({
 }) {
   await verificarSesion();
   const [{ id }, { aviso }] = await Promise.all([params, searchParams]);
-  const c = await obtenerCristal(id);
+  const [c, campos] = await Promise.all([obtenerCristal(id), obtenerCampos("CRISTAL")]);
   if (!c) notFound();
 
   const bajo = c.cantidad <= c.stockMinimo;
-  const caracteristicas = c.caracteristicas.map((x) =>
-    x.caracteristica.tipoDato === "BOOLEANO" ? (x.valor === "true" ? x.caracteristica.nombre : null) : `${x.caracteristica.nombre}: ${x.valor}${x.caracteristica.unidad ? ` ${x.caracteristica.unidad}` : ""}`,
-  ).filter(Boolean);
+  const campo = (clave: string) => campos.find((x) => x.clave === clave);
+  const visible = (clave: string) => campo(clave)?.visible ?? true;
+  const etiqueta = (clave: string) => campo(clave)?.etiqueta ?? clave;
+  const extras = c.extras as Extras;
+  const adicionales = campos
+    .filter((x) => x.origen === "PROPIO" && x.visible && extras[x.clave] !== undefined)
+    .map((x) => ({ clave: x.clave, etiqueta: x.etiqueta, texto: formatearValor(x, extras[x.clave]) }));
 
   return (
     <>
@@ -83,21 +90,22 @@ export default async function PaginaCristal({
 
           <section className={`${tarjeta} p-5`}>
             <dl className="grid grid-cols-2 gap-4 text-sm">
-              <Dato etiqueta="Medidas">{medidas(c.anchoMm, c.altoMm, c.espesorMm)}</Dato>
-              <Dato etiqueta="Depósito">{c.ubicacionDeposito ?? "—"}</Dato>
-              <Dato etiqueta="Costo">{pesos(c.costo)}</Dato>
-              <Dato etiqueta="Precio de venta">{pesos(c.precioVenta)}</Dato>
-              <Dato etiqueta="Código fabricante">{c.codigoFabricante ?? "—"}</Dato>
+              {(visible("anchoMm") || visible("altoMm") || visible("espesorMm")) && (
+                <Dato etiqueta="Medidas">{medidas(c.anchoMm, c.altoMm, c.espesorMm)}</Dato>
+              )}
+              {visible("ubicacionDeposito") && <Dato etiqueta={etiqueta("ubicacionDeposito")}>{c.ubicacionDeposito ?? "—"}</Dato>}
+              {visible("costo") && <Dato etiqueta={etiqueta("costo")}>{pesos(c.costo)}</Dato>}
+              {visible("precioVenta") && <Dato etiqueta={etiqueta("precioVenta")}>{pesos(c.precioVenta)}</Dato>}
+              {visible("codigoFabricante") && <Dato etiqueta={etiqueta("codigoFabricante")}>{c.codigoFabricante ?? "—"}</Dato>}
+              {adicionales.map((a) => (
+                <Dato key={a.clave} etiqueta={a.etiqueta}>{a.texto}</Dato>
+              ))}
             </dl>
-            {caracteristicas.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-1.5 border-t border-borde pt-4">
-                {caracteristicas.map((t) => <Insignia key={t}>{t}</Insignia>)}
-              </div>
-            )}
           </section>
 
+          {visible("compatibilidades") && (
           <section className={`${tarjeta} p-5`}>
-            <h2 className="mb-3 font-display font-bold">Vehículos compatibles</h2>
+            <h2 className="mb-3 font-display font-bold">{etiqueta("compatibilidades")}</h2>
             {c.compatibilidades.length === 0 ? (
               <p className="text-sm text-texto-suave">Sin vehículos cargados.</p>
             ) : (
@@ -114,6 +122,7 @@ export default async function PaginaCristal({
               </ul>
             )}
           </section>
+          )}
         </div>
 
         <div className="space-y-6">

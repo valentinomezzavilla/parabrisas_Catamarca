@@ -14,7 +14,7 @@ export default async function PaginaStock({ searchParams }: { searchParams: Prom
   const f = await searchParams;
   const anio = f.anio && /^\d{4}$/.test(f.anio) ? Number(f.anio) : undefined;
   const [catalogos, cristales] = await Promise.all([
-    obtenerCatalogos(),
+    obtenerCatalogos({ incluirInactivos: true }),
     buscarCristales({
       texto: f.texto || undefined,
       modeloId: f.modeloId || undefined,

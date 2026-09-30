@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import { erroresDeZod, esDuplicado, fallo, json, numero, texto, type EstadoFormulario } from "@/lib/formularios";
 import { verificarSesion } from "@/lib/sesion";
+import { obtenerCampos } from "@/modules/campos/campo.service";
 import {
   actualizarCristal,
   cambiarEstadoCristal,
@@ -14,14 +15,13 @@ import {
 } from "@/modules/inventario/cristal.service";
 import type { CrearCristalInput } from "@/modules/inventario/schemas";
 
-/** Características: cada campo "car_<id>" del formulario. Las casillas sin tildar no llegan. */
-function leerCaracteristicas(fd: FormData) {
-  const valores: { caracteristicaId: string; valor: string }[] = [];
+/** Campos propios: cada control `extra_<clave>` del formulario. Las casillas sin tildar no llegan. */
+function leerExtras(fd: FormData): Record<string, unknown> {
+  const extras: Record<string, unknown> = {};
   for (const [clave, valor] of fd.entries()) {
-    if (!clave.startsWith("car_") || typeof valor !== "string" || valor.trim() === "") continue;
-    valores.push({ caracteristicaId: clave.slice(4), valor: valor === "on" ? "true" : valor.trim() });
+    if (clave.startsWith("extra_") && typeof valor === "string") extras[clave] = valor;
   }
-  return valores;
+  return extras;
 }
 
 export async function guardarCristal(
@@ -30,25 +30,31 @@ export async function guardarCristal(
   fd: FormData,
 ): Promise<EstadoFormulario> {
   await verificarSesion();
+
+  // Un campo del sistema oculto no viaja en el formulario: queda sin valor al crear y sin tocar al editar.
+  const campos = await obtenerCampos("CRISTAL");
+  const visible = (clave: string) => campos.find((c) => c.clave === clave)?.visible ?? true;
+  const siVisible = <T,>(clave: string, leer: () => T): T | undefined => (visible(clave) ? leer() : undefined);
+
   // Los tipos se validan en el servicio (crearCristalSchema); acá solo se leen los campos.
   const entrada = {
     codigo: texto(fd, "codigo"),
-    codigoFabricante: texto(fd, "codigoFabricante"),
+    codigoFabricante: siVisible("codigoFabricante", () => texto(fd, "codigoFabricante")),
     descripcion: texto(fd, "descripcion"),
     marcaId: texto(fd, "marcaId"),
     tipoId: texto(fd, "tipoId"),
     ubicacionId: texto(fd, "ubicacionId"),
-    lado: texto(fd, "lado") ?? "NO_APLICA",
-    anchoMm: numero(fd, "anchoMm"),
-    altoMm: numero(fd, "altoMm"),
-    espesorMm: numero(fd, "espesorMm"),
+    lado: siVisible("lado", () => texto(fd, "lado") ?? "NO_APLICA"),
+    anchoMm: siVisible("anchoMm", () => numero(fd, "anchoMm")),
+    altoMm: siVisible("altoMm", () => numero(fd, "altoMm")),
+    espesorMm: siVisible("espesorMm", () => numero(fd, "espesorMm")),
     cantidadInicial: numero(fd, "cantidadInicial") ?? 0,
     stockMinimo: numero(fd, "stockMinimo") ?? 0,
-    ubicacionDeposito: texto(fd, "ubicacionDeposito"),
-    costo: numero(fd, "costo"),
-    precioVenta: numero(fd, "precioVenta"),
-    caracteristicas: leerCaracteristicas(fd),
-    compatibilidades: json(fd, "compatibilidades", []),
+    ubicacionDeposito: siVisible("ubicacionDeposito", () => texto(fd, "ubicacionDeposito")),
+    costo: siVisible("costo", () => numero(fd, "costo")),
+    precioVenta: siVisible("precioVenta", () => numero(fd, "precioVenta")),
+    extrasEntrada: leerExtras(fd),
+    compatibilidades: siVisible("compatibilidades", () => json(fd, "compatibilidades", [])),
   } as CrearCristalInput;
 
   let destino: string;

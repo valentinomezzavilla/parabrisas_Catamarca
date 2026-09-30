@@ -1,5 +1,8 @@
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
+import { listarCamposPropios } from "@/modules/campos/campo.service";
+import { procesarExtras } from "@/modules/campos/extras";
+import type { Extras } from "@/modules/campos/tipos";
 import {
   actualizarCristalSchema,
   busquedaCristalSchema,
@@ -21,20 +24,19 @@ const incluirDetalle = {
   marca: true,
   tipo: true,
   ubicacion: true,
-  caracteristicas: { include: { caracteristica: true } },
   compatibilidades: { include: { modelo: { include: { marca: true } } } },
 } satisfies Prisma.CristalInclude;
 
-/** Alta de un cristal con sus características, compatibilidades y stock inicial. */
+/** Alta de un cristal con sus campos propios, compatibilidades y stock inicial. */
 export async function crearCristal(input: CrearCristalInput) {
-  const { cantidadInicial, caracteristicas, compatibilidades, ...datos } =
-    crearCristalSchema.parse(input);
+  const { cantidadInicial, extrasEntrada, compatibilidades, ...datos } = crearCristalSchema.parse(input);
+  const extras = procesarExtras(await listarCamposPropios("CRISTAL"), extrasEntrada);
 
   return db.cristal.create({
     data: {
       ...datos,
+      extras,
       cantidad: cantidadInicial,
-      caracteristicas: { create: caracteristicas },
       compatibilidades: { create: compatibilidades },
       movimientos:
         cantidadInicial > 0
@@ -52,15 +54,24 @@ export async function crearCristal(input: CrearCristalInput) {
   });
 }
 
-/** Edita datos del artículo. Si se envían características o compatibilidades, reemplazan a las actuales. */
+/**
+ * Edita datos del artículo. Solo cambia lo que se envía: un campo ausente (por ejemplo, oculto
+ * desde Administración) conserva su valor. Si se envían compatibilidades, reemplazan a las actuales.
+ */
 export async function actualizarCristal(id: string, input: ActualizarCristalInput) {
-  const { caracteristicas, compatibilidades, ...datos } = actualizarCristalSchema.parse(input);
+  const { extrasEntrada, compatibilidades, ...datos } = actualizarCristalSchema.parse(input);
+
+  let extras: Extras | undefined;
+  if (extrasEntrada) {
+    const actual = await db.cristal.findUniqueOrThrow({ where: { id }, select: { extras: true } });
+    extras = procesarExtras(await listarCamposPropios("CRISTAL"), extrasEntrada, actual.extras as Extras);
+  }
 
   return db.cristal.update({
     where: { id },
     data: {
       ...datos,
-      caracteristicas: caracteristicas && { deleteMany: {}, create: caracteristicas },
+      ...(extras && { extras }),
       compatibilidades: compatibilidades && { deleteMany: {}, create: compatibilidades },
     },
     include: incluirDetalle,
@@ -164,16 +175,27 @@ export function cambiarEstadoCristal(id: string, activo: boolean) {
   return db.cristal.update({ where: { id }, data: { activo } });
 }
 
+export interface OpcionesCatalogos {
+  /** Incluye los elementos desactivados (filtros y fichas). Los formularios solo ofrecen los activos. */
+  incluirInactivos?: boolean;
+  /** Ids que se conservan aunque estén desactivados: lo que ya tiene guardado el registro que se edita. */
+  conservar?: string[];
+}
+
 /** Todo lo que necesitan los formularios y filtros de stock. */
-export async function obtenerCatalogos() {
-  const [marcas, tipos, ubicaciones, caracteristicas, marcasVehiculo] = await Promise.all([
-    db.marcaCristal.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
-    db.tipoCristal.findMany({ orderBy: { nombre: "asc" } }),
-    db.ubicacionVehiculo.findMany({ orderBy: { orden: "asc" } }),
-    db.caracteristica.findMany({ orderBy: { nombre: "asc" } }),
-    db.marcaVehiculo.findMany({ orderBy: { nombre: "asc" }, include: { modelos: { orderBy: { nombre: "asc" } } } }),
+export async function obtenerCatalogos({ incluirInactivos = false, conservar = [] }: OpcionesCatalogos = {}) {
+  const visibles = incluirInactivos ? undefined : { OR: [{ activo: true }, { id: { in: conservar } }] };
+  const [marcas, tipos, ubicaciones, marcasVehiculo] = await Promise.all([
+    db.marcaCristal.findMany({ where: visibles, orderBy: { nombre: "asc" } }),
+    db.tipoCristal.findMany({ where: visibles, orderBy: { nombre: "asc" } }),
+    db.ubicacionVehiculo.findMany({ where: visibles, orderBy: { orden: "asc" } }),
+    db.marcaVehiculo.findMany({
+      where: visibles,
+      orderBy: { nombre: "asc" },
+      include: { modelos: { where: visibles, orderBy: { nombre: "asc" } } },
+    }),
   ]);
-  return { marcas, tipos, ubicaciones, caracteristicas, marcasVehiculo };
+  return { marcas, tipos, ubicaciones, marcasVehiculo };
 }
 
 export type Catalogos = Awaited<ReturnType<typeof obtenerCatalogos>>;
