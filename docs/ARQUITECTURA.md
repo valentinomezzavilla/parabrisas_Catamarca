@@ -136,6 +136,18 @@ El logo (`public/brand/logo-amarillo.png`) usa **un único color: `#FDDD3D`**, s
 
 Regla de contraste: el amarillo del logo sobre blanco da **1.35:1**, así que nunca se usa como texto sobre fondo claro. Va como relleno con texto grafito encima, o como texto sobre grafito. Tipografía: Montserrat ExtraBold para títulos (cercana a la geométrica pesada del logo) e Inter para el cuerpo. Hay modo oscuro automático.
 
+### Componentes y adaptación a celular y tablet
+
+Los componentes compartidos están en `src/components/ui/index.tsx`: `boton`, `input`, `tarjeta`, `EncabezadoPagina` (barra amarilla junto al título), `Estadistica` (tarjeta de resumen con franja de color e icono), `ChipIcono`, `Insignia`, `Aviso` y `Vacio`. Las sombras y el resplandor amarillo del fondo oscuro son tokens en `src/app/globals.css`.
+
+| Ancho | Navegación | Listas |
+|---|---|---|
+| Celular (< 768 px) | Barra superior compacta + **barra inferior fija** (Panel, Turnos, Stock y "Más", que abre una hoja con el resto, la página pública y Salir). | Tarjetas, sin scroll horizontal. Los filtros de Stock se pliegan detrás de un botón. |
+| Tablet (768–1023 px) | **Riel de iconos** (4 rem) con el nombre en `title` y `aria-label`. | Tarjetas (la tabla necesita más ancho). |
+| Escritorio (≥ 1024 px) | Barra lateral completa, con grupos "Operación" y "Gestión". | Tablas. |
+
+El menú se define una sola vez en `src/components/layout/navegacion.ts` y lo usan `BarraLateral`, `BarraInferior` y `BarraSuperiorMovil`. Botones y campos miden 44 px de alto en celular y llevan texto de 16 px para evitar el zoom automático de iOS. Regla para grillas nuevas: en celular usar siempre `grid-cols-1` (o `minmax(0, 1fr)`); sin columnas definidas, la grilla se ensancha con su contenido y aparece scroll horizontal.
+
 ## Pantallas
 
 | Ruta | Qué hace |

@@ -54,7 +54,43 @@ export default async function PaginaCamposStock({ searchParams }: { searchParams
         </Link>
       </div>
 
-      <div className={`${tarjeta} overflow-x-auto`}>
+      {/* Celular: una tarjeta por campo, sin scroll horizontal. */}
+      <div className="space-y-5 lg:hidden">
+        {SECCIONES.map((s) => {
+          const deSeccion = campos.filter((c) => c.seccion === s.id);
+          if (deSeccion.length === 0) return null;
+          return (
+            <section key={s.id} className="space-y-2">
+              <h2 className="text-xs font-semibold tracking-widest text-texto-suave uppercase">{s.etiqueta}</h2>
+              <ul className="space-y-2">
+                {deSeccion.map((c) => (
+                  <li key={c.clave} className={`${tarjeta} space-y-3 p-4 ${c.visible ? "" : "opacity-60"}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold">{c.etiqueta}</p>
+                        <p className="mt-0.5 text-xs text-texto-suave">
+                          <Tipo c={c} />
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-1">
+                        <Insignia tono={c.origen === "PROPIO" ? "marca" : "neutro"}>{c.origen === "PROPIO" ? "Propio" : "Sistema"}</Insignia>
+                        {c.protegido && <Insignia>Protegido</Insignia>}
+                        {c.archivado ? <Insignia tono="alerta">Archivado</Insignia> : !c.visible && <Insignia tono="alerta">Oculto</Insignia>}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 border-t border-borde pt-3 text-xs text-texto-suave">
+                      <span>{c.soloLectura || c.especial ? "" : c.requerido ? "Obligatorio" : "Opcional"}</span>
+                      <AccionesFila clave={c.clave} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
+
+      <div className={`${tarjeta} hidden overflow-x-auto lg:block`}>
         <table className="w-full min-w-[860px] text-sm">
           <thead className="border-b border-borde text-left text-xs text-texto-suave uppercase">
             <tr>

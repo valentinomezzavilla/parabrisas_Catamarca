@@ -77,8 +77,8 @@ export default async function PaginaCristal({
       {aviso && AVISOS[aviso] && <Aviso>{AVISOS[aviso]}</Aviso>}
       {!c.activo && <Aviso tono="alerta">Este cristal está dado de baja: no aparece en las búsquedas.</Aviso>}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_2fr]">
-        <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+        <div className="min-w-0 space-y-6">
           <section className={`${tarjeta} p-5 text-center`}>
             <p className="text-sm text-texto-suave">Stock disponible</p>
             <p className={`font-display text-6xl font-extrabold tabular-nums ${c.cantidad === 0 ? "text-peligro" : bajo ? "text-alerta" : ""}`}>{c.cantidad}</p>
@@ -125,7 +125,7 @@ export default async function PaginaCristal({
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <section className={`${tarjeta} p-5`}>
             <h2 className="mb-4 font-display font-bold">Registrar movimiento</h2>
             <FormularioMovimiento cristalId={c.id} />

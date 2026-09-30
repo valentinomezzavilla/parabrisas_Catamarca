@@ -83,7 +83,6 @@ body {
     background:
       radial-gradient(60rem 28rem at 100% -8%, rgb(253 221 61 / 0.07), transparent 65%),
       var(--color-fondo);
-    background-attachment: fixed;
   }
 }
 
