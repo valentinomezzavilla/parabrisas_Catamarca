@@ -3,18 +3,22 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarClock, ExternalLink, LayoutDashboard, Package, Wrench } from "lucide-react";
+import { CalendarClock, ExternalLink, LayoutDashboard, LogOut, Package, UserCog, Wrench } from "lucide-react";
+import { salir } from "@/app/(auth)/login/acciones";
+import type { Rol } from "@/modules/usuarios/reglas";
 
 const secciones = [
   { href: "/", etiqueta: "Panel", Icono: LayoutDashboard },
   { href: "/turnos", etiqueta: "Turnos", Icono: CalendarClock },
   { href: "/stock", etiqueta: "Stock", Icono: Package },
-  { href: "/servicios", etiqueta: "Servicios", Icono: Wrench },
+  { href: "/servicios", etiqueta: "Servicios", Icono: Wrench, soloAdmin: true },
+  { href: "/usuarios", etiqueta: "Usuarios", Icono: UserCog, soloAdmin: true },
 ];
 
-export function BarraLateral() {
+export function BarraLateral({ usuario }: { usuario: { nombre: string; rol: Rol } }) {
   const ruta = usePathname();
   const activa = (href: string) => (href === "/" ? ruta === "/" : ruta.startsWith(href));
+  const visibles = secciones.filter((s) => !s.soloAdmin || usuario.rol === "ADMIN");
 
   return (
     <aside className="border-b border-grafito-800 bg-grafito-900 text-grafito-100 md:sticky md:top-0 md:flex md:h-dvh md:w-60 md:shrink-0 md:flex-col md:border-r md:border-b-0">
@@ -28,7 +32,7 @@ export function BarraLateral() {
       </Link>
 
       <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-1 md:flex-col md:pb-0">
-        {secciones.map(({ href, etiqueta, Icono }) => (
+        {visibles.map(({ href, etiqueta, Icono }) => (
           <Link
             key={href}
             href={href}
@@ -51,6 +55,22 @@ export function BarraLateral() {
         <ExternalLink className="size-3.5" aria-hidden />
         Página pública de turnos
       </Link>
+
+      <div className="flex items-center justify-between gap-3 border-t border-grafito-800 px-4 py-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-white">{usuario.nombre}</p>
+          <p className="text-xs text-grafito-400">{usuario.rol === "ADMIN" ? "Administrador" : "Empleado"}</p>
+        </div>
+        <form action={salir}>
+          <button
+            type="submit"
+            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-grafito-300 hover:bg-grafito-800 hover:text-white"
+          >
+            <LogOut className="size-3.5" aria-hidden />
+            Salir
+          </button>
+        </form>
+      </div>
     </aside>
   );
 }
