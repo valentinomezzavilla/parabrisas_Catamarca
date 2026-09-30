@@ -1,0 +1,296 @@
+// Parabrisas Catamarca — esquema de base de datos (PostgreSQL)
+// Convención: modelos en PascalCase (español), tablas y columnas en snake_case.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =====================================================================
+//  MÓDULO INVENTARIO (STOCK DE CRISTALES)
+// =====================================================================
+
+/// Fabricante del cristal (Pilkington, Fuyao, Vitro, AGC...).
+model MarcaCristal {
+  id        String    @id @default(cuid())
+  nombre    String    @unique
+  activo    Boolean   @default(true)
+  cristales Cristal[]
+
+  @@map("marcas_cristal")
+}
+
+/// Laminado, templado, laminado acústico... Es un catálogo editable, no un enum,
+/// para poder sumar tipos nuevos sin migrar la base.
+model TipoCristal {
+  id          String    @id @default(cuid())
+  nombre      String    @unique
+  descripcion String?
+  cristales   Cristal[]
+
+  @@map("tipos_cristal")
+}
+
+/// Posición del cristal en el vehículo (parabrisas, luneta, puerta delantera...).
+/// El lado (izquierdo/derecho) se guarda en el cristal, así no se duplica cada ubicación.
+model UbicacionVehiculo {
+  id         String    @id @default(cuid())
+  nombre     String    @unique
+  tieneLado  Boolean   @default(false) @map("tiene_lado")
+  orden      Int       @default(0)
+  cristales  Cristal[]
+
+  @@map("ubicaciones_vehiculo")
+}
+
+enum Lado {
+  NO_APLICA
+  IZQUIERDO
+  DERECHO
+}
+
+/// Artículo de stock. `cantidad` es un valor desnormalizado: solo se modifica
+/// junto con un MovimientoStock, dentro de la misma transacción.
+model Cristal {
+  id                String            @id @default(cuid())
+  codigo            String            @unique // SKU interno
+  codigoFabricante  String?           @map("codigo_fabricante") // Eurocode / código de catálogo
+  descripcion       String
+
+  marcaId           String            @map("marca_id")
+  marca             MarcaCristal      @relation(fields: [marcaId], references: [id])
+  tipoId            String            @map("tipo_id")
+  tipo              TipoCristal       @relation(fields: [tipoId], references: [id])
+  ubicacionId       String            @map("ubicacion_id")
+  ubicacion         UbicacionVehiculo @relation(fields: [ubicacionId], references: [id])
+  lado              Lado              @default(NO_APLICA)
+
+  // Tamaño en milímetros
+  anchoMm           Int?              @map("ancho_mm")
+  altoMm            Int?              @map("alto_mm")
+  espesorMm         Decimal?          @map("espesor_mm") @db.Decimal(4, 1)
+
+  cantidad          Int               @default(0)
+  stockMinimo       Int               @default(0) @map("stock_minimo")
+  ubicacionDeposito String?           @map("ubicacion_deposito") // estantería / rack
+  costo             Decimal?          @db.Decimal(12, 2)
+  precioVenta       Decimal?          @map("precio_venta") @db.Decimal(12, 2)
+
+  activo            Boolean           @default(true)
+  creadoEn          DateTime          @default(now()) @map("creado_en")
+  actualizadoEn     DateTime          @updatedAt @map("actualizado_en")
+
+  caracteristicas   CristalCaracteristica[]
+  compatibilidades  CompatibilidadVehiculo[]
+  movimientos       MovimientoStock[]
+  turnos            Turno[]
+
+  @@index([ubicacionId])
+  @@index([marcaId])
+  @@index([tipoId])
+  @@map("cristales")
+}
+
+enum TipoDato {
+  BOOLEANO
+  TEXTO
+  NUMERO
+  OPCION
+}
+
+/// Definición de una característica adicional (sensor de lluvia, antena,
+/// calefaccionado, tonalidad...). Permite agregar atributos desde el panel sin
+/// tocar el esquema.
+model Caracteristica {
+  id       String                  @id @default(cuid())
+  nombre   String                  @unique
+  tipoDato TipoDato                @default(BOOLEANO) @map("tipo_dato")
+  opciones String[]                @default([]) // solo para tipoDato = OPCION
+  unidad   String? // solo para tipoDato = NUMERO (ej. "mm")
+  valores  CristalCaracteristica[]
+
+  @@map("caracteristicas")
+}
+
+/// Valor de una característica para un cristal (modelo EAV acotado).
+model CristalCaracteristica {
+  cristalId        String         @map("cristal_id")
+  cristal          Cristal        @relation(fields: [cristalId], references: [id], onDelete: Cascade)
+  caracteristicaId String         @map("caracteristica_id")
+  caracteristica   Caracteristica @relation(fields: [caracteristicaId], references: [id], onDelete: Cascade)
+  valor            String // se interpreta según Caracteristica.tipoDato
+
+  @@id([cristalId, caracteristicaId])
+  @@map("cristal_caracteristicas")
+}
+
+model MarcaVehiculo {
+  id      String          @id @default(cuid())
+  nombre  String          @unique
+  modelos ModeloVehiculo[]
+
+  @@map("marcas_vehiculo")
+}
+
+model ModeloVehiculo {
+  id               String                   @id @default(cuid())
+  marcaId          String                   @map("marca_id")
+  marca            MarcaVehiculo            @relation(fields: [marcaId], references: [id])
+  nombre           String
+  compatibilidades CompatibilidadVehiculo[]
+
+  @@unique([marcaId, nombre])
+  @@map("modelos_vehiculo")
+}
+
+/// Un cristal sirve para N modelos, en un rango de años y opcionalmente
+/// una carrocería o versión (ej. "5 puertas", "cabina doble").
+model CompatibilidadVehiculo {
+  id         String         @id @default(cuid())
+  cristalId  String         @map("cristal_id")
+  cristal    Cristal        @relation(fields: [cristalId], references: [id], onDelete: Cascade)
+  modeloId   String         @map("modelo_id")
+  modelo     ModeloVehiculo @relation(fields: [modeloId], references: [id])
+  anioDesde  Int?           @map("anio_desde")
+  anioHasta  Int?           @map("anio_hasta") // null = vigente
+  carroceria String?
+  notas      String?
+
+  @@index([modeloId])
+  @@index([cristalId])
+  @@map("compatibilidades_vehiculo")
+}
+
+enum TipoMovimiento {
+  INGRESO // compra a proveedor, devolución
+  EGRESO // venta, colocación
+  AJUSTE // conteo físico, rotura en depósito (cantidad con signo)
+}
+
+/// Historial auditable de todo cambio de stock.
+model MovimientoStock {
+  id        String         @id @default(cuid())
+  cristalId String         @map("cristal_id")
+  cristal   Cristal        @relation(fields: [cristalId], references: [id])
+  tipo      TipoMovimiento
+  cantidad  Int // variación con signo aplicada a Cristal.cantidad
+  saldo     Int // stock resultante luego del movimiento
+  motivo    String?
+  turnoId   String?        @map("turno_id")
+  turno     Turno?         @relation(fields: [turnoId], references: [id])
+  creadoEn  DateTime       @default(now()) @map("creado_en")
+
+  @@index([cristalId, creadoEn])
+  @@map("movimientos_stock")
+}
+
+// =====================================================================
+//  MÓDULO TURNOS (TURNERO)
+// =====================================================================
+
+/// Servicio ofrecido por el local. Se administra desde el panel: alta,
+/// modificación y baja (archivado si ya tiene turnos, para conservar historial).
+model Servicio {
+  id                  String            @id @default(cuid())
+  nombre              String            @unique
+  slug                String            @unique
+  descripcion         String?
+  duracionMinutos     Int               @map("duracion_minutos") // duración estimada del trabajo
+  intervaloMinutos    Int               @default(30) @map("intervalo_minutos") // cada cuánto se ofrece un inicio de turno
+  margenMinutos       Int               @default(0) @map("margen_minutos") // limpieza/preparación entre turnos
+  capacidad           Int               @default(1) // trabajos simultáneos (boxes/operarios)
+  anticipacionMinutos Int               @default(60) @map("anticipacion_minutos") // mínimo de antelación para reservar
+  precioBase          Decimal?          @map("precio_base") @db.Decimal(12, 2)
+  color               String            @default("#FDDD3D") // color en la agenda
+  requiereCristal     Boolean           @default(false) @map("requiere_cristal") // p. ej. colocación
+  activo              Boolean           @default(true)
+  orden               Int               @default(0)
+  archivadoEn         DateTime?         @map("archivado_en")
+  creadoEn            DateTime          @default(now()) @map("creado_en")
+  actualizadoEn       DateTime          @updatedAt @map("actualizado_en")
+
+  horarios            HorarioServicio[]
+  bloqueos            BloqueoAgenda[]
+  turnos              Turno[]
+
+  @@map("servicios")
+}
+
+/// Franja de atención de un servicio para un día de la semana.
+/// Varias franjas por día permiten horario cortado (ej. 8:30–12:30 y 16:30–20:00).
+model HorarioServicio {
+  id          String   @id @default(cuid())
+  servicioId  String   @map("servicio_id")
+  servicio    Servicio @relation(fields: [servicioId], references: [id], onDelete: Cascade)
+  diaSemana   Int      @map("dia_semana") // 0 = domingo … 6 = sábado
+  horaInicio  Int      @map("hora_inicio") // minutos desde 00:00 (510 = 08:30)
+  horaFin     Int      @map("hora_fin")
+
+  @@index([servicioId, diaSemana])
+  @@map("horarios_servicio")
+}
+
+/// Feriados, vacaciones o cierres puntuales. servicioId = null bloquea todo el local.
+model BloqueoAgenda {
+  id         String    @id @default(cuid())
+  servicioId String?   @map("servicio_id")
+  servicio   Servicio? @relation(fields: [servicioId], references: [id], onDelete: Cascade)
+  inicio     DateTime
+  fin        DateTime
+  motivo     String?
+
+  @@index([inicio, fin])
+  @@map("bloqueos_agenda")
+}
+
+model Cliente {
+  id        String   @id @default(cuid())
+  nombre    String
+  telefono  String
+  email     String?
+  notas     String?
+  creadoEn  DateTime @default(now()) @map("creado_en")
+  turnos    Turno[]
+
+  @@index([telefono])
+  @@map("clientes")
+}
+
+enum EstadoTurno {
+  PENDIENTE
+  CONFIRMADO
+  EN_CURSO
+  COMPLETADO
+  CANCELADO
+  AUSENTE
+}
+
+/// Turno reservado. `fin` y `precio` se copian del servicio al reservar, así los
+/// cambios futuros en el servicio no alteran turnos ya dados.
+model Turno {
+  id              String            @id @default(cuid())
+  servicioId      String            @map("servicio_id")
+  servicio        Servicio          @relation(fields: [servicioId], references: [id])
+  clienteId       String            @map("cliente_id")
+  cliente         Cliente           @relation(fields: [clienteId], references: [id])
+  inicio          DateTime
+  fin             DateTime
+  estado          EstadoTurno       @default(PENDIENTE)
+  vehiculo        String? // texto libre: "Toyota Hilux 2019"
+  patente         String?
+  cristalId       String?           @map("cristal_id") // cristal a colocar, si aplica
+  cristal         Cristal?          @relation(fields: [cristalId], references: [id])
+  precio          Decimal?          @db.Decimal(12, 2)
+  notas           String?
+  creadoEn        DateTime          @default(now()) @map("creado_en")
+  actualizadoEn   DateTime          @updatedAt @map("actualizado_en")
+  movimientos     MovimientoStock[]
+
+  @@index([servicioId, inicio])
+  @@index([inicio])
+  @@map("turnos")
+}

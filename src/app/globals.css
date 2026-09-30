@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/*
+ * Identidad visual Parabrisas Catamarca
+ * ------------------------------------
+ * El logo usa un único color: amarillo #FDDD3D sobre fondo transparente.
+ * - Primario: escala "amarillo" construida alrededor de #FDDD3D (= amarillo-400).
+ * - Secundario: "grafito", neutro oscuro que da el contraste que el logo necesita
+ *   (amarillo sobre grafito-900 = 13.3:1).
+ * - Acento de texto: amarillo-700 (#8A6500, 5.3:1 sobre blanco). El amarillo del
+ *   logo sobre blanco da 1.35:1: se usa solo como relleno, nunca como texto sobre claro.
+ */
+@theme {
+  --color-amarillo-50: #fffceb;
+  --color-amarillo-100: #fff6c7;
+  --color-amarillo-200: #feee95;
+  --color-amarillo-300: #fee565;
+  --color-amarillo-400: #fddd3d; /* color del logo */
+  --color-amarillo-500: #f0c914;
+  --color-amarillo-600: #c49a00;
+  --color-amarillo-700: #8a6500;
+  --color-amarillo-800: #6b4f07;
+  --color-amarillo-900: #4d3a0c;
+
+  --color-grafito-50: #f6f6f7;
+  --color-grafito-100: #ecedef;
+  --color-grafito-200: #d5d7db;
+  --color-grafito-300: #b0b4bb;
+  --color-grafito-400: #8a8f99;
+  --color-grafito-500: #6b707b;
+  --color-grafito-600: #525661;
+  --color-grafito-700: #3d4049;
+  --color-grafito-800: #25272d;
+  --color-grafito-900: #16171b;
+  --color-grafito-950: #0e0f12;
+
+  --color-exito: #2f9e62;
+  --color-alerta: #d97706;
+  --color-peligro: #d64545;
+
+  /* Tokens semánticos */
+  --color-marca: var(--color-amarillo-400);
+  --color-sobre-marca: var(--color-grafito-900);
+  --color-fondo: var(--color-grafito-50);
+  --color-superficie: #ffffff;
+  --color-texto: var(--color-grafito-900);
+  --color-texto-suave: var(--color-grafito-500);
+  --color-borde: var(--color-grafito-200);
+  --color-acento: var(--color-amarillo-700);
+
+  --font-display: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-tarjeta: 0.875rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-fondo: var(--color-grafito-950);
+    --color-superficie: var(--color-grafito-900);
+    --color-texto: var(--color-grafito-50);
+    --color-texto-suave: var(--color-grafito-400);
+    --color-borde: var(--color-grafito-800);
+    --color-acento: var(--color-amarillo-400);
+  }
+}
+
+body {
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-amarillo-500);
+  outline-offset: 2px;
+}
