@@ -32,8 +32,12 @@ export async function guardarCristal(
   await verificarSesion();
 
   // Un campo del sistema oculto no viaja en el formulario: queda sin valor al crear y sin tocar al editar.
+  // Además, solo se toca lo que el formulario realmente mostró (`camposDibujados`): si un campo pasó a visible
+  // mientras la persona tenía el formulario abierto, no viaja y no debe pisarse con un valor vacío.
   const campos = await obtenerCampos("CRISTAL");
-  const visible = (clave: string) => campos.find((c) => c.clave === clave)?.visible ?? true;
+  const dibujados = fd.has("camposDibujados") ? new Set(json<string[]>(fd, "camposDibujados", [])) : null;
+  const visible = (clave: string) =>
+    (campos.find((c) => c.clave === clave)?.visible ?? true) && (dibujados ? dibujados.has(clave) : true);
   const siVisible = <T,>(clave: string, leer: () => T): T | undefined => (visible(clave) ? leer() : undefined);
 
   // Los tipos se validan en el servicio (crearCristalSchema); acá solo se leen los campos.
@@ -54,6 +58,7 @@ export async function guardarCristal(
     costo: siVisible("costo", () => numero(fd, "costo")),
     precioVenta: siVisible("precioVenta", () => numero(fd, "precioVenta")),
     extrasEntrada: leerExtras(fd),
+    extrasDibujados: dibujados ? [...dibujados] : undefined,
     compatibilidades: siVisible("compatibilidades", () => json(fd, "compatibilidades", [])),
   } as CrearCristalInput;
 

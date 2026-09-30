@@ -34,6 +34,8 @@ const camposCristal = {
   compatibilidades: z.array(compatibilidadSchema),
   /** Valores del formulario de los campos propios (`extra_<clave>`); el servicio los valida con la definición de cada campo. */
   extrasEntrada: z.record(z.string(), z.unknown()),
+  /** Claves de los campos que el formulario mostró: lo que no se mostró no se toca (ver `procesarExtras`). */
+  extrasDibujados: z.array(z.string()).optional(),
 };
 
 export const crearCristalSchema = z.object({

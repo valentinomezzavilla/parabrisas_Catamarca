@@ -187,6 +187,7 @@ export function FormularioCristal({
   return (
     <form onSubmit={enviar} className="space-y-6" noValidate>
       {estado.mensaje && !estado.ok && <Aviso tono="peligro">{estado.mensaje}</Aviso>}
+      <input type="hidden" name="camposDibujados" value={JSON.stringify(visibles.map((c) => c.clave))} />
       {compatibilidades && <input type="hidden" name="compatibilidades" value={JSON.stringify(compatParaEnviar)} />}
 
       {seccion("identificacion", "sm:grid-cols-2 lg:grid-cols-4", "sm:col-span-2 lg:col-span-4")}

@@ -115,6 +115,25 @@ describe("procesarExtras: obligatorios, ocultos y archivados", () => {
   });
 });
 
+describe("procesarExtras: campos que no estaban en el formulario", () => {
+  it("un campo que no se dibujó conserva su valor, aunque sea Sí/No o la entrada lo omita", () => {
+    const b = campo({ clave: "b", tipo: "SI_NO" });
+    const t = campo({ clave: "t" });
+    expect(procesarExtras([b, t], {}, { b: true, t: "x" }, ["otra"])).toEqual({ b: true, t: "x" });
+  });
+
+  it("solo se validan y escriben los campos dibujados", () => {
+    const b = campo({ clave: "b", tipo: "SI_NO" });
+    const t = campo({ clave: "t" });
+    expect(procesarExtras([b, t], { extra_t: "nuevo" }, { b: true, t: "x" }, ["t"])).toEqual({ b: true, t: "nuevo" });
+  });
+
+  it("un campo obligatorio que no se dibujó no se exige", () => {
+    const t = campo({ clave: "t", requerido: true });
+    expect(procesarExtras([t], {}, {}, [])).toEqual({});
+  });
+});
+
 describe("formatearValor", () => {
   it("formatea según el tipo", () => {
     expect(formatearValor(campo({ tipo: "SI_NO" }), true)).toBe("Sí");

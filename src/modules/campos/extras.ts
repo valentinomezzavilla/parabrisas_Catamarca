@@ -48,10 +48,17 @@ function esquemaDe(campo: CampoPropio, valorGuardado: unknown): z.ZodType {
 /**
  * Valida la entrada del formulario (claves `extra_<clave>`) y devuelve los extras resultantes.
  * Solo se validan los campos visibles y no archivados; los ocultos y archivados conservan su valor.
+ * `dibujados` (opcional) son las claves que el formulario realmente mostró: un campo que pasó a visible
+ * mientras la persona tenía el formulario abierto no viaja en la entrada y no debe pisarse.
  * Los valores de campos que ya no existen se descartan. Lanza `ZodError` con rutas `extra_<clave>`.
  */
-export function procesarExtras(propios: CampoPropio[], entrada: Record<string, unknown>, actuales: Extras = {}): Extras {
-  const activos = propios.filter((p) => !p.archivado && p.visible);
+export function procesarExtras(
+  propios: CampoPropio[],
+  entrada: Record<string, unknown>,
+  actuales: Extras = {},
+  dibujados?: string[],
+): Extras {
+  const activos = propios.filter((p) => !p.archivado && p.visible && (!dibujados || dibujados.includes(p.clave)));
   const forma: Record<string, z.ZodType> = {};
   for (const p of activos) forma[nombreInput(p.clave)] = esquemaDe(p, actuales[p.clave]);
   // Los campos ausentes (p. ej. una casilla sin tildar) se completan con `undefined` para validarlos igual que los vacíos.

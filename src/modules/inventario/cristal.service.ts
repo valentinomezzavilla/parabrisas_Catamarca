@@ -29,8 +29,8 @@ const incluirDetalle = {
 
 /** Alta de un cristal con sus campos propios, compatibilidades y stock inicial. */
 export async function crearCristal(input: CrearCristalInput) {
-  const { cantidadInicial, extrasEntrada, compatibilidades, ...datos } = crearCristalSchema.parse(input);
-  const extras = procesarExtras(await listarCamposPropios("CRISTAL"), extrasEntrada);
+  const { cantidadInicial, extrasEntrada, extrasDibujados, compatibilidades, ...datos } = crearCristalSchema.parse(input);
+  const extras = procesarExtras(await listarCamposPropios("CRISTAL"), extrasEntrada, {}, extrasDibujados);
 
   return db.cristal.create({
     data: {
@@ -59,12 +59,12 @@ export async function crearCristal(input: CrearCristalInput) {
  * desde Administración) conserva su valor. Si se envían compatibilidades, reemplazan a las actuales.
  */
 export async function actualizarCristal(id: string, input: ActualizarCristalInput) {
-  const { extrasEntrada, compatibilidades, ...datos } = actualizarCristalSchema.parse(input);
+  const { extrasEntrada, extrasDibujados, compatibilidades, ...datos } = actualizarCristalSchema.parse(input);
 
   let extras: Extras | undefined;
   if (extrasEntrada) {
     const actual = await db.cristal.findUniqueOrThrow({ where: { id }, select: { extras: true } });
-    extras = procesarExtras(await listarCamposPropios("CRISTAL"), extrasEntrada, actual.extras as Extras);
+    extras = procesarExtras(await listarCamposPropios("CRISTAL"), extrasEntrada, actual.extras as Extras, extrasDibujados);
   }
 
   return db.cristal.update({
