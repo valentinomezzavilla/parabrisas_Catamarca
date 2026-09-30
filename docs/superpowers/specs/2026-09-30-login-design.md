@@ -34,8 +34,8 @@ Una sola migración. No se toca ninguna tabla existente.
 - Cookie `sesion`: `httpOnly`, `sameSite=lax`, `secure` en producción, `path=/`, vence en 8 h.
 - El JWT (HS256, clave `SESSION_SECRET`) contiene solo `sub` (id del usuario) y `exp`. No contiene el rol: el rol siempre se lee de la base.
 - `iniciarSesion(usuarioId)` y `cerrarSesion()` escriben y borran la cookie.
-- `verificarSesion()` (memoizada con `cache` de React): valida la firma y el vencimiento, busca al usuario y exige `activo`. Si falla, borra la cookie y redirige a `/login`. Devuelve `{ id, nombre, email, rol }`.
-- `requerirRol("ADMIN")`: llama a `verificarSesion()` y, si el rol no alcanza, redirige a `/` (páginas) o lanza `AccesoDenegadoError` (acciones).
+- `verificarSesion()` (memoizada con `cache` de React): valida la firma y el vencimiento, busca al usuario y exige `activo`. Si falla, redirige a `/login` (un Server Component no puede borrar cookies: la cookie inválida se pisa en el próximo login). Devuelve `{ id, nombre, email, rol }`. Existe también `obtenerSesion()`, igual pero sin redirigir (la usa `/login`).
+- `requerirRol("ADMIN")`: llama a `verificarSesion()` y, si el rol no alcanza, redirige a `/`. Sirve igual en páginas y en Server Actions (la redirección corta la acción sin ejecutarla).
 - `SESSION_SECRET` es obligatoria, mínimo 32 caracteres. Si falta o es corta, la app falla al arrancar con un mensaje claro. Se documenta en `.env.example`.
 
 La lógica pura (firmar y verificar token, hashear y verificar contraseña, reglas de rol) va en módulos sin acceso a `cookies()` ni Prisma para poder testearla.
@@ -43,7 +43,7 @@ La lógica pura (firmar y verificar token, hashear y verificar contraseña, regl
 ## Capas de protección
 
 1. **`src/proxy.ts`** (Next 16 reemplaza `middleware.ts`): chequeo optimista. Sin cookie o con firma inválida redirige a `/login`. Deja pasar `/login`, `/reservar`, `/_next`, `/brand` y archivos estáticos. Es solo comodidad: no es la defensa real.
-2. **Layout del panel:** llama a `verificarSesion()`.
+2. **Layout y páginas del panel:** el layout llama a `verificarSesion()`, y **cada página** también, porque Next no vuelve a renderizar el layout al navegar del lado del cliente (partial rendering).
 3. **Cada Server Action** llama a `verificarSesion()` al inicio (las Server Actions pueden invocarse por POST directo, el proxy no alcanza). Las de `servicios/` y `usuarios/` exigen `ADMIN`. Los tres `TODO(auth)` se reemplazan por esa llamada.
 
 ## Pantallas
@@ -68,6 +68,7 @@ El seed (`prisma/seed.ts`) crea un `ADMIN` desde `ADMIN_EMAIL`, `ADMIN_PASSWORD`
 
 ## Tests (Vitest)
 
+- Guardia estática (`src/guardia-acciones.test.ts`): recorre todos los `acciones.ts` de `src/app/(panel)` y exige que cada función exportada empiece con `verificarSesion()` o `requerirRol(...)` (`requerirRol("ADMIN")` en `servicios/` y `usuarios/`). Evita que una acción futura quede sin protección.
 - Contraseña: hash distinto por cada llamada, verificación correcta e incorrecta, formato inválido.
 - Token: válido, firma alterada, vencido, secreto distinto.
 - Reglas de usuarios: no desactivarse a sí mismo, no quitarse el rol, no dejar sin administradores.
@@ -77,6 +78,7 @@ El seed (`prisma/seed.ts`) crea un `ADMIN` desde `ADMIN_EMAIL`, `ADMIN_PASSWORD`
 - Límite de intentos de login.
 - "Olvidé mi contraseña" por email (por ahora lo resetea un Admin).
 - 2FA.
+- Invalidar sesiones abiertas al resetear una contraseña (la sesión es una cookie de 8 h; para cortar un acceso inmediato hay que desactivar al usuario, que sí surte efecto en el próximo request).
 
 ## Verificación
 
