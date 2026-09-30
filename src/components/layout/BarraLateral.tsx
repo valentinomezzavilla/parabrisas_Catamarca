@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarClock, ExternalLink, LayoutDashboard, LogOut, Package, UserCog, Wrench } from "lucide-react";
+import { CalendarClock, ExternalLink, LayoutDashboard, LogOut, Package, SlidersHorizontal, UserCog, Wrench } from "lucide-react";
 import { salir } from "@/app/(auth)/login/acciones";
 import type { Rol } from "@/modules/usuarios/reglas";
 
@@ -13,6 +13,7 @@ const secciones = [
   { href: "/stock", etiqueta: "Stock", Icono: Package },
   { href: "/servicios", etiqueta: "Servicios", Icono: Wrench, soloAdmin: true },
   { href: "/usuarios", etiqueta: "Usuarios", Icono: UserCog, soloAdmin: true },
+  { href: "/administracion", etiqueta: "Administración", Icono: SlidersHorizontal, soloAdmin: true },
 ];
 
 export function BarraLateral({ usuario }: { usuario: { nombre: string; rol: Rol } }) {
