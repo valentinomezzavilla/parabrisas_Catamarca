@@ -10,7 +10,7 @@ import { exportsQueNoSonFuncionesAsync, FUNCION_EXPORTADA } from "./guardia-acci
  */
 const RAIZ_APP = join(process.cwd(), "src", "app");
 const RAIZ = join(RAIZ_APP, "(panel)");
-const SOLO_ADMIN = ["servicios", "usuarios"];
+const SOLO_ADMIN = ["administracion", "servicios", "usuarios"];
 
 const archivosDe = (raiz: string, extensiones: string[]) =>
   readdirSync(raiz, { recursive: true, encoding: "utf8" })
@@ -45,7 +45,7 @@ describe("exportsQueNoSonFuncionesAsync (el detector del test)", () => {
 describe("Server Actions del panel", () => {
   it("encuentra los archivos de acciones esperados", () => {
     const carpetas = archivos.map((a) => relative(RAIZ, a).split(sep)[0]).sort();
-    expect(carpetas).toEqual(["servicios", "stock", "turnos", "usuarios"]);
+    expect([...new Set(carpetas)]).toEqual(["administracion", "servicios", "stock", "turnos", "usuarios"]);
   });
 
   it('no hay "use server" fuera de un archivo acciones.ts (no se podría auditar)', () => {

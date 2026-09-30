@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Fragment } from "react";
-import { Aviso, Insignia, tarjeta } from "@/components/ui";
+import { Plus } from "lucide-react";
+import { Aviso, boton, Insignia, tarjeta } from "@/components/ui";
 import { requerirRol } from "@/lib/sesion";
 import { obtenerCampos } from "@/modules/campos/campo.service";
 import type { CampoFinal } from "@/modules/campos/combinar";
 import { SECCIONES } from "@/modules/campos/registro";
 import { ETIQUETA_TIPO } from "@/modules/campos/tipos";
+import { AccionesFila } from "./AccionesFila";
 
 export const metadata = { title: "Administración · Campos de Stock" };
 
@@ -46,8 +48,14 @@ export default async function PaginaCamposStock({ searchParams }: { searchParams
     <>
       {aviso && AVISOS[aviso] && <Aviso>{AVISOS[aviso]}</Aviso>}
 
+      <div className="flex justify-end">
+        <Link href="/administracion/stock/campos/nuevo" className={boton.primario}>
+          <Plus className="size-4" aria-hidden /> Nuevo campo
+        </Link>
+      </div>
+
       <div className={`${tarjeta} overflow-x-auto`}>
-        <table className="w-full min-w-[760px] text-sm">
+        <table className="w-full min-w-[860px] text-sm">
           <thead className="border-b border-borde text-left text-xs text-texto-suave uppercase">
             <tr>
               <th className="px-4 py-2 font-semibold">Campo</th>
@@ -55,6 +63,7 @@ export default async function PaginaCamposStock({ searchParams }: { searchParams
               <th className="px-4 py-2 font-semibold">Origen</th>
               <th className="px-4 py-2 font-semibold">Obligatorio</th>
               <th className="px-4 py-2 font-semibold">Estado</th>
+              <th className="px-4 py-2 text-right font-semibold">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-borde">
@@ -64,7 +73,7 @@ export default async function PaginaCamposStock({ searchParams }: { searchParams
               return (
                 <Fragment key={s.id}>
                   <tr className="bg-grafito-500/10">
-                    <th colSpan={5} className="px-4 py-1.5 text-left text-xs font-semibold tracking-wide text-texto-suave uppercase">
+                    <th colSpan={6} className="px-4 py-1.5 text-left text-xs font-semibold tracking-wide text-texto-suave uppercase">
                       {s.etiqueta}
                     </th>
                   </tr>
@@ -86,6 +95,9 @@ export default async function PaginaCamposStock({ searchParams }: { searchParams
                       <td className="px-4 py-2.5">{c.soloLectura || c.especial ? "—" : c.requerido ? "Sí" : "No"}</td>
                       <td className="px-4 py-2.5">
                         {c.archivado ? <Insignia tono="alerta">Archivado</Insignia> : c.visible ? "Visible" : <Insignia tono="alerta">Oculto</Insignia>}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <AccionesFila clave={c.clave} />
                       </td>
                     </tr>
                   ))}

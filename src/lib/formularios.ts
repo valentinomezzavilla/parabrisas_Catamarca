@@ -8,6 +8,11 @@ export interface EstadoFormulario {
   errores?: Record<string, string>; // clave = ruta del campo ("horarios.2.hasta")
 }
 
+/** Resultado de una acción que puede pedir confirmación: `afectados` = registros cuyos datos se borrarían. */
+export interface EstadoConConteo extends EstadoFormulario {
+  afectados?: number;
+}
+
 export const ESTADO_INICIAL: EstadoFormulario = { ok: false };
 
 /** Primer error de cada campo, indexado por su ruta. */
