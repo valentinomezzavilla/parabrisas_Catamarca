@@ -87,7 +87,6 @@ model Cristal {
   creadoEn          DateTime          @default(now()) @map("creado_en")
   actualizadoEn     DateTime          @updatedAt @map("actualizado_en")
 
-  caracteristicas   CristalCaracteristica[]
   compatibilidades  CompatibilidadVehiculo[]
   movimientos       MovimientoStock[]
   turnos            Turno[]
@@ -96,39 +95,6 @@ model Cristal {
   @@index([marcaId])
   @@index([tipoId])
   @@map("cristales")
-}
-
-enum TipoDato {
-  BOOLEANO
-  TEXTO
-  NUMERO
-  OPCION
-}
-
-/// Definición de una característica adicional (sensor de lluvia, antena,
-/// calefaccionado, tonalidad...). Permite agregar atributos desde el panel sin
-/// tocar el esquema.
-model Caracteristica {
-  id       String                  @id @default(cuid())
-  nombre   String                  @unique
-  tipoDato TipoDato                @default(BOOLEANO) @map("tipo_dato")
-  opciones String[]                @default([]) // solo para tipoDato = OPCION
-  unidad   String? // solo para tipoDato = NUMERO (ej. "mm")
-  valores  CristalCaracteristica[]
-
-  @@map("caracteristicas")
-}
-
-/// Valor de una característica para un cristal (modelo EAV acotado).
-model CristalCaracteristica {
-  cristalId        String         @map("cristal_id")
-  cristal          Cristal        @relation(fields: [cristalId], references: [id], onDelete: Cascade)
-  caracteristicaId String         @map("caracteristica_id")
-  caracteristica   Caracteristica @relation(fields: [caracteristicaId], references: [id], onDelete: Cascade)
-  valor            String // se interpreta según Caracteristica.tipoDato
-
-  @@id([cristalId, caracteristicaId])
-  @@map("cristal_caracteristicas")
 }
 
 model MarcaVehiculo {

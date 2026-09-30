@@ -4,8 +4,10 @@
  */
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../src/generated/prisma/client";
+import { Prisma, PrismaClient } from "../src/generated/prisma/client";
 import { hashearPassword } from "../src/lib/password";
+import { generarClave } from "../src/modules/campos/clave";
+import { crearOpciones } from "../src/modules/campos/opciones";
 import { horaAMinutos } from "../src/lib/tiempo";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
@@ -103,17 +105,30 @@ async function sembrarCatalogos() {
     });
   }
 
-  const caracteristicas = [
-    { nombre: "Sensor de lluvia", tipoDato: "BOOLEANO" as const },
-    { nombre: "Calefaccionado", tipoDato: "BOOLEANO" as const },
-    { nombre: "Antena incorporada", tipoDato: "BOOLEANO" as const },
-    { nombre: "Soporte de espejo", tipoDato: "BOOLEANO" as const },
-    { nombre: "Franja degradé", tipoDato: "BOOLEANO" as const },
-    { nombre: "Preparado para cámara ADAS", tipoDato: "BOOLEANO" as const },
-    { nombre: "Tonalidad", tipoDato: "OPCION" as const, opciones: ["Incoloro", "Verde", "Gris", "Bronce"] },
+  // Campos propios de Stock que trae el sistema. Es idempotente: no pisa lo que el Admin haya editado.
+  const camposStock: { etiqueta: string; tipo: "SI_NO" | "LISTA"; opciones?: string[] }[] = [
+    { etiqueta: "Sensor de lluvia", tipo: "SI_NO" },
+    { etiqueta: "Calefaccionado", tipo: "SI_NO" },
+    { etiqueta: "Antena incorporada", tipo: "SI_NO" },
+    { etiqueta: "Soporte de espejo", tipo: "SI_NO" },
+    { etiqueta: "Franja degradé", tipo: "SI_NO" },
+    { etiqueta: "Preparado para cámara ADAS", tipo: "SI_NO" },
+    { etiqueta: "Tonalidad", tipo: "LISTA", opciones: ["Incoloro", "Verde", "Gris", "Bronce"] },
   ];
-  for (const c of caracteristicas) {
-    await db.caracteristica.upsert({ where: { nombre: c.nombre }, update: {}, create: c });
+  for (const [i, c] of camposStock.entries()) {
+    const clave = generarClave(c.etiqueta);
+    await db.campoPersonalizado.upsert({
+      where: { entidad_clave: { entidad: "CRISTAL", clave } },
+      update: {},
+      create: {
+        entidad: "CRISTAL",
+        clave,
+        etiqueta: c.etiqueta,
+        tipo: c.tipo,
+        opciones: crearOpciones(c.opciones ?? []) as unknown as Prisma.InputJsonArray,
+        orden: (i + 1) * 10,
+      },
+    });
   }
 
   const vehiculos: Record<string, string[]> = {
