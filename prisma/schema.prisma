@@ -294,3 +294,26 @@ model Turno {
   @@index([inicio])
   @@map("turnos")
 }
+
+// =====================================================================
+//  USUARIOS DEL PANEL
+// =====================================================================
+
+enum RolUsuario {
+  ADMIN
+  EMPLEADO
+}
+
+/// Persona con acceso al panel. `passwordHash` tiene el formato `scrypt$<sal>$<clave>`.
+model Usuario {
+  id           String     @id @default(cuid())
+  usuario      String     @unique // nombre de usuario para el login, siempre en minúsculas
+  nombre       String
+  passwordHash String     @map("password_hash")
+  rol          RolUsuario @default(EMPLEADO)
+  activo       Boolean    @default(true)
+  ultimoAcceso DateTime?  @map("ultimo_acceso")
+  creadoEn     DateTime   @default(now()) @map("creado_en")
+
+  @@map("usuarios")
+}

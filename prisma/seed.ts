@@ -5,6 +5,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { hashearPassword } from "../src/lib/password";
 import { horaAMinutos } from "../src/lib/tiempo";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
@@ -136,9 +137,32 @@ async function sembrarCatalogos() {
   }
 }
 
+async function sembrarAdmin() {
+  if ((await db.usuario.count()) > 0) return; // ya hay usuarios: no se toca nada
+
+  const { ADMIN_USUARIO, ADMIN_PASSWORD, ADMIN_NOMBRE } = process.env;
+  if (!ADMIN_USUARIO || !ADMIN_PASSWORD) {
+    console.warn("No hay usuarios y faltan ADMIN_USUARIO / ADMIN_PASSWORD en .env: no se creó ningún administrador.");
+    return;
+  }
+  if (ADMIN_PASSWORD.length < 10) throw new Error("ADMIN_PASSWORD debe tener al menos 10 caracteres.");
+
+  const usuario = ADMIN_USUARIO.trim().toLowerCase();
+  await db.usuario.create({
+    data: {
+      usuario,
+      nombre: ADMIN_NOMBRE?.trim() || "Administrador",
+      passwordHash: await hashearPassword(ADMIN_PASSWORD),
+      rol: "ADMIN",
+    },
+  });
+  console.log(`Administrador creado: ${usuario}`);
+}
+
 async function main() {
   await sembrarCatalogos();
   await sembrarServicios();
+  await sembrarAdmin();
   console.log("Seed completo.");
 }
 
