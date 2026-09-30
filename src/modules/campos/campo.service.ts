@@ -11,7 +11,7 @@ import {
   renombrarOpcion,
   validarOpciones,
 } from "./opciones";
-import { clavesReservadas, REGISTRO } from "./registro";
+import { clavesProhibidas, REGISTRO } from "./registro";
 import {
   crearCampoSchema,
   editarCampoPropioSchema,
@@ -108,7 +108,7 @@ export async function crearCampoPropio(entidad: EntidadCampo, entrada: CrearCamp
   const error = datos.tipo === "LISTA" ? validarOpciones(opciones) : null;
   if (error) throw new CampoInvalidoError(error, "opcionesTexto");
 
-  const clave = claveUnica(datos.etiqueta, [...clavesReservadas(entidad), ...existentes.map((c) => c.clave)]);
+  const clave = claveUnica(datos.etiqueta, [...clavesProhibidas(entidad), ...existentes.map((c) => c.clave)]);
   const orden = Math.max(0, ...existentes.filter((c) => c.seccion === "adicionales").map((c) => c.orden)) + 10;
 
   const fila = await db.campoPersonalizado.create({

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { camposVisibles, combinarCampos, moverCampo, type ConfigCampo } from "./combinar";
-import { clavesReservadas, REGISTRO } from "./registro";
+import { claveUnica } from "./clave";
+import { clavesProhibidas, clavesReservadas, REGISTRO } from "./registro";
 import type { CampoPropio } from "./tipos";
 
 const propio = (cambios: Partial<CampoPropio> = {}): CampoPropio => ({
@@ -43,6 +44,12 @@ describe("registro", () => {
   it("clavesReservadas devuelve todas las claves del sistema", () => {
     expect(clavesReservadas("CRISTAL")).toContain("costo");
     expect(clavesReservadas("CRISTAL")).toHaveLength(REGISTRO.CRISTAL.length);
+  });
+
+  it("clavesProhibidas suma las claves de ruta: un campo propio 'Nuevo' chocaría con /campos/nuevo", () => {
+    expect(clavesProhibidas("CRISTAL")).toContain("nuevo");
+    expect(clavesProhibidas("CRISTAL")).toContain("costo");
+    expect(claveUnica("Nuevo", clavesProhibidas("CRISTAL"))).toBe("nuevo_2");
   });
 });
 

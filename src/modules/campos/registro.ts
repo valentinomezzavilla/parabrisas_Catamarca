@@ -68,3 +68,9 @@ export const REGISTRO: Record<EntidadCampo, CampoSistema[]> = {
 };
 
 export const clavesReservadas = (entidad: EntidadCampo): string[] => REGISTRO[entidad].map((c) => c.clave);
+
+/** Segmentos fijos de la ruta /campos/[clave]: un campo propio con esa clave no se podría editar. */
+const CLAVES_DE_RUTA = ["nuevo"];
+
+/** Claves que un campo propio no puede usar: las del sistema y las que chocan con rutas. */
+export const clavesProhibidas = (entidad: EntidadCampo): string[] => [...clavesReservadas(entidad), ...CLAVES_DE_RUTA];
