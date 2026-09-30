@@ -56,7 +56,7 @@ export default async function PaginaCristal({
       <EncabezadoPagina
         seccion={c.codigo}
         titulo={c.descripcion}
-        descripcion={`${c.marca.nombre} · ${c.tipo.nombre} · ${c.ubicacion.nombre} ${NOMBRE_LADO[c.lado]}`}
+        descripcion={`${c.marca.nombre} · ${c.tipo.nombre} · ${c.ubicacion.nombre} ${visible("lado") ? NOMBRE_LADO[c.lado] : ""}`.trim()}
         acciones={
           <>
             <Link href={`/stock/${c.id}/editar`} className={boton.secundario}>
@@ -91,7 +91,7 @@ export default async function PaginaCristal({
           <section className={`${tarjeta} p-5`}>
             <dl className="grid grid-cols-2 gap-4 text-sm">
               {(visible("anchoMm") || visible("altoMm") || visible("espesorMm")) && (
-                <Dato etiqueta="Medidas">{medidas(c.anchoMm, c.altoMm, c.espesorMm)}</Dato>
+                <Dato etiqueta="Medidas">{medidas(visible("anchoMm") ? c.anchoMm : null, visible("altoMm") ? c.altoMm : null, visible("espesorMm") ? c.espesorMm : null)}</Dato>
               )}
               {visible("ubicacionDeposito") && <Dato etiqueta={etiqueta("ubicacionDeposito")}>{c.ubicacionDeposito ?? "—"}</Dato>}
               {visible("costo") && <Dato etiqueta={etiqueta("costo")}>{pesos(c.costo)}</Dato>}
