@@ -2,10 +2,12 @@ import { notFound } from "next/navigation";
 import { EncabezadoPagina } from "@/components/ui";
 import { obtenerServicio } from "@/modules/turnos/servicio.service";
 import { FormularioServicio } from "../FormularioServicio";
+import { requerirRol } from "@/lib/sesion";
 
 export const metadata = { title: "Editar servicio" };
 
 export default async function PaginaEditarServicio({ params }: { params: Promise<{ id: string }> }) {
+  await requerirRol("ADMIN");
   const { id } = await params;
   const servicio = await obtenerServicio(id);
   if (!servicio) notFound();

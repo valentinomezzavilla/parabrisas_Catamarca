@@ -8,6 +8,7 @@ import { ZONA_HORARIA } from "@/lib/tiempo";
 import { obtenerCristal } from "@/modules/inventario/cristal.service";
 import { alternarCristal } from "../acciones";
 import { FormularioMovimiento } from "./FormularioMovimiento";
+import { verificarSesion } from "@/lib/sesion";
 
 export const metadata = { title: "Ficha de cristal" };
 
@@ -30,6 +31,7 @@ export default async function PaginaCristal({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ aviso?: string }>;
 }) {
+  await verificarSesion();
   const [{ id }, { aviso }] = await Promise.all([params, searchParams]);
   const c = await obtenerCristal(id);
   if (!c) notFound();

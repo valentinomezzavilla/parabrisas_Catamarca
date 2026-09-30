@@ -5,6 +5,7 @@ import { BotonConfirmar, BotonEnviar } from "@/components/ui/cliente";
 import { DIAS_CORTOS, minutosAHora, SEMANA } from "@/lib/tiempo";
 import { listarServicios } from "@/modules/turnos/servicio.service";
 import { alternarServicio, borrarServicio } from "./acciones";
+import { requerirRol } from "@/lib/sesion";
 
 export const metadata = { title: "Servicios" };
 
@@ -37,6 +38,7 @@ function resumenHorario(horarios: { diaSemana: number; horaInicio: number; horaF
 }
 
 export default async function PaginaServicios({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
+  await requerirRol("ADMIN");
   const [{ aviso }, servicios] = await Promise.all([searchParams, listarServicios()]);
 
   return (

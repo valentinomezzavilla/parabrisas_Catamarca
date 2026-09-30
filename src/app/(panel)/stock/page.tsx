@@ -3,12 +3,14 @@ import { Plus, Search } from "lucide-react";
 import { boton, EncabezadoPagina, Insignia, input, tarjeta, Vacio } from "@/components/ui";
 import { medidas, NOMBRE_LADO, pesos } from "@/lib/formato";
 import { buscarCristales, obtenerCatalogos } from "@/modules/inventario/cristal.service";
+import { verificarSesion } from "@/lib/sesion";
 
 export const metadata = { title: "Stock" };
 
 type Filtros = { texto?: string; modeloId?: string; anio?: string; ubicacionId?: string; tipoId?: string; stock?: string; bajas?: string };
 
 export default async function PaginaStock({ searchParams }: { searchParams: Promise<Filtros> }) {
+  await verificarSesion();
   const f = await searchParams;
   const anio = f.anio && /^\d{4}$/.test(f.anio) ? Number(f.anio) : undefined;
   const [catalogos, cristales] = await Promise.all([

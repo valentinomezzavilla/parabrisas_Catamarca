@@ -2,12 +2,14 @@ import { notFound } from "next/navigation";
 import { EncabezadoPagina } from "@/components/ui";
 import { obtenerCatalogos, obtenerCristal } from "@/modules/inventario/cristal.service";
 import { FormularioCristal } from "../../FormularioCristal";
+import { verificarSesion } from "@/lib/sesion";
 
 export const metadata = { title: "Editar cristal" };
 
 const aNumero = (v: { toString(): string } | null) => (v === null ? null : Number(v));
 
 export default async function PaginaEditarCristal({ params }: { params: Promise<{ id: string }> }) {
+  await verificarSesion();
   const { id } = await params;
   const [cristal, catalogos] = await Promise.all([obtenerCristal(id), obtenerCatalogos()]);
   if (!cristal) notFound();

@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import type { EstadoTurno } from "@/generated/prisma/client";
 import type { EstadoFormulario } from "@/lib/formularios";
+import { verificarSesion } from "@/lib/sesion";
 import { StockInsuficienteError } from "@/modules/inventario/cristal.service";
 import { asignarCristal, cambiarEstadoTurno } from "@/modules/turnos/turno.service";
 
-// TODO(auth): validar la sesión del administrador en cada acción cuando se agregue el login.
-
 export async function actualizarEstadoTurno(id: string, estado: EstadoTurno): Promise<EstadoFormulario> {
+  await verificarSesion();
   try {
     await cambiarEstadoTurno(id, estado);
   } catch (e) {
@@ -23,6 +23,7 @@ export async function actualizarEstadoTurno(id: string, estado: EstadoTurno): Pr
 }
 
 export async function actualizarCristalTurno(turnoId: string, fd: FormData) {
+  await verificarSesion();
   const cristalId = fd.get("cristalId");
   await asignarCristal(turnoId, typeof cristalId === "string" && cristalId ? cristalId : null);
   revalidatePath("/turnos");

@@ -13,6 +13,7 @@ import {
   texto,
   type EstadoFormulario,
 } from "@/lib/formularios";
+import { requerirRol } from "@/lib/sesion";
 import type { ServicioInput } from "@/modules/turnos/schemas";
 import {
   actualizarServicio,
@@ -21,13 +22,12 @@ import {
   eliminarServicio,
 } from "@/modules/turnos/servicio.service";
 
-// TODO(auth): validar la sesión del administrador en cada acción cuando se agregue el login.
-
 export async function guardarServicio(
   id: string | null,
   _previo: EstadoFormulario,
   fd: FormData,
 ): Promise<EstadoFormulario> {
+  await requerirRol("ADMIN");
   // Los tipos se validan en el servicio (servicioSchema); acá solo se leen los campos.
   const entrada = {
     nombre: texto(fd, "nombre"),
@@ -60,11 +60,13 @@ export async function guardarServicio(
 }
 
 export async function alternarServicio(id: string, activo: boolean) {
+  await requerirRol("ADMIN");
   await cambiarEstadoServicio(id, activo);
   revalidatePath("/servicios");
 }
 
 export async function borrarServicio(id: string) {
+  await requerirRol("ADMIN");
   const { resultado } = await eliminarServicio(id);
   revalidatePath("/servicios");
   redirect(`/servicios?aviso=${resultado}`);

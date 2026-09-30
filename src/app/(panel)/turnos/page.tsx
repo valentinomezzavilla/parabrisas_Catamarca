@@ -8,10 +8,12 @@ import { contarTurnosPorDia, cristalesDisponibles, listarTurnosDelDia } from "@/
 import { actualizarCristalTurno } from "./acciones";
 import { AccionesTurno } from "./AccionesTurno";
 import { ESTADOS } from "./estados";
+import { verificarSesion } from "@/lib/sesion";
 
 export const metadata = { title: "Turnos" };
 
 export default async function PaginaTurnos({ searchParams }: { searchParams: Promise<{ fecha?: string }> }) {
+  await verificarSesion();
   const { fecha: param } = await searchParams;
   const fecha = param && /^\d{4}-\d{2}-\d{2}$/.test(param) ? param : hoy();
   const lunes = sumarDias(fecha, -((diaSemana(fecha) + 6) % 7));

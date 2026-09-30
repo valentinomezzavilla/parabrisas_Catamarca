@@ -6,6 +6,7 @@ import { formatearFecha, formatearHora, hoy } from "@/lib/tiempo";
 import { cristalesConStockBajo } from "@/modules/inventario/cristal.service";
 import { listarTurnosDelDia } from "@/modules/turnos/turno.service";
 import { ESTADOS } from "./turnos/estados";
+import { verificarSesion } from "@/lib/sesion";
 
 export const metadata = { title: "Panel" };
 
@@ -24,6 +25,7 @@ function Seccion({ titulo, href, enlace, children }: { titulo: string; href: str
 }
 
 export default async function Panel() {
+  await verificarSesion();
   await connection(); // siempre datos al momento, nunca una versión precalculada
   const fecha = hoy();
   const [turnos, stockBajo] = await Promise.all([listarTurnosDelDia(fecha), cristalesConStockBajo()]);

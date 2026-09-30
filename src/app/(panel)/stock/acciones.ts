@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import { erroresDeZod, esDuplicado, fallo, json, numero, texto, type EstadoFormulario } from "@/lib/formularios";
+import { verificarSesion } from "@/lib/sesion";
 import {
   actualizarCristal,
   cambiarEstadoCristal,
@@ -12,8 +13,6 @@ import {
   StockInsuficienteError,
 } from "@/modules/inventario/cristal.service";
 import type { CrearCristalInput } from "@/modules/inventario/schemas";
-
-// TODO(auth): validar la sesión del administrador en cada acción cuando se agregue el login.
 
 /** Características: cada campo "car_<id>" del formulario. Las casillas sin tildar no llegan. */
 function leerCaracteristicas(fd: FormData) {
@@ -30,6 +29,7 @@ export async function guardarCristal(
   _previo: EstadoFormulario,
   fd: FormData,
 ): Promise<EstadoFormulario> {
+  await verificarSesion();
   // Los tipos se validan en el servicio (crearCristalSchema); acá solo se leen los campos.
   const entrada = {
     codigo: texto(fd, "codigo"),
@@ -76,6 +76,7 @@ export async function guardarMovimiento(
   _previo: EstadoFormulario,
   fd: FormData,
 ): Promise<EstadoFormulario> {
+  await verificarSesion();
   const tipo = texto(fd, "tipo") as "INGRESO" | "EGRESO" | "AJUSTE";
   try {
     const mov = await registrarMovimiento({ cristalId, tipo, cantidad: numero(fd, "cantidad") as number, motivo: texto(fd, "motivo") });
@@ -90,6 +91,7 @@ export async function guardarMovimiento(
 }
 
 export async function alternarCristal(id: string, activo: boolean) {
+  await verificarSesion();
   await cambiarEstadoCristal(id, activo);
   revalidatePath(`/stock/${id}`);
   revalidatePath("/stock");
