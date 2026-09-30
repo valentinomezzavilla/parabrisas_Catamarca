@@ -106,9 +106,26 @@ El logo (`public/brand/logo-amarillo.png`) usa **un único color: `#FDDD3D`**, s
 
 Regla de contraste: el amarillo del logo sobre blanco da **1.35:1**, así que nunca se usa como texto sobre fondo claro. Va como relleno con texto grafito encima, o como texto sobre grafito. Tipografía: Montserrat ExtraBold para títulos (cercana a la geométrica pesada del logo) e Inter para el cuerpo. Hay modo oscuro automático.
 
-## Próximos pasos sugeridos
-1. Autenticación del panel (Auth.js) con roles admin / mostrador.
-2. Pantallas: ABM de stock, ABM de servicios, agenda semanal y turnero público (`/reservar`).
-3. Al completar un turno de colocación, generar el `EGRESO` del cristal asociado.
-4. Recordatorios de turno por WhatsApp.
-5. Si en el futuro dos servicios comparten el mismo box, agregar una tabla `recursos` y medir la capacidad por recurso en lugar de por servicio.
+## Pantallas
+
+| Ruta | Qué hace |
+|---|---|
+| `/` | Panel: turnos de hoy, pendientes de confirmar y stock para reponer. |
+| `/turnos?fecha=` | Agenda diaria con tira semanal, horarios libres por servicio, cambio de estado y asignación de cristal. |
+| `/stock` | Listado con búsqueda por código o texto, vehículo y año, ubicación y tipo. |
+| `/stock/nuevo`, `/stock/[id]`, `/stock/[id]/editar` | Alta, ficha (movimientos e historial) y edición de cristales. |
+| `/servicios`, `/servicios/nuevo`, `/servicios/[id]` | Servicios del turnero: tiempos, capacidad y franjas por día. Se pueden pausar o eliminar. |
+| `/reservar` | **Pública.** El cliente elige servicio, día y horario, y carga sus datos. |
+
+Las rutas del panel están en `src/app/(panel)` (con barra lateral) y las públicas en `src/app/(publico)`. Cada sección tiene su `acciones.ts` con las Server Actions, que solo leen el formulario y delegan en `src/modules`.
+
+**Estados de un turno:** Pendiente → Confirmado → En curso → Completado (o Cancelado / No vino). Al **completar** un turno que tiene cristal asignado, se registra el egreso de stock vinculado al turno, una sola vez. Si no hay stock, el turno no se completa y se avisa.
+
+## Pendiente
+
+1. **Login del panel (prioritario antes de publicar).** Hoy cualquiera que llegue a la URL puede modificar stock, servicios y turnos. Cada `acciones.ts` tiene un `TODO(auth)` en el lugar donde validar la sesión.
+2. Protección anti-spam de `/reservar` (límite de reservas por teléfono o IP, o captcha).
+3. ABM de catálogos desde el panel (marcas, tipos, modelos de vehículo, características). Por ahora se cargan con el seed o con `npm run db:studio`.
+4. Bloqueos de agenda (feriados, vacaciones) desde el panel. La tabla ya existe y el cálculo de disponibilidad los respeta.
+5. Recordatorios de turno por WhatsApp.
+6. Si dos servicios comparten el mismo box, agregar una tabla `recursos` y medir la capacidad por recurso en lugar de por servicio.

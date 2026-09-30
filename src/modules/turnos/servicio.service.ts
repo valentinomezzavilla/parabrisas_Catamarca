@@ -24,10 +24,29 @@ export function listarServicios({ incluirArchivados = false } = {}) {
   });
 }
 
+export function obtenerServicio(id: string) {
+  return db.servicio.findUnique({
+    where: { id },
+    include: { horarios: { orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }] } },
+  });
+}
+
+/** Servicio reservable desde la web (activo y no archivado). */
+export function obtenerServicioReservable(slug: string) {
+  return db.servicio.findFirst({ where: { slug, activo: true, archivadoEn: null }, include: { horarios: true } });
+}
+
+/** Pausar un servicio lo saca del turnero público sin perder su configuración. */
+export function cambiarEstadoServicio(id: string, activo: boolean) {
+  return db.servicio.update({ where: { id }, data: { activo } });
+}
+
 export async function crearServicio(input: ServicioInput) {
   const { horarios, ...datos } = servicioSchema.parse(input);
+  // Si no se indica un orden, el servicio nuevo va al final del listado.
+  const { _max } = await db.servicio.aggregate({ _max: { orden: true } });
   return db.servicio.create({
-    data: { ...datos, horarios: { create: horarios } },
+    data: { ...datos, orden: input.orden ?? (_max.orden ?? 0) + 1, horarios: { create: horarios } },
     include: { horarios: true },
   });
 }

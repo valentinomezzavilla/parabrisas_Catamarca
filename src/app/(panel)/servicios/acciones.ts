@@ -1,0 +1,71 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { ZodError } from "zod";
+import {
+  casilla,
+  erroresDeZod,
+  esDuplicado,
+  fallo,
+  json,
+  numero,
+  texto,
+  type EstadoFormulario,
+} from "@/lib/formularios";
+import type { ServicioInput } from "@/modules/turnos/schemas";
+import {
+  actualizarServicio,
+  cambiarEstadoServicio,
+  crearServicio,
+  eliminarServicio,
+} from "@/modules/turnos/servicio.service";
+
+// TODO(auth): validar la sesión del administrador en cada acción cuando se agregue el login.
+
+export async function guardarServicio(
+  id: string | null,
+  _previo: EstadoFormulario,
+  fd: FormData,
+): Promise<EstadoFormulario> {
+  // Los tipos se validan en el servicio (servicioSchema); acá solo se leen los campos.
+  const entrada = {
+    nombre: texto(fd, "nombre"),
+    slug: texto(fd, "slug"),
+    descripcion: texto(fd, "descripcion"),
+    duracionMinutos: numero(fd, "duracionMinutos"),
+    intervaloMinutos: numero(fd, "intervaloMinutos"),
+    margenMinutos: numero(fd, "margenMinutos") ?? 0,
+    capacidad: numero(fd, "capacidad"),
+    anticipacionMinutos: numero(fd, "anticipacionMinutos"),
+    precioBase: numero(fd, "precioBase"),
+    color: texto(fd, "color"),
+    requiereCristal: casilla(fd, "requiereCristal"),
+    activo: casilla(fd, "activo"),
+    orden: numero(fd, "orden"),
+    horarios: json(fd, "horarios", []),
+  } as ServicioInput;
+
+  try {
+    if (id) await actualizarServicio(id, entrada);
+    else await crearServicio(entrada);
+  } catch (e) {
+    if (e instanceof ZodError) return fallo(erroresDeZod(e));
+    if (esDuplicado(e)) return fallo({ nombre: "Ya existe un servicio con ese nombre" });
+    throw e;
+  }
+
+  revalidatePath("/servicios");
+  redirect(`/servicios?aviso=${id ? "actualizado" : "creado"}`);
+}
+
+export async function alternarServicio(id: string, activo: boolean) {
+  await cambiarEstadoServicio(id, activo);
+  revalidatePath("/servicios");
+}
+
+export async function borrarServicio(id: string) {
+  const { resultado } = await eliminarServicio(id);
+  revalidatePath("/servicios");
+  redirect(`/servicios?aviso=${resultado}`);
+}

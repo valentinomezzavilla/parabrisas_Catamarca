@@ -106,7 +106,7 @@ export async function buscarCristales(input: BusquedaCristalInput = {}) {
   const f = busquedaCristalSchema.parse(input);
 
   const where: Prisma.CristalWhereInput = {
-    activo: true,
+    activo: f.incluirInactivos ? undefined : true,
     ubicacionId: f.ubicacionId,
     tipoId: f.tipoId,
     ...(f.soloConStock && { cantidad: { gt: 0 } }),
@@ -147,3 +147,33 @@ export async function cristalesConStockBajo() {
     orderBy: { cantidad: "asc" },
   });
 }
+
+/** Ficha completa con el historial de movimientos más reciente. */
+export function obtenerCristal(id: string) {
+  return db.cristal.findUnique({
+    where: { id },
+    include: {
+      ...incluirDetalle,
+      movimientos: { orderBy: { creadoEn: "desc" }, take: 50, include: { turno: { select: { id: true, inicio: true } } } },
+    },
+  });
+}
+
+/** Dar de baja oculta el cristal de búsquedas y reservas sin borrar su historial. */
+export function cambiarEstadoCristal(id: string, activo: boolean) {
+  return db.cristal.update({ where: { id }, data: { activo } });
+}
+
+/** Todo lo que necesitan los formularios y filtros de stock. */
+export async function obtenerCatalogos() {
+  const [marcas, tipos, ubicaciones, caracteristicas, marcasVehiculo] = await Promise.all([
+    db.marcaCristal.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
+    db.tipoCristal.findMany({ orderBy: { nombre: "asc" } }),
+    db.ubicacionVehiculo.findMany({ orderBy: { orden: "asc" } }),
+    db.caracteristica.findMany({ orderBy: { nombre: "asc" } }),
+    db.marcaVehiculo.findMany({ orderBy: { nombre: "asc" }, include: { modelos: { orderBy: { nombre: "asc" } } } }),
+  ]);
+  return { marcas, tipos, ubicaciones, caracteristicas, marcasVehiculo };
+}
+
+export type Catalogos = Awaited<ReturnType<typeof obtenerCatalogos>>;

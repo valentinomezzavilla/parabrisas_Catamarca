@@ -6,7 +6,11 @@ import { PrismaClient } from "@/generated/prisma/client";
 const globalParaPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function crearCliente() {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  const connectionString = process.env.DATABASE_URL;
+  // El driver `pg` ignora `connection_limit` de la URL; se traduce al tamaño del pool.
+  // Hace falta con `prisma dev`, cuyo Postgres embebido admite una sola conexión.
+  const limite = connectionString && new URL(connectionString).searchParams.get("connection_limit");
+  const adapter = new PrismaPg({ connectionString, ...(limite && { max: Number(limite) }) });
   return new PrismaClient({ adapter });
 }
 

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/zod";
 
 const anio = z.number().int().min(1950).max(2100);
 
@@ -65,6 +65,7 @@ export const busquedaCristalSchema = z.object({
   ubicacionId: z.string().optional(),
   tipoId: z.string().optional(),
   soloConStock: z.boolean().default(false),
+  incluirInactivos: z.boolean().default(false),
 });
 
 export type CrearCristalInput = z.input<typeof crearCristalSchema>;

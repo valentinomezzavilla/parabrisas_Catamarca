@@ -39,6 +39,30 @@ export function fechaLocal(instante: Date): string {
   return new Date(instante.getTime() - 3 * 60 * 60_000).toISOString().slice(0, 10);
 }
 
+export const DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+export const DIAS_LARGOS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+/** Orden de la semana laboral argentina: lunes primero. */
+export const SEMANA = [1, 2, 3, 4, 5, 6, 0];
+
+/** "14:30" en hora de Catamarca. */
+export function formatearHora(instante: Date): string {
+  return instante.toLocaleTimeString("es-AR", { timeZone: ZONA_HORARIA, hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+/** "lunes 5 de octubre" a partir de "2026-10-05". */
+export function formatearFecha(fecha: string, opciones: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long" }): string {
+  return instanteLocal(fecha, 12 * 60).toLocaleDateString("es-AR", { timeZone: ZONA_HORARIA, ...opciones });
+}
+
+/** Suma días a una fecha local "YYYY-MM-DD". */
+export function sumarDias(fecha: string, dias: number): string {
+  return fechaLocal(sumarMinutos(instanteLocal(fecha, 12 * 60), dias * 24 * 60));
+}
+
+export function hoy(): string {
+  return fechaLocal(new Date());
+}
+
 export function sumarMinutos(fecha: Date, minutos: number): Date {
   return new Date(fecha.getTime() + minutos * 60_000);
 }
