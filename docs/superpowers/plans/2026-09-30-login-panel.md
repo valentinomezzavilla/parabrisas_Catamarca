@@ -104,10 +104,10 @@ Expected: imprime la URL de conexión (`postgres://…`). Copiarla a `DATABASE_U
 Run:
 
 ```bash
-node -e "const c=require('crypto');const fs=require('fs');const add='\nSESSION_SECRET=\"'+c.randomBytes(32).toString('base64url')+'\"\nADMIN_USUARIO=\"admin.demo\"\nADMIN_PASSWORD=\"admin.demo\"\nADMIN_NOMBRE=\"Administrador\"\n';fs.appendFileSync('.env',add)"
+node -e "const c=require('crypto');const fs=require('fs');const add='\nSESSION_SECRET=\"'+c.randomBytes(32).toString('base64url')+'\"\nADMIN_USUARIO=\"<usuario-admin>\"\nADMIN_PASSWORD=\"<clave-admin>\"\nADMIN_NOMBRE=\"Administrador\"\n';fs.appendFileSync('.env',add)"
 ```
 
-Expected: `.env` tiene las cuatro variables nuevas. El Admin inicial (`admin.demo` / `admin.demo`) lo pidió el usuario; hay que advertirle al final que la clave es fácil de adivinar y que la cambie desde Usuarios → Nueva contraseña antes de publicar el panel.
+Expected: `.env` tiene las cuatro variables nuevas. El Admin inicial lo eligió el usuario: reemplazar `<usuario-admin>` y `<clave-admin>` del comando por los valores que indique (no se guardan en el repo). Advertirle al final que una clave corta o igual al usuario es fácil de adivinar y que la cambie desde Usuarios → Nueva contraseña antes de publicar el panel.
 
 - [ ] **Step 5: Aplicar las migraciones existentes y verificar la conexión**
 
@@ -1940,7 +1940,7 @@ Expected: las seis rutas del panel devuelven `307` con `redirect_url` terminando
 
 Checklist (marcar cada uno):
 1. `/login` con clave incorrecta → "Usuario o contraseña incorrectos"; con un usuario de 2 letras → "Debe tener al menos 3 caracteres".
-2. Login con el Admin (`admin.demo` / `admin.demo`, escribiendo el usuario en MAYÚSCULAS para probar la normalización) → entra al Panel; la barra lateral muestra nombre, "Administrador", "Servicios", "Usuarios" y "Salir".
+2. Login con el Admin (con el usuario y la clave elegidos en Task 1, escribiendo el usuario en MAYÚSCULAS para probar la normalización) → entra al Panel; la barra lateral muestra nombre, "Administrador", "Servicios", "Usuarios" y "Salir".
 3. `/usuarios` → lista con "Vos" y "Admin"; los botones "Pasar a Empleado" y "Desactivar" **no aparecen** en la propia fila.
 4. Crear un Empleado (usuario `empleado1`, clave de 10+ caracteres): aparece en la lista. Crear otro con el mismo usuario → "Ese nombre de usuario ya está en uso". Clave de 5 caracteres → "Debe tener al menos 10 caracteres".
 5. Nueva contraseña para el Empleado con 5 caracteres → error; con 10+ → "Contraseña actualizada." y el campo se vacía.

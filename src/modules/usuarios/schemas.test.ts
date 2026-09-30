@@ -30,7 +30,7 @@ describe("passwordSchema", () => {
   });
 
   it("acepta cualquier contenido: no exige mayúsculas, números ni símbolos", () => {
-    for (const clave of ["aaaaa", "12345", "ABCDE", "     ", "ñandú", "!!!!!", "admin.demo"]) {
+    for (const clave of ["aaaaa", "12345", "ABCDE", "     ", "ñandú", "!!!!!", "clave-demo"]) {
       expect(passwordSchema.safeParse(clave).success).toBe(true);
     }
   });
