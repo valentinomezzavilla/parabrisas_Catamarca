@@ -23,6 +23,7 @@ prisma/
   seed.ts                ← catálogos + servicios por defecto
 src/
   app/                   ← rutas Next.js (UI)
+    (panel)/administracion/  ← Administración de campos y listas (solo Admin)
   components/layout/     ← barra lateral, shell
   lib/db.ts              ← cliente Prisma
   lib/tiempo.ts          ← zona horaria (UTC-3), conversión HH:MM ↔ minutos
@@ -32,6 +33,7 @@ src/
   proxy.ts               ← redirige a /login cuando no hay sesión
   modules/
     inventario/          ← schemas.ts (Zod) + cristal.service.ts
+    campos/              ← campos configurables: registro del sistema, combinación, valores propios, servicios
     turnos/              ← schemas.ts + servicio.service.ts + disponibilidad.ts (pura, con tests)
 ```
 
@@ -43,7 +45,7 @@ Cada módulo expone funciones de servicio (`crearCristal`, `registrarMovimiento`
 
 ```
 MarcaCristal ─┐
-TipoCristal ──┼─< Cristal >── CristalCaracteristica >── Caracteristica
+TipoCristal ──┼─< Cristal  (campos propios en la columna extras)
 UbicacionVeh ─┘      │
                      ├─< CompatibilidadVehiculo >── ModeloVehiculo >── MarcaVehiculo
                      └─< MovimientoStock
@@ -54,9 +56,9 @@ UbicacionVeh ─┘      │
 | `marcas_cristal` | nombre | Pilkington, Fuyao, Vitro, AGC… |
 | `tipos_cristal` | nombre, descripcion | Laminado, templado, laminado acústico. Es un catálogo, no un enum: se amplía desde el panel. |
 | `ubicaciones_vehiculo` | nombre, tiene_lado, orden | Parabrisas, luneta, puertas, ventilete… |
-| `cristales` | codigo (SKU), codigo_fabricante, descripcion, marca/tipo/ubicacion, lado, ancho_mm, alto_mm, espesor_mm, **cantidad**, stock_minimo, ubicacion_deposito, costo, precio_venta, activo | `cantidad` solo cambia junto con un movimiento. |
-| `caracteristicas` | nombre, tipo_dato (BOOLEANO/TEXTO/NUMERO/OPCION), opciones[], unidad | Atributos extra definibles sin migrar: sensor de lluvia, antena, calefaccionado, tonalidad… |
-| `cristal_caracteristicas` | cristal_id, caracteristica_id, valor | Valor de cada atributo por cristal. |
+| `cristales` | codigo (SKU), codigo_fabricante, descripcion, marca/tipo/ubicacion, lado, ancho_mm, alto_mm, espesor_mm, **cantidad**, stock_minimo, ubicacion_deposito, costo, precio_venta, activo, extras | `cantidad` solo cambia junto con un movimiento. |
+| `campos_personalizados` | entidad, clave, etiqueta, ayuda, tipo (TEXTO/TEXTO_LARGO/NUMERO/SI_NO/LISTA/FECHA), requerido, unidad, opciones (JSON), orden, visible, archivado_en | Campos propios definidos desde Administración. Sus valores viven en `cristales.extras`, indexados por `clave` (que no cambia nunca). |
+| `configuracion_campos` | entidad, clave, etiqueta, ayuda, oculto, orden | Ajustes del Admin sobre los campos del sistema. Sin fila, rige la configuración de fábrica (`src/modules/campos/registro.ts`). |
 | `marcas_vehiculo` / `modelos_vehiculo` | nombre | Toyota → Hilux. |
 | `compatibilidades_vehiculo` | cristal_id, modelo_id, anio_desde, anio_hasta, carroceria | Un cristal sirve para N modelos y rangos de años. `anio_hasta` nulo = sigue vigente. |
 | `movimientos_stock` | cristal_id, tipo (INGRESO/EGRESO/AJUSTE), cantidad (con signo), saldo, motivo, turno_id | Historial auditable. Un egreso puede vincularse al turno de colocación. |
@@ -96,6 +98,16 @@ Servicio ─< HorarioServicio
 ### Zona horaria
 Las fechas se guardan en UTC. Las franjas se guardan como minutos locales. Catamarca es UTC-3 fijo (Argentina no usa horario de verano). Toda la conversión está en `src/lib/tiempo.ts`.
 
+## Administración de campos
+
+Solo Admin. `/administracion` muestra una card por módulo (hoy solo **Stock** está habilitado; Servicios y Turnos y clientes vienen después).
+
+- **Campos del sistema** (`src/modules/campos/registro.ts`): los trae el código. Los **protegidos** (código, descripción, marca, tipo, ubicación, stock mínimo, cantidad) no se ocultan ni cambian de tipo; a todos se les puede cambiar etiqueta, ayuda y orden, y a los demás ocultarlos. Esos ajustes se guardan en `configuracion_campos`.
+- **Campos propios**: seis tipos (texto, texto largo, número, sí/no, lista, fecha). Definición en `campos_personalizados`, valores en `cristales.extras`. Se pueden archivar (conservan sus valores) o eliminar (borran sus valores, con confirmación que muestra cuántos registros se afectan). Cambiar el tipo también borra los valores.
+- **Listas**: marcas, tipos, ubicaciones y marcas y modelos de vehículo siguen siendo tablas reales (integridad referencial). Se administran en `/administracion/stock/listas`: lo desactivado deja de ofrecerse pero se sigue viendo donde ya está cargado; solo se borra lo que no está en uso.
+- **Formularios y ficha** de cristal se arman desde `combinarCampos()`. Editar un cristal solo cambia lo que el formulario envía: un campo oculto conserva su valor (por eso `actualizarCristalSchema` no tiene valores por defecto).
+- Una opción de lista propia se guarda por **id**: renombrarla no toca los datos.
+
 ## Acceso y sesión
 
 Tabla `usuarios`: `usuario` (único; nombre de usuario en minúsculas, un email también sirve), `nombre`, `password_hash` (`scrypt$sal$clave`), `rol` (`ADMIN` | `EMPLEADO`), `activo`, `ultimo_acceso`.
@@ -133,6 +145,9 @@ Regla de contraste: el amarillo del logo sobre blanco da **1.35:1**, así que nu
 | `/stock` | Listado con búsqueda por código o texto, vehículo y año, ubicación y tipo. |
 | `/stock/nuevo`, `/stock/[id]`, `/stock/[id]/editar` | Alta, ficha (movimientos e historial) y edición de cristales. |
 | `/servicios`, `/servicios/nuevo`, `/servicios/[id]` | Servicios del turnero: tiempos, capacidad y franjas por día. Se pueden pausar o eliminar. |
+| `/administracion` | Solo Admin. Cards por módulo. |
+| `/administracion/stock` | Solo Admin. Campos de Stock: ver tipos, renombrar, ocultar, reordenar y crear campos propios. |
+| `/administracion/stock/listas` | Solo Admin. Listas de Stock: marcas, tipos, ubicaciones, marcas y modelos de vehículo. |
 | `/login` | **Pública.** Ingreso al panel. |
 | `/usuarios`, `/usuarios/nuevo` | Solo Admin: alta, rol, activar/desactivar y nueva contraseña. |
 | `/reservar` | **Pública.** El cliente elige servicio, día y horario, y carga sus datos. |
@@ -144,7 +159,8 @@ Las rutas del panel están en `src/app/(panel)` (con barra lateral) y las públi
 ## Pendiente
 
 1. Protección anti-spam de `/reservar` (límite de reservas por teléfono o IP, o captcha).
-2. ABM de catálogos desde el panel (marcas, tipos, modelos de vehículo, características). Por ahora se cargan con el seed o con `npm run db:studio`.
+2. Administración de campos para Servicios y para Turnos y clientes (incluye los campos del formulario público `/reservar`). El motor ya está hecho; falta la columna `extras` y las pantallas de cada módulo.
+   Además: limpiar un campo vacío al editar un cristal (hoy un costo vacío no borra el valor guardado).
 3. Bloqueos de agenda (feriados, vacaciones) desde el panel. La tabla ya existe y el cálculo de disponibilidad los respeta.
 4. Recordatorios de turno por WhatsApp.
 5. Si dos servicios comparten el mismo box, agregar una tabla `recursos` y medir la capacidad por recurso en lugar de por servicio.

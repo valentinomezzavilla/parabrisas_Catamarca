@@ -10,7 +10,7 @@ Requisitos: Node 20+ y PostgreSQL.
 npm install
 cp .env.example .env          # completar DATABASE_URL, SESSION_SECRET, ADMIN_USUARIO y ADMIN_PASSWORD
 npx prisma migrate deploy     # crea las tablas
-npm run db:seed               # catálogos, servicios y el primer administrador
+npm run db:seed               # catálogos, servicios, campos propios por defecto y el primer administrador
 npm run dev                   # http://localhost:3000
 ```
 
@@ -31,6 +31,10 @@ El seed crea un administrador con `ADMIN_USUARIO` y `ADMIN_PASSWORD` del `.env` 
 `SESSION_SECRET` firma la cookie de sesión (mínimo 32 caracteres). En producción usá una propia y distinta de la de desarrollo.
 
 > `npx prisma migrate dev` no funciona con la base embebida de `prisma dev` (su base de sombra hereda las tablas). Para una migración nueva usá `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script` y aplicala con `npx prisma migrate deploy`.
+
+## Administración de campos
+
+Con el rol Administrador, el menú **Administración** permite ver el tipo de cada campo de Stock, renombrarlo, ocultarlo, reordenarlo, sumar campos propios y administrar las listas (marcas, tipos, ubicaciones, vehículos). Los campos que el sistema necesita para funcionar (código, marca, cantidad…) se pueden renombrar pero no ocultar ni borrar.
 
 ## Scripts
 
