@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { esRutaPublica } from "@/lib/rutas";
+import { esRutaPublica, esServerAction } from "@/lib/rutas";
 import { NOMBRE_COOKIE, obtenerSecreto, verificarToken } from "@/lib/token";
 
 /**
@@ -9,6 +9,11 @@ import { NOMBRE_COOKIE, obtenerSecreto, verificarToken } from "@/lib/token";
  */
 export default async function proxy(req: NextRequest) {
   if (esRutaPublica(req.nextUrl.pathname)) return NextResponse.next();
+
+  // Una Server Action con la sesión vencida no se redirige acá: el navegador reenviaría el POST a
+  // /login, que no conoce la acción, y la pantalla se rompería. Cada acción valida la sesión por su
+  // cuenta (verificarSesion) y su redirect a /login lo maneja bien el cliente de Next.
+  if (esServerAction(req.method, req.headers.has("next-action"))) return NextResponse.next();
 
   const usuarioId = await verificarToken(req.cookies.get(NOMBRE_COOKIE)?.value, obtenerSecreto());
   if (usuarioId) return NextResponse.next();
