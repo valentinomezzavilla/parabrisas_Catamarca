@@ -82,5 +82,21 @@ export const reservaSchema = z.object({
   notas: z.string().trim().max(500).optional(),
 });
 
+export const editarTurnoSchema = z.object({
+  servicioId: z.string().min(1),
+  inicio: z.coerce.date(),
+  cliente: z.object({
+    nombre: z.string().trim().min(2).max(100),
+    telefono: z.string().trim().min(6).max(30),
+    email: z.email().optional(),
+  }),
+  vehiculo: z.string().trim().max(100).optional(),
+  patente: z.string().trim().toUpperCase().max(10).optional(),
+  cristalId: z.string().optional(),
+  precio: z.number().min(0).optional(),
+  notas: z.string().trim().max(500).optional(),
+});
+
 export type ServicioInput = z.input<typeof servicioSchema>;
+export type EditarTurnoInput = z.input<typeof editarTurnoSchema>;
 export type ReservaInput = z.input<typeof reservaSchema>;

@@ -101,7 +101,7 @@ export async function eliminarServicio(id: string) {
 //  Agenda
 // ---------------------------------------------------------------------------
 
-export async function disponibilidadDelDia(cliente: Cliente, servicioId: string, fecha: string) {
+export async function disponibilidadDelDia(cliente: Cliente, servicioId: string, fecha: string, excluirTurnoId?: string) {
   const servicio = await cliente.servicio.findUnique({
     where: { id: servicioId },
     include: { horarios: true },
@@ -120,6 +120,7 @@ export async function disponibilidadDelDia(cliente: Cliente, servicioId: string,
       // Un turno esperando el pago que ya venció no ocupa el horario, aunque el barrido todavía no lo haya cancelado.
       NOT: { estado: "ESPERANDO_PAGO", venceEn: { lte: new Date() } },
       ...enElDia,
+      ...(excluirTurnoId && { id: { not: excluirTurnoId } }),
     },
     select: { inicio: true, fin: true },
   });
@@ -131,9 +132,9 @@ export async function disponibilidadDelDia(cliente: Cliente, servicioId: string,
   return calcularDisponibilidad({ fecha, servicio, turnos, bloqueos });
 }
 
-/** Turnos libres de un servicio para un día local "YYYY-MM-DD". */
-export function obtenerDisponibilidad(servicioId: string, fecha: string) {
-  return disponibilidadDelDia(db, servicioId, fecha);
+/** Turnos libres de un servicio para un día local "YYYY-MM-DD". `excluirTurnoId` ignora ese turno (para editarlo). */
+export function obtenerDisponibilidad(servicioId: string, fecha: string, excluirTurnoId?: string) {
+  return disponibilidadDelDia(db, servicioId, fecha, excluirTurnoId);
 }
 
 /** Código de reserva que todavía no usa ningún turno. */

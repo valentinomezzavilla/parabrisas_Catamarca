@@ -2,6 +2,9 @@ import { db } from "@/lib/db";
 import { fechaLocal, instanteLocal, sumarDias, sumarMinutos } from "@/lib/tiempo";
 import type { EstadoTurno } from "@/generated/prisma/client";
 import { registrarMovimiento } from "@/modules/inventario/cristal.service";
+import { cambiaAgenda, puedeEditar } from "./edicion";
+import { editarTurnoSchema, type EditarTurnoInput } from "./schemas";
+import { disponibilidadDelDia, TurnoNoDisponibleError } from "./servicio.service";
 
 /** Rango UTC [desde, hasta) que cubre los días locales indicados. */
 function rangoDias(fecha: string, dias = 1) {
@@ -82,5 +85,74 @@ export function cristalesDisponibles() {
     where: { activo: true, cantidad: { gt: 0 } },
     select: { id: true, codigo: true, descripcion: true, cantidad: true },
     orderBy: { descripcion: "asc" },
+  });
+}
+
+export class TurnoNoEditableError extends Error {
+  constructor() {
+    super("Este turno ya no se puede editar");
+    this.name = "TurnoNoEditableError";
+  }
+}
+
+/** Turno con todo lo que necesita la pantalla de edición. */
+export function obtenerTurnoParaEditar(id: string) {
+  return db.turno.findUnique({
+    where: { id },
+    include: {
+      servicio: true,
+      cliente: true,
+      cristal: { select: { id: true, codigo: true, descripcion: true } },
+      pagos: { where: { estado: "APROBADO" }, select: { monto: true } },
+    },
+  });
+}
+
+/**
+ * Edita un turno vigente. Si cambia el servicio o el horario, toma el bloqueo del servicio de destino (el mismo que
+ * usan las reservas), recalcula la disponibilidad ignorando este turno y exige que el horario esté libre.
+ * Nunca toca los pagos. Si cambia el teléfono, el turno pasa al cliente de ese teléfono (o a uno nuevo); si no,
+ * nombre y mail se corrigen en la ficha del cliente actual.
+ */
+export async function editarTurno(id: string, input: EditarTurnoInput) {
+  const r = editarTurnoSchema.parse(input);
+
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${r.servicioId}))`;
+
+    const actual = await tx.turno.findUniqueOrThrow({ where: { id }, include: { cliente: true } });
+    if (!puedeEditar(actual.estado)) throw new TurnoNoEditableError();
+
+    let { inicio, fin } = actual;
+    if (cambiaAgenda(actual, r)) {
+      const libres = await disponibilidadDelDia(tx, r.servicioId, fechaLocal(r.inicio), id);
+      const elegido = libres.find((t) => t.inicio.getTime() === r.inicio.getTime());
+      if (!elegido) throw new TurnoNoDisponibleError();
+      ({ inicio, fin } = elegido);
+    }
+
+    let clienteId = actual.clienteId;
+    if (r.cliente.telefono !== actual.cliente.telefono) {
+      const existente = await tx.cliente.findFirst({ where: { telefono: r.cliente.telefono } });
+      // Si el teléfono ya es de otra persona, se la deja como está: no se le pisa el nombre.
+      clienteId = (existente ?? (await tx.cliente.create({ data: r.cliente }))).id;
+    } else {
+      await tx.cliente.update({ where: { id: actual.clienteId }, data: { nombre: r.cliente.nombre, email: r.cliente.email ?? null } });
+    }
+
+    return tx.turno.update({
+      where: { id },
+      data: {
+        servicioId: r.servicioId,
+        clienteId,
+        inicio,
+        fin,
+        vehiculo: r.vehiculo ?? null,
+        patente: r.patente ?? null,
+        cristalId: r.cristalId ?? null,
+        precio: r.precio ?? null,
+        notas: r.notas ?? null,
+      },
+    });
   });
 }
