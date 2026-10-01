@@ -246,6 +246,7 @@ enum EstadoTurno {
 /// cambios futuros en el servicio no alteran turnos ya dados.
 model Turno {
   id              String            @id @default(cuid())
+  codigo          String            @unique // código corto para que el cliente busque o cancele su reserva
   servicioId      String            @map("servicio_id")
   servicio        Servicio          @relation(fields: [servicioId], references: [id])
   clienteId       String            @map("cliente_id")

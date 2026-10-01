@@ -138,6 +138,15 @@ Un turno de un servicio con `precio_base` pide una **seña del 50 %** (en pesos 
 - **Turnos cargados por el local.** Quien reserva con una sesión del panel iniciada (botón "Nuevo turno") no paga seña: el turno nace `PENDIENTE`.
 - **Configuración.** `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` y `APP_URL` en `.env`. El cliente de Mercado Pago (`src/lib/mercadopago.ts`) usa `fetch`, sin SDK.
 
+## Editar y cancelar reservas
+
+- **Código de reserva.** Cada turno tiene `turnos.codigo` (6 caracteres del alfabeto `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`, sin 0, O, 1 ni I; único). Se muestra en la página de confirmación ("Guardalo para buscar o cancelar tu reserva") y en la agenda del panel. A los turnos anteriores a esta función la migración les completó un código hexadecimal único.
+- **Editar en el panel** (`/turnos/[id]/editar`, cualquier usuario con sesión). Se editan servicio, día y hora, nombre, teléfono, mail, vehículo, patente, cristal, precio y notas de los turnos `Pendiente`, `Confirmado` y `En curso` (no los completados, cancelados, ausentes ni los que esperan el pago). Si cambia el servicio o el horario, `editarTurno` toma el bloqueo por servicio de destino, recalcula la disponibilidad **ignorando el propio turno** y no guarda si el horario no está libre; la hora de fin se recalcula con la duración del servicio. Nunca toca los pagos: la seña pagada no se recalcula. Si cambia el teléfono, el turno pasa al cliente que tenga ese teléfono (o se crea uno) sin pisarle el nombre; si no, nombre y mail se corrigen en la ficha actual.
+- **Cancelar en el panel.** La confirmación del botón "Cancelar" avisa cuando el turno tiene una seña cobrada ("no se devuelve automáticamente"). Cancelar libera el horario.
+- **"Buscar tu reserva" en `/reservar`.** Un modal con ocho campos opcionales (código, nombre, teléfono, mail, patente, vehículo, servicio y día) que se combinan con "y". Hace falta al menos un dato que identifique: **el servicio y el día solos no alcanzan**. Comparación: código y mail exactos, teléfono por dígitos (uno termina con el otro, mínimo 6), patente sin espacios ni guiones, nombre y vehículo por coincidencia parcial sin tildes (mínimo 3 letras). Se consideran los turnos `Pendiente`, `Confirmado` y `Esperando pago` que empiezan en el futuro. Resultado: ninguna coincidencia, varias (no se muestra nada) o una exacta, con servicio, día, hora, estado y seña pagada, y nombre, teléfono y patente **tapados**; nunca se muestran mail, precio, cristal ni notas. Va por Server Action (POST), sin datos personales en la dirección.
+- **Cancelar desde el portal.** Pide escribir el teléfono (al menos 8 dígitos) o el mail completos de la reserva. Si hay seña pagada, avisa que no se devuelve. El turno queda `Cancelado` con la nota "Cancelado por el cliente el dd/mm hh:mm" y su pago pendiente pasa a vencido.
+- **Protecciones.** Tras 5 intentos fallidos de verificación para un mismo turno, 15 minutos de bloqueo (mismas reglas que el login, clave `cancelar:<id>` en `intentos_login`); tope de 20 búsquedas por minuto en todo el sitio (clave `busqueda:<minuto>`). Límite aceptado: quien conozca un dato único de otra persona (por ejemplo su patente) puede ver que tiene un turno vigente y sus datos tapados; para cancelarlo necesita su teléfono o mail.
+
 ## Identidad visual
 
 El logo (`public/brand/logo-amarillo.png`) usa **un único color: `#FDDD3D`**, sobre fondo transparente. El resto de la paleta se deriva de ese color:
@@ -180,8 +189,9 @@ El menú se define una sola vez en `src/components/layout/navegacion.ts` y lo us
 | `/administracion/servicios`, `/administracion/servicios/campos/nuevo`, `/administracion/servicios/campos/[clave]` | Solo Admin. Campos de Servicios: los del sistema (fijos) y los propios (crear, editar, ordenar, archivar y eliminar). |
 | `/login` | **Pública.** Ingreso al panel. |
 | `/usuarios`, `/usuarios/nuevo` | Solo Admin: alta, rol, activar/desactivar y nueva contraseña. |
-| `/reservar` | **Pública.** El cliente elige servicio, día y horario, carga sus datos y, si el servicio tiene precio, paga la seña por Mercado Pago. |
-| `/reservar/confirmado` | **Pública.** Estado del turno y del pago; consulta a Mercado Pago al cargar. |
+| `/reservar` | **Pública.** El cliente elige servicio, día y horario, carga sus datos y, si el servicio tiene precio, paga la seña por Mercado Pago. Incluye "Buscar tu reserva" para ver y cancelar una reserva. |
+| `/reservar/confirmado` | **Pública.** Estado del turno y del pago; consulta a Mercado Pago al cargar; muestra el código de reserva. |
+| `/turnos/[id]/editar` | Edición de un turno vigente: servicio, día y hora (con la disponibilidad real), datos del cliente, vehículo, cristal, precio y notas. |
 | `/api/mercadopago/webhook` | **Pública** (sin sesión): avisos de Mercado Pago, validados por firma. |
 
 Las rutas del panel están en `src/app/(panel)` (con barra lateral) y las públicas en `src/app/(publico)`. Cada sección tiene su `acciones.ts` con las Server Actions, que solo leen el formulario y delegan en `src/modules`.
@@ -190,6 +200,7 @@ Las rutas del panel están en `src/app/(panel)` (con barra lateral) y las públi
 
 ## Pendiente
 
+0. Que el cliente pueda **reprogramar** su reserva desde el portal, avisos por mail o WhatsApp al cancelar o editar, y devolución automática de la seña (hoy es a mano desde Mercado Pago).
 1. Reservas falsas en servicios **sin precio base**: no cobran seña y no tienen ningún freno (límite por teléfono o IP, o captcha). Además, devolución automática de la seña (hoy se devuelve a mano desde Mercado Pago).
 2. Administración de campos para Turnos y clientes (incluye los campos del formulario público `/reservar`). El motor y las pantallas ya están hechos; falta la columna `extras` y decidir qué campos propios ve el público.
    Para renombrar, ocultar o reordenar también los campos del sistema de Servicios hay que reconstruir `FormularioServicio` sobre el motor.

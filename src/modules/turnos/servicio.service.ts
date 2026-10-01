@@ -5,6 +5,7 @@ import { calcularSena, MINUTOS_RETENCION } from "@/modules/pagos/sena";
 import { listarCamposPropios } from "@/modules/campos/campo.service";
 import { procesarExtras } from "@/modules/campos/extras";
 import type { Extras } from "@/modules/campos/tipos";
+import { generarCodigo } from "./codigo";
 import { calcularDisponibilidad } from "./disponibilidad";
 import { reservaSchema, servicioSchema, type ReservaInput, type ServicioInput } from "./schemas";
 
@@ -100,7 +101,7 @@ export async function eliminarServicio(id: string) {
 //  Agenda
 // ---------------------------------------------------------------------------
 
-export async function disponibilidadDelDia(cliente: Cliente, servicioId: string, fecha: string) {
+export async function disponibilidadDelDia(cliente: Cliente, servicioId: string, fecha: string, excluirTurnoId?: string) {
   const servicio = await cliente.servicio.findUnique({
     where: { id: servicioId },
     include: { horarios: true },
@@ -119,6 +120,7 @@ export async function disponibilidadDelDia(cliente: Cliente, servicioId: string,
       // Un turno esperando el pago que ya venció no ocupa el horario, aunque el barrido todavía no lo haya cancelado.
       NOT: { estado: "ESPERANDO_PAGO", venceEn: { lte: new Date() } },
       ...enElDia,
+      ...(excluirTurnoId && { id: { not: excluirTurnoId } }),
     },
     select: { inicio: true, fin: true },
   });
@@ -130,9 +132,18 @@ export async function disponibilidadDelDia(cliente: Cliente, servicioId: string,
   return calcularDisponibilidad({ fecha, servicio, turnos, bloqueos });
 }
 
-/** Turnos libres de un servicio para un día local "YYYY-MM-DD". */
-export function obtenerDisponibilidad(servicioId: string, fecha: string) {
-  return disponibilidadDelDia(db, servicioId, fecha);
+/** Turnos libres de un servicio para un día local "YYYY-MM-DD". `excluirTurnoId` ignora ese turno (para editarlo). */
+export function obtenerDisponibilidad(servicioId: string, fecha: string, excluirTurnoId?: string) {
+  return disponibilidadDelDia(db, servicioId, fecha, excluirTurnoId);
+}
+
+/** Código de reserva que todavía no usa ningún turno. */
+async function codigoLibre(tx: Cliente): Promise<string> {
+  for (let i = 0; i < 10; i++) {
+    const codigo = generarCodigo();
+    if (!(await tx.turno.findUnique({ where: { codigo }, select: { id: true } }))) return codigo;
+  }
+  throw new Error("No se pudo generar un código de reserva único");
 }
 
 /**
@@ -168,6 +179,7 @@ export async function reservarTurno(
     const ahora = new Date();
     const turno = await tx.turno.create({
       data: {
+        codigo: await codigoLibre(tx),
         servicioId: r.servicioId,
         clienteId: cliente.id,
         inicio: elegido.inicio,
