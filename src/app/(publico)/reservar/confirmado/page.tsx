@@ -4,7 +4,8 @@ import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import { Aviso, boton, tarjeta } from "@/components/ui";
 import { pesos } from "@/lib/formato";
 import { fechaLocal, formatearFecha, formatearHora } from "@/lib/tiempo";
-import { sincronizarPago } from "@/modules/pagos/pagos.service";
+import { liberarVencidos, sincronizarPago } from "@/modules/pagos/pagos.service";
+import { vistaConfirmacion } from "@/modules/pagos/vista";
 import { obtenerTurno } from "@/modules/turnos/turno.service";
 
 export const metadata = { title: "Tu turno" };
@@ -15,41 +16,57 @@ export default async function PaginaConfirmado({ searchParams }: { searchParams:
 
   // Nada de lo que diga la URL sobre el pago se toma como cierto: se consulta a Mercado Pago.
   await sincronizarPago(id);
+  await liberarVencidos();
   const turno = await obtenerTurno(id);
   if (!turno) notFound();
 
   const pago = turno.pagos[0];
-  const vigente = turno.estado === "ESPERANDO_PAGO" && !!turno.venceEn && turno.venceEn > new Date();
-  const sinTurno = !!pago?.requiereDevolucion;
-  const cancelado = turno.estado === "CANCELADO";
+  const vista = vistaConfirmacion({
+    turnoEstado: turno.estado,
+    venceEn: turno.venceEn,
+    pago: pago ? { requiereDevolucion: pago.requiereDevolucion, devuelto: !!pago.devueltoEn } : null,
+    ahora: new Date(),
+  });
 
-  const Icono = vigente ? Clock : sinTurno || cancelado ? XCircle : CheckCircle2;
-  const claseIcono = vigente ? "text-alerta" : sinTurno || cancelado ? "text-peligro" : "text-exito";
+  const Icono = vista.tipo === "esperando" ? Clock : vista.tipo === "sin_turno" || vista.tipo === "no_completado" ? XCircle : CheckCircle2;
+  const claseIcono = vista.tipo === "esperando" ? "text-alerta" : vista.tipo === "sin_turno" || vista.tipo === "no_completado" ? "text-peligro" : "text-exito";
   const nombre = turno.cliente.nombre.split(" ")[0];
-  const titulo = vigente ? "Estamos esperando tu pago" : sinTurno ? "Recibimos tu pago, pero…" : cancelado ? "No se completó el pago" : `¡Listo, ${nombre}!`;
-  const confirmado = turno.estado === "CONFIRMADO" || turno.estado === "EN_CURSO" || turno.estado === "COMPLETADO";
+  const titulo = {
+    esperando: "Estamos esperando tu pago",
+    sin_turno: "Recibimos tu pago, pero…",
+    no_completado: "No se completó el pago",
+    confirmado: `¡Listo, ${nombre}!`,
+    reservado: `¡Listo, ${nombre}!`,
+  }[vista.tipo];
+  const hayTurno = vista.tipo === "esperando" || vista.tipo === "confirmado" || vista.tipo === "reservado";
 
   return (
     <div className={`${tarjeta} space-y-5 p-6 text-center`}>
       <Icono className={`mx-auto size-14 ${claseIcono}`} aria-hidden />
       <div className="space-y-1">
         <h1 className="font-display text-2xl font-extrabold">{titulo}</h1>
-        {vigente && <p className="text-texto-suave">Cuando Mercado Pago nos avise, tu turno queda confirmado.</p>}
-        {!vigente && !sinTurno && !cancelado && (
-          <p className="text-texto-suave">{confirmado ? `Tu turno quedó confirmado${pago ? ` con la seña de ${pesos(pago.monto)}` : ""}.` : "Tu turno quedó reservado."}</p>
+        {vista.tipo === "esperando" && <p className="text-texto-suave">Cuando Mercado Pago nos avise, tu turno queda confirmado.</p>}
+        {vista.tipo === "confirmado" && (
+          <p className="text-texto-suave">Tu turno quedó confirmado{pago ? ` con la seña de ${pesos(pago.monto)}` : ""}.</p>
         )}
+        {vista.tipo === "reservado" && <p className="text-texto-suave">Tu turno quedó reservado.</p>}
       </div>
 
-      {sinTurno && (
+      {vista.tipo === "sin_turno" && (
         <Aviso tono="alerta">
-          El horario ya no estaba disponible, así que el turno no se pudo confirmar. Comunicate con el local para que te devuelvan la seña.
+          {vista.devuelto
+            ? "No pudimos confirmar tu turno, pero ya te devolvimos la seña."
+            : "No pudimos confirmar tu turno (el horario ya no estaba disponible o el monto no coincidía). Comunicate con el local para que te devuelvan la seña."}
         </Aviso>
       )}
-      {cancelado && !sinTurno && (
+      {vista.tipo === "no_completado" && (
         <Aviso tono="alerta">El pago no se completó y el horario se liberó. Podés sacar un turno nuevo.</Aviso>
       )}
+      {vista.tipo === "confirmado" && vista.pagoDeMas && (
+        <Aviso tono="alerta">Detectamos un pago de más. Comunicate con el local para que te lo devuelvan.</Aviso>
+      )}
 
-      {!cancelado && !sinTurno && (
+      {hayTurno && (
         <dl className="mx-auto grid max-w-sm grid-cols-2 gap-4 rounded-lg bg-marca/15 p-4 text-left text-sm">
           <div className="col-span-2">
             <dt className="text-xs text-texto-suave">Servicio</dt>
@@ -66,17 +83,17 @@ export default async function PaginaConfirmado({ searchParams }: { searchParams:
         </dl>
       )}
 
-      {vigente && (
+      {vista.tipo === "esperando" && (
         <div className="flex flex-wrap justify-center gap-2">
           <Link href={`/reservar/confirmado?turno=${turno.id}`} className={boton.primario}>Ya pagué, actualizar</Link>
           {pago?.mpInitPoint && <a href={pago.mpInitPoint} className={boton.secundario}>Volver a pagar</a>}
         </div>
       )}
 
-      {!vigente && !cancelado && !sinTurno && (
+      {(vista.tipo === "confirmado" || vista.tipo === "reservado") && (
         <p className="text-sm text-texto-suave">Si necesitás cambiarlo o cancelarlo, comunicate con el local. La seña no se devuelve.</p>
       )}
-      {!vigente && <Link href="/reservar" className={boton.secundario}>Sacar otro turno</Link>}
+      {vista.tipo !== "esperando" && <Link href="/reservar" className={boton.secundario}>Sacar otro turno</Link>}
     </div>
   );
 }

@@ -55,19 +55,20 @@ export async function iniciarCobro(pagoId: string): Promise<{ urlPago: string }>
  */
 export async function liberarVencidos(ahora: Date = new Date()): Promise<number> {
   return db.$transaction(async (tx) => {
-    const vencidos = await tx.turno.findMany({
+    // Una sola sentencia que elige y cancela: si un pago se aplica al mismo tiempo, Postgres vuelve a evaluar la
+    // condición cuando se libera la fila y un turno recién confirmado ya no coincide (no se lo cancela).
+    const cancelados = await tx.turno.updateManyAndReturn({
       where: { estado: "ESPERANDO_PAGO", venceEn: { lte: ahora } },
+      data: { estado: "CANCELADO" },
       select: { id: true },
     });
-    if (vencidos.length === 0) return 0;
+    if (cancelados.length === 0) return 0;
 
-    const ids = vencidos.map((t) => t.id);
-    await tx.turno.updateMany({ where: { id: { in: ids } }, data: { estado: "CANCELADO" } });
     await tx.pago.updateMany({
-      where: { turnoId: { in: ids }, estado: { in: ["PENDIENTE", "RECHAZADO"] } },
+      where: { turnoId: { in: cancelados.map((t) => t.id) }, estado: { in: ["PENDIENTE", "RECHAZADO"] } },
       data: { estado: "VENCIDO" },
     });
-    return ids.length;
+    return cancelados.length;
   });
 }
 
