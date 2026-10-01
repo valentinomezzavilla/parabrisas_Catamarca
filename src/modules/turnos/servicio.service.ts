@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { fechaLocal, instanteLocal, sumarMinutos } from "@/lib/tiempo";
 import type { Prisma } from "@/generated/prisma/client";
+import { calcularSena, MINUTOS_RETENCION } from "@/modules/pagos/sena";
 import { calcularDisponibilidad } from "./disponibilidad";
 import { reservaSchema, servicioSchema, type ReservaInput, type ServicioInput } from "./schemas";
 
@@ -9,6 +10,12 @@ type Cliente = Prisma.TransactionClient;
 export class TurnoNoDisponibleError extends Error {
   constructor() {
     super("El horario elegido ya no está disponible");
+  }
+}
+
+export class CondicionesNoAceptadasError extends Error {
+  constructor() {
+    super("Hay que aceptar las condiciones de la seña");
   }
 }
 
@@ -118,8 +125,15 @@ export function obtenerDisponibilidad(servicioId: string, fecha: string) {
  * Reserva un turno. Un lock de Postgres por servicio serializa las reservas
  * concurrentes, y la disponibilidad se recalcula dentro de la transacción: dos
  * clientes que eligen el mismo horario a la vez no pueden superar la capacidad.
+ *
+ * Si el servicio tiene precio, el turno nace `ESPERANDO_PAGO` (se retiene `MINUTOS_RETENCION` minutos)
+ * con un `Pago` pendiente por la seña. Con `omitirSena` (carga hecha por el personal) o sin precio,
+ * nace `PENDIENTE` como siempre.
  */
-export async function reservarTurno(input: ReservaInput) {
+export async function reservarTurno(
+  input: ReservaInput,
+  { omitirSena = false, aceptoCondiciones = false }: { omitirSena?: boolean; aceptoCondiciones?: boolean } = {},
+) {
   const r = reservaSchema.parse(input);
 
   return db.$transaction(async (tx) => {
@@ -130,23 +144,31 @@ export async function reservarTurno(input: ReservaInput) {
     if (!elegido) throw new TurnoNoDisponibleError();
 
     const servicio = await tx.servicio.findUniqueOrThrow({ where: { id: r.servicioId } });
+    const sena = omitirSena ? null : calcularSena(servicio.precioBase);
+    if (sena !== null && !aceptoCondiciones) throw new CondicionesNoAceptadasError();
+
     const cliente =
       (await tx.cliente.findFirst({ where: { telefono: r.cliente.telefono } })) ??
       (await tx.cliente.create({ data: r.cliente }));
 
-    return tx.turno.create({
+    const ahora = new Date();
+    const turno = await tx.turno.create({
       data: {
         servicioId: r.servicioId,
         clienteId: cliente.id,
         inicio: elegido.inicio,
         fin: elegido.fin,
+        estado: sena === null ? "PENDIENTE" : "ESPERANDO_PAGO",
+        venceEn: sena === null ? null : sumarMinutos(ahora, MINUTOS_RETENCION),
         precio: servicio.precioBase,
         vehiculo: r.vehiculo,
         patente: r.patente,
         cristalId: r.cristalId,
         notas: r.notas,
+        pagos: sena === null ? undefined : { create: { monto: sena, aceptoCondicionesEn: ahora } },
       },
-      include: { servicio: true, cliente: true },
+      include: { servicio: true, cliente: true, pagos: { select: { id: true } } },
     });
+    return { turno, pagoId: turno.pagos[0]?.id ?? null };
   });
 }
