@@ -5,6 +5,7 @@ import type { EstadoTurno } from "@/generated/prisma/client";
 import type { EstadoFormulario } from "@/lib/formularios";
 import { verificarSesion } from "@/lib/sesion";
 import { StockInsuficienteError } from "@/modules/inventario/cristal.service";
+import { marcarDevuelto } from "@/modules/pagos/pagos.service";
 import { asignarCristal, cambiarEstadoTurno } from "@/modules/turnos/turno.service";
 
 export async function actualizarEstadoTurno(id: string, estado: EstadoTurno): Promise<EstadoFormulario> {
@@ -27,4 +28,10 @@ export async function actualizarCristalTurno(turnoId: string, fd: FormData) {
   const cristalId = fd.get("cristalId");
   await asignarCristal(turnoId, typeof cristalId === "string" && cristalId ? cristalId : null);
   revalidatePath("/turnos");
+}
+
+export async function marcarPagoDevuelto(pagoId: string) {
+  await verificarSesion();
+  await marcarDevuelto(pagoId);
+  revalidatePath("/");
 }
