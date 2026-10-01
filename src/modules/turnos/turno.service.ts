@@ -16,6 +16,7 @@ export function listarTurnosDelDia(fecha: string) {
       servicio: { select: { nombre: true, color: true, requiereCristal: true } },
       cliente: true,
       cristal: { select: { id: true, codigo: true, descripcion: true, cantidad: true } },
+      pagos: { where: { estado: "APROBADO" }, select: { monto: true } },
     },
     orderBy: [{ inicio: "asc" }, { creadoEn: "asc" }],
   });
@@ -24,7 +25,11 @@ export function listarTurnosDelDia(fecha: string) {
 /** Cantidad de turnos activos por día local, para la tira semanal de la agenda. */
 export async function contarTurnosPorDia(desde: string, dias: number) {
   const turnos = await db.turno.findMany({
-    where: { inicio: rangoDias(desde, dias), estado: { notIn: ["CANCELADO", "AUSENTE"] } },
+    where: {
+      inicio: rangoDias(desde, dias),
+      estado: { notIn: ["CANCELADO", "AUSENTE"] },
+      NOT: { estado: "ESPERANDO_PAGO", venceEn: { lte: new Date() } },
+    },
     select: { inicio: true },
   });
   const conteo = new Map<string, number>();
@@ -37,7 +42,10 @@ export async function contarTurnosPorDia(desde: string, dias: number) {
 }
 
 export function obtenerTurno(id: string) {
-  return db.turno.findUnique({ where: { id }, include: { servicio: true, cliente: true } });
+  return db.turno.findUnique({
+    where: { id },
+    include: { servicio: true, cliente: true, pagos: { orderBy: { creadoEn: "desc" }, take: 1 } },
+  });
 }
 
 /**

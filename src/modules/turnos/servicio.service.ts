@@ -79,7 +79,7 @@ export async function eliminarServicio(id: string) {
 //  Agenda
 // ---------------------------------------------------------------------------
 
-async function disponibilidadDelDia(cliente: Cliente, servicioId: string, fecha: string) {
+export async function disponibilidadDelDia(cliente: Cliente, servicioId: string, fecha: string) {
   const servicio = await cliente.servicio.findUnique({
     where: { id: servicioId },
     include: { horarios: true },
@@ -92,7 +92,13 @@ async function disponibilidadDelDia(cliente: Cliente, servicioId: string, fecha:
 
   // Consultas en secuencia: dentro de una transacción comparten una sola conexión.
   const turnos = await cliente.turno.findMany({
-    where: { servicioId, estado: { notIn: ["CANCELADO", "AUSENTE"] }, ...enElDia },
+    where: {
+      servicioId,
+      estado: { notIn: ["CANCELADO", "AUSENTE"] },
+      // Un turno esperando el pago que ya venció no ocupa el horario, aunque el barrido todavía no lo haya cancelado.
+      NOT: { estado: "ESPERANDO_PAGO", venceEn: { lte: new Date() } },
+      ...enElDia,
+    },
     select: { inicio: true, fin: true },
   });
   const bloqueos = await cliente.bloqueoAgenda.findMany({
