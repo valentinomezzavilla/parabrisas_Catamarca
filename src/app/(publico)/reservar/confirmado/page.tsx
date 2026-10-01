@@ -80,6 +80,11 @@ export default async function PaginaConfirmado({ searchParams }: { searchParams:
             <dt className="text-xs text-texto-suave">Hora</dt>
             <dd className="font-semibold">{formatearHora(turno.inicio)} hs</dd>
           </div>
+          <div className="col-span-2 border-t border-borde pt-3">
+            <dt className="text-xs text-texto-suave">Código de reserva</dt>
+            <dd className="font-mono text-lg font-bold tracking-widest">{turno.codigo}</dd>
+            <p className="mt-1 text-xs text-texto-suave">Guardalo: lo necesitás para buscar o cancelar tu reserva.</p>
+          </div>
         </dl>
       )}
 

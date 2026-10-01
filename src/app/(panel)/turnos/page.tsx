@@ -100,6 +100,7 @@ export default async function PaginaTurnos({ searchParams }: { searchParams: Pro
                   <div>
                     <p className="font-display text-xl font-bold tabular-nums">{formatearHora(t.inicio)}</p>
                     <p className="text-xs text-texto-suave">hasta {formatearHora(t.fin)}</p>
+                    <p className="mt-1 font-mono text-[11px] tracking-wider text-texto-suave">#{t.codigo}</p>
                   </div>
 
                   <div className="min-w-0 space-y-1.5 text-sm">

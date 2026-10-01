@@ -5,6 +5,7 @@ import { calcularSena, MINUTOS_RETENCION } from "@/modules/pagos/sena";
 import { listarCamposPropios } from "@/modules/campos/campo.service";
 import { procesarExtras } from "@/modules/campos/extras";
 import type { Extras } from "@/modules/campos/tipos";
+import { generarCodigo } from "./codigo";
 import { calcularDisponibilidad } from "./disponibilidad";
 import { reservaSchema, servicioSchema, type ReservaInput, type ServicioInput } from "./schemas";
 
@@ -135,6 +136,15 @@ export function obtenerDisponibilidad(servicioId: string, fecha: string) {
   return disponibilidadDelDia(db, servicioId, fecha);
 }
 
+/** Código de reserva que todavía no usa ningún turno. */
+async function codigoLibre(tx: Cliente): Promise<string> {
+  for (let i = 0; i < 10; i++) {
+    const codigo = generarCodigo();
+    if (!(await tx.turno.findUnique({ where: { codigo }, select: { id: true } }))) return codigo;
+  }
+  throw new Error("No se pudo generar un código de reserva único");
+}
+
 /**
  * Reserva un turno. Un lock de Postgres por servicio serializa las reservas
  * concurrentes, y la disponibilidad se recalcula dentro de la transacción: dos
@@ -168,6 +178,7 @@ export async function reservarTurno(
     const ahora = new Date();
     const turno = await tx.turno.create({
       data: {
+        codigo: await codigoLibre(tx),
         servicioId: r.servicioId,
         clienteId: cliente.id,
         inicio: elegido.inicio,
