@@ -289,6 +289,17 @@ model Usuario {
   @@map("usuarios")
 }
 
+/// Fallos de login por nombre de usuario (exista o no, para que el bloqueo no revele qué cuentas existen).
+/// Reglas en `src/modules/usuarios/limite.ts`.
+model IntentoLogin {
+  usuario        String    @id
+  fallos         Int       @default(0)
+  ultimoFallo    DateTime? @map("ultimo_fallo")
+  bloqueadoHasta DateTime? @map("bloqueado_hasta")
+
+  @@map("intentos_login")
+}
+
 // =====================================================================
 //  ADMINISTRACIÓN DE CAMPOS
 // =====================================================================

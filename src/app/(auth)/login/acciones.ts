@@ -11,11 +11,15 @@ export async function iniciarSesionAccion(_previo: EstadoFormulario, fd: FormDat
   const datos = loginSchema.safeParse({ usuario: texto(fd, "usuario"), password: typeof password === "string" ? password : "" });
   if (!datos.success) return fallo(erroresDeZod(datos.error));
 
-  const usuario = await autenticar(datos.data.usuario, datos.data.password);
+  const resultado = await autenticar(datos.data.usuario, datos.data.password);
+  if (resultado.tipo === "bloqueado") {
+    const unidad = resultado.minutos === 1 ? "minuto" : "minutos";
+    return { ok: false, mensaje: `Demasiados intentos. Probá de nuevo en ${resultado.minutos} ${unidad}.` };
+  }
   // Mismo mensaje para usuario inexistente, clave incorrecta y cuenta inactiva.
-  if (!usuario) return { ok: false, mensaje: "Usuario o contraseña incorrectos" };
+  if (resultado.tipo === "invalido") return { ok: false, mensaje: "Usuario o contraseña incorrectos" };
 
-  await iniciarSesion(usuario.id);
+  await iniciarSesion(resultado.usuario.id);
   redirect("/");
 }
 
