@@ -123,6 +123,17 @@ El Empleado solo accede a Panel, Turnos y Stock. Reglas: nadie puede desactivars
 
 **Límite de intentos de login.** Tras 5 fallos seguidos, ese nombre de usuario queda bloqueado 15 minutos y se destraba solo (constantes `MAX_FALLOS` y `BLOQUEO_MINUTOS` en `src/modules/usuarios/limite.ts`). Con el bloqueo vigente ni se mira la contraseña: aunque sea correcta hay que esperar. Los fallos se cuentan en la tabla `intentos_login` por nombre de usuario, **exista o no**, así el bloqueo no revela qué cuentas existen. Sin fallos durante 15 minutos el contador vuelve a cero, y un login correcto lo borra. El conteo corre dentro de una transacción con `pg_advisory_xact_lock` por usuario, para que intentos en paralelo no se salten el límite. Cada fallo borra además las filas con más de un día. Límite aceptado: quien conozca un nombre de usuario puede bloquearlo 15 minutos a propósito; no se limita por IP.
 
+## Seña con Mercado Pago
+
+Un turno de un servicio con `precio_base` pide una **seña del 50 %** (en pesos enteros, `calcularSena` en `src/modules/pagos/sena.ts`). Sin precio no hay seña y el turno nace `PENDIENTE` como siempre. La seña no se devuelve nunca; la reserva lo dice y exige una casilla de aceptación (queda registrada en `pagos.acepto_condiciones_en`). Única excepción: un pago cobrado que quedó sin turno.
+
+- **Estado y vencimiento.** El turno nace `ESPERANDO_PAGO` con `vence_en = ahora + 8 min` y un `Pago` `PENDIENTE`. La disponibilidad ignora los `ESPERANDO_PAGO` vencidos, así el horario se libera solo; `liberarVencidos()` (se llama al cargar `/reservar`, la agenda y el inicio) pasa esos turnos a `CANCELADO` y sus pagos a `VENCIDO`.
+- **Tabla `pagos`.** `monto`, `estado` (`PENDIENTE`, `APROBADO`, `RECHAZADO`, `VENCIDO`), ids de Mercado Pago (`mp_preferencia_id`, `mp_init_point`, y `mp_pago_id`, **único**), `requiere_devolucion` / `motivo_devolucion` / `devuelto_en`. El id del pago viaja a Mercado Pago como `external_reference`.
+- **Flujo.** `reservarTurno` crea turno y pago dentro del lock por servicio → `iniciarCobro` crea la preferencia (Checkout Pro, 8 minutos, sin efectivo ni cajero) y redirige → Mercado Pago devuelve a `/reservar/confirmado`, que **consulta a Mercado Pago** (nunca confía en la URL) → en paralelo llega el webhook `POST /api/mercadopago/webhook` (público, con firma `x-signature` validada). Ambos llaman a `aplicarPagoMp`, que es idempotente y corre dentro del lock del servicio.
+- **Decisión sobre un pago** (`decidirPago`, función pura con tests): aprobado a tiempo confirma; aprobado tarde confirma si el horario sigue libre y, si no, queda **para devolver**; también van a devolver el monto distinto, el turno cancelado a mano y el pago duplicado. Los pagos para devolver se ven en el inicio del panel y se marcan con "Ya lo devolví" (la devolución se hace a mano desde Mercado Pago).
+- **Turnos cargados por el local.** Quien reserva con una sesión del panel iniciada (botón "Nuevo turno") no paga seña: el turno nace `PENDIENTE`.
+- **Configuración.** `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` y `APP_URL` en `.env`. El cliente de Mercado Pago (`src/lib/mercadopago.ts`) usa `fetch`, sin SDK.
+
 ## Identidad visual
 
 El logo (`public/brand/logo-amarillo.png`) usa **un único color: `#FDDD3D`**, sobre fondo transparente. El resto de la paleta se deriva de ese color:
@@ -164,7 +175,9 @@ El menú se define una sola vez en `src/components/layout/navegacion.ts` y lo us
 | `/administracion/stock/listas` | Solo Admin. Listas de Stock: marcas, tipos, ubicaciones, marcas y modelos de vehículo. |
 | `/login` | **Pública.** Ingreso al panel. |
 | `/usuarios`, `/usuarios/nuevo` | Solo Admin: alta, rol, activar/desactivar y nueva contraseña. |
-| `/reservar` | **Pública.** El cliente elige servicio, día y horario, y carga sus datos. |
+| `/reservar` | **Pública.** El cliente elige servicio, día y horario, carga sus datos y, si el servicio tiene precio, paga la seña por Mercado Pago. |
+| `/reservar/confirmado` | **Pública.** Estado del turno y del pago; consulta a Mercado Pago al cargar. |
+| `/api/mercadopago/webhook` | **Pública** (sin sesión): avisos de Mercado Pago, validados por firma. |
 
 Las rutas del panel están en `src/app/(panel)` (con barra lateral) y las públicas en `src/app/(publico)`. Cada sección tiene su `acciones.ts` con las Server Actions, que solo leen el formulario y delegan en `src/modules`.
 
@@ -172,7 +185,7 @@ Las rutas del panel están en `src/app/(panel)` (con barra lateral) y las públi
 
 ## Pendiente
 
-1. Protección anti-spam de `/reservar` (límite de reservas por teléfono o IP, o captcha).
+1. Reservas falsas en servicios **sin precio base**: no cobran seña y no tienen ningún freno (límite por teléfono o IP, o captcha). Además, devolución automática de la seña (hoy se devuelve a mano desde Mercado Pago).
 2. Administración de campos para Servicios y para Turnos y clientes (incluye los campos del formulario público `/reservar`). El motor ya está hecho; falta la columna `extras` y las pantallas de cada módulo.
    Además: limpiar un campo vacío al editar un cristal (hoy un costo vacío no borra el valor guardado).
 3. Bloqueos de agenda (feriados, vacaciones) desde el panel. La tabla ya existe y el cálculo de disponibilidad los respeta.
