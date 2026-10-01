@@ -13,7 +13,7 @@ import {
   type TurnoBuscable,
 } from "./busqueda";
 import { esCodigoValido, normalizarCodigo } from "./codigo";
-import { claveBusqueda, superaTope } from "./tope";
+import { alcanzoTope, claveBusqueda } from "./tope";
 
 export class BusquedasExcedidasError extends Error {
   constructor() {
@@ -24,10 +24,16 @@ export class BusquedasExcedidasError extends Error {
 
 const MAXIMO_TURNOS_A_REVISAR = 2000;
 
-/** Cuenta esta búsqueda en el minuto actual (en todo el sitio) y corta si se pasó del tope. */
-async function contarBusqueda(ahora: Date): Promise<void> {
+/** Corta si en este minuto ya hubo demasiadas búsquedas sin resultado (en todo el sitio). */
+async function verificarTope(ahora: Date): Promise<void> {
+  const fila = await db.intentoLogin.findUnique({ where: { usuario: claveBusqueda(ahora) } });
+  if (fila && alcanzoTope(fila.fallos)) throw new BusquedasExcedidasError();
+}
+
+/** Cuenta una búsqueda que no encontró una reserva. Las que sí la encuentran no gastan el tope. */
+async function contarBusquedaSinResultado(ahora: Date): Promise<void> {
   const clave = claveBusqueda(ahora);
-  const fila = await db.intentoLogin.upsert({
+  await db.intentoLogin.upsert({
     where: { usuario: clave },
     create: { usuario: clave, fallos: 1, ultimoFallo: ahora },
     update: { fallos: { increment: 1 }, ultimoFallo: ahora },
@@ -36,7 +42,6 @@ async function contarBusqueda(ahora: Date): Promise<void> {
   await db.intentoLogin.deleteMany({
     where: { usuario: { startsWith: "busqueda:" }, ultimoFallo: { lt: new Date(ahora.getTime() - 60 * 60_000) } },
   });
-  if (superaTope(fila.fallos)) throw new BusquedasExcedidasError();
 }
 
 const desdeBase = (t: {
@@ -71,7 +76,7 @@ export async function buscarReservas(
   ahora: Date = new Date(),
 ): Promise<Exclude<RespuestaBusqueda, { tipo: "inicial" } | { tipo: "error" }>> {
   const criterios = normalizarCriterios(entrada);
-  await contarBusqueda(ahora);
+  await verificarTope(ahora);
 
   const turnos = await db.turno.findMany({
     where: {
@@ -89,6 +94,7 @@ export async function buscarReservas(
 
   const r = resolverBusqueda(turnos.map(desdeBase), criterios);
   if (r.tipo === "una") return { tipo: "una", reserva: aReservaVisible(r.turno) };
+  await contarBusquedaSinResultado(ahora);
   return r;
 }
 
@@ -113,10 +119,12 @@ export async function cancelarReservaCliente(
     where: { codigo },
     include: { cliente: true, pagos: { where: { estado: "APROBADO" }, select: { id: true } } },
   });
-  if (!turno || !ESTADOS_BUSCABLES.includes(turno.estado) || turno.inicio <= ahora) return { tipo: "no_encontrada" };
+  const vencido = turno?.estado === "ESPERANDO_PAGO" && !!turno.venceEn && turno.venceEn <= ahora;
+  if (!turno || !ESTADOS_BUSCABLES.includes(turno.estado) || turno.inicio <= ahora || vencido) return { tipo: "no_encontrada" };
 
   const clave = `cancelar:${turno.id}`;
   return db.$transaction(async (tx): Promise<RespuestaCancelacion> => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${turno.servicioId}))`;
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${clave}))`;
 
     // Otro pedido pudo cancelarlo mientras tanto.
@@ -138,7 +146,7 @@ export async function cancelarReservaCliente(
       where: { id: turno.id },
       data: { estado: "CANCELADO", notas: [vigente.notas, notaDeCancelacion(ahora)].filter(Boolean).join("\n") },
     });
-    await tx.pago.updateMany({ where: { turnoId: turno.id, estado: { in: ["PENDIENTE", "RECHAZADO"] } }, data: { estado: "VENCIDO" } });
+    // El pago pendiente se deja como está a propósito: ver `decidirPago` (CANCELADO + PENDIENTE = cancelado a mano).
     return { tipo: "cancelada", teniaSena: turno.pagos.length > 0 };
   });
 }
