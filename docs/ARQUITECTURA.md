@@ -121,6 +121,8 @@ Tres capas de protección:
 
 El Empleado solo accede a Panel, Turnos y Stock. Reglas: nadie puede desactivarse ni cambiarse el rol a sí mismo, y siempre queda al menos un Admin activo.
 
+**Límite de intentos de login.** Tras 5 fallos seguidos, ese nombre de usuario queda bloqueado 15 minutos y se destraba solo (constantes `MAX_FALLOS` y `BLOQUEO_MINUTOS` en `src/modules/usuarios/limite.ts`). Con el bloqueo vigente ni se mira la contraseña: aunque sea correcta hay que esperar. Los fallos se cuentan en la tabla `intentos_login` por nombre de usuario, **exista o no**, así el bloqueo no revela qué cuentas existen. Sin fallos durante 15 minutos el contador vuelve a cero, y un login correcto lo borra. El conteo corre dentro de una transacción con `pg_advisory_xact_lock` por usuario, para que intentos en paralelo no se salten el límite. Cada fallo borra además las filas con más de un día. Límite aceptado: quien conozca un nombre de usuario puede bloquearlo 15 minutos a propósito; no se limita por IP.
+
 ## Identidad visual
 
 El logo (`public/brand/logo-amarillo.png`) usa **un único color: `#FDDD3D`**, sobre fondo transparente. El resto de la paleta se deriva de ese color:
@@ -164,7 +166,6 @@ Las rutas del panel están en `src/app/(panel)` (con barra lateral) y las públi
 3. Bloqueos de agenda (feriados, vacaciones) desde el panel. La tabla ya existe y el cálculo de disponibilidad los respeta.
 4. Recordatorios de turno por WhatsApp.
 5. Si dos servicios comparten el mismo box, agregar una tabla `recursos` y medir la capacidad por recurso en lugar de por servicio.
-6. Límite de intentos de login (hoy no hay freno contra fuerza bruta).
-7. "Olvidé mi contraseña" por email (hoy la resetea un Admin desde Usuarios).
-8. Segundo factor (2FA).
-9. Resetear una contraseña no cierra las sesiones abiertas (cookie de 8 h); para cortar un acceso de inmediato hay que desactivar al usuario.
+6. "Olvidé mi contraseña" por email (hoy la resetea un Admin desde Usuarios).
+7. Segundo factor (2FA).
+8. Resetear una contraseña no cierra las sesiones abiertas (cookie de 8 h); para cortar un acceso de inmediato hay que desactivar al usuario.

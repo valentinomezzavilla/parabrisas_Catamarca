@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { hashearPassword, hashFicticio, verificarPassword } from "@/lib/password";
+import { minutosDeBloqueo, registrarFallo } from "./limite";
 import { motivoDeRechazo, type Cambio, type Rol } from "./reglas";
 import type { CrearUsuarioInput } from "./schemas";
 
@@ -20,16 +21,54 @@ export class CambioNoPermitidoError extends Error {
 
 const datosDeSesion = { id: true, nombre: true, usuario: true, rol: true } as const;
 
-/** Devuelve el usuario si el nombre de usuario y la contraseña coinciden y la cuenta está activa. */
-export async function autenticar(nombreUsuario: string, password: string): Promise<UsuarioSesion | null> {
+export type ResultadoLogin =
+  | { tipo: "ok"; usuario: UsuarioSesion }
+  | { tipo: "invalido" }
+  | { tipo: "bloqueado"; minutos: number };
+
+const bloqueado = (minutos: number): ResultadoLogin => ({ tipo: "bloqueado", minutos });
+
+/**
+ * Valida usuario y contraseña (la cuenta debe estar activa) y aplica el límite de intentos:
+ * tras `MAX_FALLOS` fallos seguidos el nombre de usuario queda bloqueado `BLOQUEO_MINUTOS`.
+ * Los fallos se cuentan por nombre de usuario, exista o no, para que el bloqueo no revele qué cuentas existen.
+ */
+export async function autenticar(nombreUsuario: string, password: string): Promise<ResultadoLogin> {
+  const previo = await db.intentoLogin.findUnique({ where: { usuario: nombreUsuario } });
+  const espera = minutosDeBloqueo(previo, new Date());
+  if (espera > 0) return bloqueado(espera);
+
   const usuario = await db.usuario.findUnique({ where: { usuario: nombreUsuario } });
   // Con un usuario inexistente se verifica igual contra un hash ficticio:
   // el tiempo de respuesta no revela qué cuentas existen.
   const coincide = await verificarPassword(password, usuario?.passwordHash ?? (await hashFicticio()));
-  if (!usuario || !usuario.activo || !coincide) return null;
+  const valido = !!usuario && usuario.activo && coincide;
 
-  await db.usuario.update({ where: { id: usuario.id }, data: { ultimoAcceso: new Date() } });
-  return { id: usuario.id, nombre: usuario.nombre, usuario: usuario.usuario, rol: usuario.rol };
+  // Se decide dentro de un lock por nombre de usuario: intentos en paralelo no pueden saltarse el contador
+  // ni colarse una vez alcanzado el bloqueo.
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${nombreUsuario}))`;
+    const ahora = new Date();
+    const estado = await tx.intentoLogin.findUnique({ where: { usuario: nombreUsuario } });
+    const espera = minutosDeBloqueo(estado, ahora);
+    if (espera > 0) return bloqueado(espera);
+
+    if (valido) {
+      await tx.intentoLogin.deleteMany({ where: { usuario: nombreUsuario } });
+      await tx.usuario.update({ where: { id: usuario.id }, data: { ultimoAcceso: ahora } });
+      return { tipo: "ok", usuario: { id: usuario.id, nombre: usuario.nombre, usuario: usuario.usuario, rol: usuario.rol } };
+    }
+
+    const nuevo = registrarFallo(estado, ahora);
+    await tx.intentoLogin.upsert({
+      where: { usuario: nombreUsuario },
+      create: { usuario: nombreUsuario, ...nuevo },
+      update: nuevo,
+    });
+    // Limpieza: nombres inventados no deben acumularse para siempre.
+    await tx.intentoLogin.deleteMany({ where: { ultimoFallo: { lt: new Date(ahora.getTime() - 24 * 60 * 60_000) } } });
+    return nuevo.bloqueadoHasta ? bloqueado(minutosDeBloqueo(nuevo, ahora)) : { tipo: "invalido" };
+  });
 }
 
 /** Se consulta en cada request: desactivar a alguien o cambiarle el rol surte efecto de inmediato. */
