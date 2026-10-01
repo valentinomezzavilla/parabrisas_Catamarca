@@ -4,9 +4,11 @@ import Link from "next/link";
 import { boton, Campo, input, tarjeta } from "@/components/ui";
 import { useFormularioAccion } from "@/components/ui/cliente";
 import type { TipoCampo } from "@/modules/campos/tipos";
-import { guardarCampoPropioAccion } from "../../acciones";
+import { MODULOS, type ModuloAdmin } from "@/modules/campos/modulos";
+import { guardarCampoPropioAccion } from "./acciones";
 
 export function FormularioCampoPropio(props: {
+  modulo: ModuloAdmin;
   id: string;
   etiqueta: string;
   ayuda: string;
@@ -15,7 +17,7 @@ export function FormularioCampoPropio(props: {
   unidad: string;
   visible: boolean;
 }) {
-  const { estado, enviar, pendiente, error } = useFormularioAccion(guardarCampoPropioAccion.bind(null, props.id));
+  const { estado, enviar, pendiente, error } = useFormularioAccion(guardarCampoPropioAccion.bind(null, props.modulo, props.id));
   return (
     <form onSubmit={enviar} noValidate className={`${tarjeta} space-y-4 p-5`}>
       {estado.mensaje && !estado.ok && !estado.errores && (
@@ -35,7 +37,7 @@ export function FormularioCampoPropio(props: {
       {props.tipo !== "SI_NO" && (
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="requerido" defaultChecked={props.requerido} className="size-4 accent-amarillo-500" />
-          Obligatorio al cargar un cristal
+          Obligatorio al cargar {MODULOS[props.modulo].objeto}
         </label>
       )}
       <label className="flex items-center gap-2 text-sm">
@@ -44,7 +46,7 @@ export function FormularioCampoPropio(props: {
       </label>
       <div className="flex gap-2">
         <button type="submit" disabled={pendiente} className={boton.primario}>{pendiente ? "Guardando…" : "Guardar"}</button>
-        <Link href="/administracion/stock" className={boton.secundario}>Cancelar</Link>
+        <Link href={MODULOS[props.modulo].base} className={boton.secundario}>Cancelar</Link>
       </div>
     </form>
   );

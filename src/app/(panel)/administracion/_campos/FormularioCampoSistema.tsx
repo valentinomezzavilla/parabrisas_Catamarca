@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { boton, Campo, input, tarjeta } from "@/components/ui";
 import { useFormularioAccion } from "@/components/ui/cliente";
-import { guardarCampoSistemaAccion } from "../../acciones";
+import { MODULOS, type ModuloAdmin } from "@/modules/campos/modulos";
+import { guardarCampoSistemaAccion } from "./acciones";
 
 export function FormularioCampoSistema(props: {
+  modulo: ModuloAdmin;
   clave: string;
   etiqueta: string;
   ayuda: string;
@@ -13,7 +15,7 @@ export function FormularioCampoSistema(props: {
   ocultable: boolean;
   fabrica: string;
 }) {
-  const { estado, enviar, pendiente, error } = useFormularioAccion(guardarCampoSistemaAccion.bind(null, props.clave));
+  const { estado, enviar, pendiente, error } = useFormularioAccion(guardarCampoSistemaAccion.bind(null, props.modulo, props.clave));
   return (
     <form onSubmit={enviar} noValidate className={`${tarjeta} space-y-4 p-5`}>
       {estado.mensaje && !estado.ok && !estado.errores && (
@@ -39,7 +41,7 @@ export function FormularioCampoSistema(props: {
       )}
       <div className="flex gap-2">
         <button type="submit" disabled={pendiente} className={boton.primario}>{pendiente ? "Guardando…" : "Guardar"}</button>
-        <Link href="/administracion/stock" className={boton.secundario}>Cancelar</Link>
+        <Link href={MODULOS[props.modulo].base} className={boton.secundario}>Cancelar</Link>
       </div>
     </form>
   );

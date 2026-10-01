@@ -18,11 +18,14 @@ import {
   moverCampoAdmin,
   type OperacionOpcion,
 } from "@/modules/campos/campo.service";
+import { esModulo, MODULOS, type ModuloAdmin } from "@/modules/campos/modulos";
 import type { TipoCampo } from "@/modules/campos/tipos";
 
-function refrescar() {
-  revalidatePath("/administracion/stock");
-  revalidatePath("/stock", "layout");
+const MODULO_INVALIDO: EstadoConConteo = { ok: false, mensaje: "Módulo inválido." };
+
+function refrescar(modulo: ModuloAdmin) {
+  revalidatePath(MODULOS[modulo].base);
+  for (const ruta of MODULOS[modulo].revalidar) revalidatePath(ruta, "layout");
 }
 
 /** Traduce los errores esperados del servicio a un resultado para el formulario; el resto se propaga. */
@@ -39,10 +42,11 @@ const textoLargo = (fd: FormData, campo: string) => {
   return typeof v === "string" ? v : "";
 };
 
-export async function crearCampoAccion(_previo: EstadoFormulario, fd: FormData): Promise<EstadoConConteo> {
+export async function crearCampoAccion(modulo: string, _previo: EstadoFormulario, fd: FormData): Promise<EstadoConConteo> {
   await requerirRol("ADMIN");
+  if (!esModulo(modulo)) return MODULO_INVALIDO;
   try {
-    await crearCampoPropio("CRISTAL", {
+    await crearCampoPropio(MODULOS[modulo].entidad, {
       etiqueta: texto(fd, "etiqueta") as string,
       ayuda: texto(fd, "ayuda"),
       tipo: texto(fd, "tipo") as TipoCampo,
@@ -53,25 +57,37 @@ export async function crearCampoAccion(_previo: EstadoFormulario, fd: FormData):
   } catch (e) {
     return aResultado(e);
   }
-  refrescar();
-  redirect("/administracion/stock?aviso=creado");
+  refrescar(modulo);
+  redirect(`${MODULOS[modulo].base}?aviso=creado`);
 }
 
-export async function guardarCampoSistemaAccion(clave: string, _previo: EstadoFormulario, fd: FormData): Promise<EstadoConConteo> {
+export async function guardarCampoSistemaAccion(
+  modulo: string,
+  clave: string,
+  _previo: EstadoFormulario,
+  fd: FormData,
+): Promise<EstadoConConteo> {
   await requerirRol("ADMIN");
+  if (!esModulo(modulo)) return MODULO_INVALIDO;
   // Los campos protegidos no muestran la casilla "visible": sin la marca `puedeOcultar` nunca se ocultan.
   const oculto = fd.get("puedeOcultar") === "1" ? !casilla(fd, "visible") : false;
   try {
-    await actualizarCampoSistema("CRISTAL", clave, { etiqueta: texto(fd, "etiqueta"), ayuda: texto(fd, "ayuda"), oculto });
+    await actualizarCampoSistema(MODULOS[modulo].entidad, clave, { etiqueta: texto(fd, "etiqueta"), ayuda: texto(fd, "ayuda"), oculto });
   } catch (e) {
     return aResultado(e);
   }
-  refrescar();
-  redirect("/administracion/stock?aviso=guardado");
+  refrescar(modulo);
+  redirect(`${MODULOS[modulo].base}?aviso=guardado`);
 }
 
-export async function guardarCampoPropioAccion(id: string, _previo: EstadoFormulario, fd: FormData): Promise<EstadoConConteo> {
+export async function guardarCampoPropioAccion(
+  modulo: string,
+  id: string,
+  _previo: EstadoFormulario,
+  fd: FormData,
+): Promise<EstadoConConteo> {
   await requerirRol("ADMIN");
+  if (!esModulo(modulo)) return MODULO_INVALIDO;
   try {
     await actualizarCampoPropio(id, {
       etiqueta: texto(fd, "etiqueta") as string,
@@ -83,55 +99,70 @@ export async function guardarCampoPropioAccion(id: string, _previo: EstadoFormul
   } catch (e) {
     return aResultado(e);
   }
-  refrescar();
-  redirect("/administracion/stock?aviso=guardado");
+  refrescar(modulo);
+  redirect(`${MODULOS[modulo].base}?aviso=guardado`);
 }
 
-export async function moverCampoAccion(clave: string, direccion: "ARRIBA" | "ABAJO"): Promise<EstadoConConteo> {
+export async function moverCampoAccion(modulo: string, clave: string, direccion: "ARRIBA" | "ABAJO"): Promise<EstadoConConteo> {
   await requerirRol("ADMIN");
+  if (!esModulo(modulo)) return MODULO_INVALIDO;
   if (direccion !== "ARRIBA" && direccion !== "ABAJO") return { ok: false, mensaje: "Dirección inválida." };
-  await moverCampoAdmin("CRISTAL", clave, direccion);
-  refrescar();
+  try {
+    await moverCampoAdmin(MODULOS[modulo].entidad, clave, direccion);
+  } catch (e) {
+    return aResultado(e);
+  }
+  refrescar(modulo);
   return { ok: true };
 }
 
-export async function archivarCampoAccion(id: string, archivar: boolean): Promise<EstadoConConteo> {
+export async function archivarCampoAccion(modulo: string, id: string, archivar: boolean): Promise<EstadoConConteo> {
   await requerirRol("ADMIN");
+  if (!esModulo(modulo)) return MODULO_INVALIDO;
   await archivarCampoPropio(id, archivar === true);
-  refrescar();
+  refrescar(modulo);
   return { ok: true };
 }
 
 /** Sin datos se elimina directo; con datos devuelve `afectados` y espera una segunda llamada con `confirmar = true`. */
-export async function eliminarCampoAccion(id: string, confirmar: boolean): Promise<EstadoConConteo> {
+export async function eliminarCampoAccion(modulo: string, id: string, confirmar: boolean): Promise<EstadoConConteo> {
   await requerirRol("ADMIN");
+  if (!esModulo(modulo)) return MODULO_INVALIDO;
   try {
     await eliminarCampoPropio(id, { confirmar: confirmar === true });
   } catch (e) {
     return aResultado(e);
   }
-  refrescar();
-  redirect("/administracion/stock?aviso=eliminado");
+  refrescar(modulo);
+  redirect(`${MODULOS[modulo].base}?aviso=eliminado`);
 }
 
-export async function cambiarTipoAccion(id: string, tipo: string, opcionesTexto: string, confirmar: boolean): Promise<EstadoConConteo> {
+export async function cambiarTipoAccion(
+  modulo: string,
+  id: string,
+  tipo: string,
+  opcionesTexto: string,
+  confirmar: boolean,
+): Promise<EstadoConConteo> {
   await requerirRol("ADMIN");
+  if (!esModulo(modulo)) return MODULO_INVALIDO;
   try {
     await cambiarTipoCampo(id, tipo as TipoCampo, { opcionesTexto, confirmar: confirmar === true });
   } catch (e) {
     return aResultado(e);
   }
-  refrescar();
+  refrescar(modulo);
   return { ok: true, mensaje: "Tipo cambiado." };
 }
 
-export async function opcionAccion(id: string, operacion: OperacionOpcion): Promise<EstadoConConteo> {
+export async function opcionAccion(modulo: string, id: string, operacion: OperacionOpcion): Promise<EstadoConConteo> {
   await requerirRol("ADMIN");
+  if (!esModulo(modulo)) return MODULO_INVALIDO;
   try {
     await modificarOpciones(id, operacion);
   } catch (e) {
     return aResultado(e);
   }
-  refrescar();
+  refrescar(modulo);
   return { ok: true };
 }

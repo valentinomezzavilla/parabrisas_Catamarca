@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useTransition } from "react";
 import { ArrowDown, ArrowUp, Pencil } from "lucide-react";
 import { boton } from "@/components/ui";
+import { MODULOS, type ModuloAdmin } from "@/modules/campos/modulos";
 import { moverCampoAccion } from "./acciones";
 
-export function AccionesFila({ clave }: { clave: string }) {
+export function AccionesFila({ modulo, clave }: { modulo: ModuloAdmin; clave: string }) {
   const [pendiente, iniciar] = useTransition();
   const mover = (direccion: "ARRIBA" | "ABAJO") =>
     iniciar(async () => {
-      await moverCampoAccion(clave, direccion);
+      await moverCampoAccion(modulo, clave, direccion);
     });
 
   return (
@@ -21,7 +22,7 @@ export function AccionesFila({ clave }: { clave: string }) {
       <button type="button" disabled={pendiente} onClick={() => mover("ABAJO")} aria-label="Bajar" className={`${boton.fantasma} ${boton.chico}`}>
         <ArrowDown className="size-3.5" aria-hidden />
       </button>
-      <Link href={`/administracion/stock/campos/${clave}`} className={`${boton.secundario} ${boton.chico}`}>
+      <Link href={`${MODULOS[modulo].base}/campos/${clave}`} className={`${boton.secundario} ${boton.chico}`}>
         <Pencil className="size-3.5" aria-hidden /> Editar
       </Link>
     </div>

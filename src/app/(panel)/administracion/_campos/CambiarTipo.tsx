@@ -4,16 +4,17 @@ import { useState, useTransition } from "react";
 import { boton, input } from "@/components/ui";
 import type { EstadoConConteo } from "@/lib/formularios";
 import { ETIQUETA_TIPO, TIPOS_CAMPO, type TipoCampo } from "@/modules/campos/tipos";
-import { cambiarTipoAccion } from "../../acciones";
+import type { ModuloAdmin } from "@/modules/campos/modulos";
+import { cambiarTipoAccion } from "./acciones";
 
-export function CambiarTipo({ id, tipoActual }: { id: string; tipoActual: TipoCampo }) {
+export function CambiarTipo({ modulo, id, tipoActual }: { modulo: ModuloAdmin; id: string; tipoActual: TipoCampo }) {
   const [pendiente, iniciar] = useTransition();
   const [tipo, setTipo] = useState<TipoCampo>(tipoActual);
   const [opciones, setOpciones] = useState("");
   const [resultado, setResultado] = useState<EstadoConConteo>();
 
   const enviar = (confirmar: boolean) =>
-    iniciar(async () => setResultado(await cambiarTipoAccion(id, tipo, opciones, confirmar)));
+    iniciar(async () => setResultado(await cambiarTipoAccion(modulo, id, tipo, opciones, confirmar)));
   const pideConfirmar = resultado && !resultado.ok && resultado.afectados !== undefined;
 
   return (
