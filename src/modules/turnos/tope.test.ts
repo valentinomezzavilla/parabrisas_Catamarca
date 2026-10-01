@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { claveBusqueda, superaTope, TOPE_BUSQUEDAS_POR_MINUTO } from "./tope";
+import { alcanzoTope, claveBusqueda, TOPE_BUSQUEDAS_FALLIDAS_POR_MINUTO } from "./tope";
 
 describe("claveBusqueda", () => {
   it("es la misma durante todo un minuto y cambia al siguiente", () => {
@@ -10,10 +10,12 @@ describe("claveBusqueda", () => {
   });
 });
 
-describe("superaTope", () => {
-  it("permite hasta el tope y corta al pasarse", () => {
-    expect(TOPE_BUSQUEDAS_POR_MINUTO).toBe(20);
-    expect(superaTope(20)).toBe(false);
-    expect(superaTope(21)).toBe(true);
+describe("alcanzoTope", () => {
+  it("corta al llegar al tope de búsquedas sin resultado por minuto", () => {
+    expect(TOPE_BUSQUEDAS_FALLIDAS_POR_MINUTO).toBe(30);
+    expect(alcanzoTope(0)).toBe(false);
+    expect(alcanzoTope(29)).toBe(false);
+    expect(alcanzoTope(30)).toBe(true);
+    expect(alcanzoTope(31)).toBe(true);
   });
 });

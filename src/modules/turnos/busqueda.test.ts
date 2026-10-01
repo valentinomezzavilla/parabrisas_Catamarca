@@ -9,7 +9,6 @@ import {
   SinCriteriosError,
   tapadoNombre,
   tapadoPatente,
-  tapadoTelefono,
   telefonoCoincide,
   type TurnoBuscable,
 } from "./busqueda";
@@ -139,11 +138,6 @@ describe("enmascarado", () => {
     expect(tapadoNombre("  ")).toBe("");
   });
 
-  it("teléfono: solo los últimos 4 dígitos", () => {
-    expect(tapadoTelefono("383 4123456")).toBe("****3456");
-    expect(tapadoTelefono("123")).toBe("****");
-  });
-
   it("patente: solo la primera y la última", () => {
     expect(tapadoPatente("AB 123 CD")).toBe("A*****D");
     expect(tapadoPatente("AB")).toBe("**");
@@ -162,9 +156,11 @@ describe("aReservaVisible", () => {
       estado: "Confirmada",
       senaPagada: true,
       nombre: "Valentino M.",
-      telefono: "****3456",
       patente: "A*****D",
     });
+    // Ni un solo dígito del teléfono: sino se puede adivinar el resto y cancelar un turno ajeno.
+    expect(Object.keys(v)).not.toContain("telefono");
+    expect(JSON.stringify(v)).not.toMatch(/\d{4}\*|3456|4123/);
     expect(Object.keys(v)).not.toContain("email");
     expect(JSON.stringify(v)).not.toContain("Example");
   });
@@ -185,6 +181,14 @@ describe("contactoCoincide", () => {
     expect(contactoCoincide(guardado, "3834123456")).toBe(true);
     expect(contactoCoincide(guardado, "+54 9 383 412-3456")).toBe(true);
     expect(contactoCoincide(guardado, " valen@example.COM ")).toBe(true);
+  });
+
+  it("pide el teléfono completo: los últimos dígitos solos no alcanzan", () => {
+    expect(contactoCoincide(guardado, "34123456")).toBe(false); // 8 de los 10 dígitos
+    expect(contactoCoincide(guardado, "4123456")).toBe(false);
+    expect(contactoCoincide({ telefono: "4123456", email: null }, "383 4123456")).toBe(true); // guardado sin código de área
+    expect(contactoCoincide({ telefono: "4123456", email: null }, "4123456")).toBe(true);
+    expect(contactoCoincide({ telefono: "4123456", email: null }, "123456")).toBe(false);
   });
 
   it("rechaza un teléfono corto, otro número u otro mail", () => {

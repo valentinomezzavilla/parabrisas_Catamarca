@@ -149,10 +149,6 @@ export function BuscarReserva({ servicios }: { servicios: { id: string; nombre: 
                   <dt className="text-xs text-texto-suave">A nombre de</dt>
                   <dd>{respuesta.reserva.nombre}</dd>
                 </div>
-                <div>
-                  <dt className="text-xs text-texto-suave">Teléfono</dt>
-                  <dd>{respuesta.reserva.telefono}</dd>
-                </div>
                 {respuesta.reserva.patente && (
                   <div>
                     <dt className="text-xs text-texto-suave">Patente</dt>
