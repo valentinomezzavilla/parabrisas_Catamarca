@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Clock, Pencil, Plus, Users } from "lucide-react";
 import { Aviso, boton, EncabezadoPagina, Insignia, tarjeta, Vacio } from "@/components/ui";
 import { BotonConfirmar, BotonEnviar } from "@/components/ui/cliente";
+import { pesos } from "@/lib/formato";
 import { DIAS_CORTOS, minutosAHora, SEMANA } from "@/lib/tiempo";
+import { calcularSena } from "@/modules/pagos/sena";
 import { listarServicios } from "@/modules/turnos/servicio.service";
 import { alternarServicio, borrarServicio } from "./acciones";
 import { requerirRol } from "@/lib/sesion";
@@ -76,6 +78,15 @@ export default async function PaginaServicios({ searchParams }: { searchParams: 
                   <span className="flex items-center gap-1.5"><Users className="size-4 text-acento" aria-hidden />{s.capacidad} a la vez</span>
                   {s.precioBase && <span className="font-semibold">${Number(s.precioBase).toLocaleString("es-AR")}</span>}
                 </div>
+
+                {(() => {
+                  const sena = calcularSena(s.precioBase);
+                  return sena === null ? (
+                    <p className="text-xs text-texto-suave">Sin precio: se reserva sin seña.</p>
+                  ) : (
+                    <p className="text-xs text-texto-suave">Seña al reservar: <strong>{pesos(sena)}</strong></p>
+                  );
+                })()}
 
                 <ul className="space-y-0.5 text-xs text-texto-suave">
                   {s.horarios.length ? resumenHorario(s.horarios).map((linea) => <li key={linea}>{linea}</li>) : <li>Sin horarios cargados</li>}

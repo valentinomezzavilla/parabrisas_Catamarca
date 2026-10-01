@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Car, ChevronLeft, ChevronRight, Phone, Plus, StickyNote } from "lucide-react";
 import { boton, EncabezadoPagina, Insignia, input, tarjeta, Vacio } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/cliente";
+import { pesos } from "@/lib/formato";
 import { DIAS_CORTOS, diaSemana, formatearFecha, formatearHora, hoy, sumarDias } from "@/lib/tiempo";
+import { liberarVencidos } from "@/modules/pagos/pagos.service";
 import { listarServicios, obtenerDisponibilidad } from "@/modules/turnos/servicio.service";
 import { contarTurnosPorDia, cristalesDisponibles, listarTurnosDelDia } from "@/modules/turnos/turno.service";
 import { actualizarCristalTurno } from "./acciones";
@@ -14,6 +16,7 @@ export const metadata = { title: "Turnos" };
 
 export default async function PaginaTurnos({ searchParams }: { searchParams: Promise<{ fecha?: string }> }) {
   await verificarSesion();
+  await liberarVencidos();
   const { fecha: param } = await searchParams;
   const fecha = param && /^\d{4}-\d{2}-\d{2}$/.test(param) ? param : hoy();
   const lunes = sumarDias(fecha, -((diaSemana(fecha) + 6) % 7));
@@ -103,6 +106,10 @@ export default async function PaginaTurnos({ searchParams }: { searchParams: Pro
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold">{t.servicio.nombre}</span>
                       <Insignia tono={ESTADOS[t.estado].tono}>{ESTADOS[t.estado].etiqueta}</Insignia>
+                      {t.pagos[0] && <Insignia tono="exito">Seña pagada {pesos(t.pagos[0].monto)}</Insignia>}
+                      {t.estado === "ESPERANDO_PAGO" && t.venceEn && (
+                        <span className="text-xs text-texto-suave">vence a las {formatearHora(t.venceEn)}</span>
+                      )}
                     </div>
                     <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span>{t.cliente.nombre}</span>

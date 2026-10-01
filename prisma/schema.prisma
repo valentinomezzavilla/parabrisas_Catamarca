@@ -232,6 +232,7 @@ model Cliente {
 }
 
 enum EstadoTurno {
+  ESPERANDO_PAGO
   PENDIENTE
   CONFIRMADO
   EN_CURSO
@@ -251,7 +252,8 @@ model Turno {
   inicio          DateTime
   fin             DateTime
   estado          EstadoTurno       @default(PENDIENTE)
-  vehiculo        String? // texto libre: "Toyota Hilux 2019"
+  venceEn         DateTime?         @map("vence_en") // solo en ESPERANDO_PAGO: hasta cuándo se retiene el horario
+  vehiculo       String? // texto libre: "Toyota Hilux 2019"
   patente         String?
   cristalId       String?           @map("cristal_id") // cristal a colocar, si aplica
   cristal         Cristal?          @relation(fields: [cristalId], references: [id])
@@ -260,10 +262,40 @@ model Turno {
   creadoEn        DateTime          @default(now()) @map("creado_en")
   actualizadoEn   DateTime          @updatedAt @map("actualizado_en")
   movimientos     MovimientoStock[]
+  pagos           Pago[]
 
   @@index([servicioId, inicio])
   @@index([inicio])
   @@map("turnos")
+}
+
+enum EstadoPago {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+  VENCIDO
+}
+
+/// Seña de un turno cobrada con Mercado Pago. `mpPagoId` es único: un mismo pago nunca se aplica dos veces.
+model Pago {
+  id                  String     @id @default(cuid()) // también es el external_reference que viaja a Mercado Pago
+  turnoId             String     @map("turno_id")
+  turno               Turno      @relation(fields: [turnoId], references: [id])
+  monto               Decimal    @db.Decimal(12, 2)
+  estado              EstadoPago @default(PENDIENTE)
+  mpPreferenciaId     String?    @map("mp_preferencia_id")
+  mpInitPoint         String?    @map("mp_init_point")
+  mpPagoId            String?    @unique @map("mp_pago_id")
+  aceptoCondicionesEn DateTime   @map("acepto_condiciones_en")
+  requiereDevolucion  Boolean    @default(false) @map("requiere_devolucion")
+  motivoDevolucion    String?    @map("motivo_devolucion")
+  devueltoEn          DateTime?  @map("devuelto_en")
+  creadoEn            DateTime   @default(now()) @map("creado_en")
+  actualizadoEn       DateTime   @updatedAt @map("actualizado_en")
+
+  @@index([turnoId])
+  @@index([requiereDevolucion, devueltoEn])
+  @@map("pagos")
 }
 
 // =====================================================================

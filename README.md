@@ -32,6 +32,17 @@ El seed crea un administrador con `ADMIN_USUARIO` y `ADMIN_PASSWORD` del `.env` 
 
 > `npx prisma migrate dev` no funciona con la base embebida de `prisma dev` (su base de sombra hereda las tablas). Para una migración nueva usá `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script` y aplicala con `npx prisma migrate deploy`.
 
+## Mercado Pago (seña de los turnos)
+
+Los servicios con precio base cobran una seña del 50 % al reservar. Para activarlo:
+
+1. En el [panel de desarrolladores de Mercado Pago](https://www.mercadopago.com.ar/developers/panel) creá una aplicación y copiá las credenciales (primero las de **prueba**).
+2. Completá en `.env`: `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` y `APP_URL` (la URL pública de la app, sin barra final).
+3. Configurá el webhook (evento **Pagos**) apuntando a `<APP_URL>/api/mercadopago/webhook`; la clave secreta que te muestra es `MP_WEBHOOK_SECRET`.
+4. Aplicá la migración en cada base: `npx prisma migrate deploy` (crea la tabla `pagos`).
+
+En desarrollo local (`APP_URL=http://localhost:3000`) Mercado Pago no puede avisar a tu computadora: para probar el webhook hace falta un túnel https (ngrok o cloudflared) y poner esa URL en `APP_URL`. Sin túnel, el turno igual se confirma cuando el cliente vuelve a la página de confirmación. Los pagos que hay que devolver aparecen en el inicio del panel.
+
 ## Administración de campos
 
 Con el rol Administrador, el menú **Administración** permite ver el tipo de cada campo de Stock, renombrarlo, ocultarlo, reordenarlo, sumar campos propios y administrar las listas (marcas, tipos, ubicaciones, vehículos). Los campos que el sistema necesita para funcionar (código, marca, cantidad…) se pueden renombrar pero no ocultar ni borrar.

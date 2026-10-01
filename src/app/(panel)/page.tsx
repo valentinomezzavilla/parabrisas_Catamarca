@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { AlertTriangle, ArrowRight, CalendarCheck, CalendarClock, Hourglass, PackageMinus } from "lucide-react";
-import { EncabezadoPagina, Estadistica, Insignia, tarjeta, Vacio } from "@/components/ui";
+import { AlertTriangle, ArrowRight, CalendarCheck, CalendarClock, Hourglass, PackageMinus, Undo2 } from "lucide-react";
+import { boton, EncabezadoPagina, Estadistica, Insignia, tarjeta, Vacio } from "@/components/ui";
+import { BotonEnviar } from "@/components/ui/cliente";
+import { pesos } from "@/lib/formato";
 import { formatearFecha, formatearHora, hoy } from "@/lib/tiempo";
+import { liberarVencidos, listarPagosParaDevolver } from "@/modules/pagos/pagos.service";
+import { marcarPagoDevuelto } from "./turnos/acciones";
 import { cristalesConStockBajo } from "@/modules/inventario/cristal.service";
 import { listarTurnosDelDia } from "@/modules/turnos/turno.service";
 import { ESTADOS } from "./turnos/estados";
@@ -27,14 +31,39 @@ function Seccion({ titulo, href, enlace, children }: { titulo: string; href: str
 export default async function Panel() {
   await verificarSesion();
   await connection(); // siempre datos al momento, nunca una versión precalculada
+  await liberarVencidos();
   const fecha = hoy();
-  const [turnos, stockBajo] = await Promise.all([listarTurnosDelDia(fecha), cristalesConStockBajo()]);
+  const [turnos, stockBajo, aDevolver] = await Promise.all([listarTurnosDelDia(fecha), cristalesConStockBajo(), listarPagosParaDevolver()]);
   const activos = turnos.filter((t) => !["CANCELADO", "AUSENTE"].includes(t.estado));
   const pendientes = activos.filter((t) => t.estado === "PENDIENTE").length;
 
   return (
     <>
       <EncabezadoPagina seccion="Panel" titulo="Resumen del local" descripcion={formatearFecha(fecha).replace(/^./, (c) => c.toUpperCase())} />
+
+      {aDevolver.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="font-display text-lg font-bold">Pagos para devolver</h2>
+          <ul className={`${tarjeta} divide-y divide-borde overflow-hidden`}>
+            {aDevolver.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
+                <Undo2 className="size-4 shrink-0 text-alerta" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">
+                    {p.turno.cliente.nombre} · {pesos(p.monto)}
+                  </span>
+                  <span className="block text-xs text-texto-suave">
+                    {p.turno.servicio.nombre} · {p.motivoDevolucion}
+                  </span>
+                </span>
+                <form action={marcarPagoDevuelto.bind(null, p.id)}>
+                  <BotonEnviar variante="secundario" className={boton.chico}>Ya lo devolví</BotonEnviar>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* En celular las tres tarjetas van en una fila compacta en lugar de apilarse. */}
       <div className="grid grid-cols-3 gap-2.5 sm:gap-4">

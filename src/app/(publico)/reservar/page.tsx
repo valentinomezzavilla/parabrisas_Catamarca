@@ -2,6 +2,9 @@ import Link from "next/link";
 import { ArrowLeft, Clock } from "lucide-react";
 import { boton, tarjeta, Vacio } from "@/components/ui";
 import { pesos } from "@/lib/formato";
+import { obtenerSesion } from "@/lib/sesion";
+import { liberarVencidos } from "@/modules/pagos/pagos.service";
+import { calcularSena } from "@/modules/pagos/sena";
 import { DIAS_CORTOS, diaSemana, formatearFecha, formatearHora, hoy, sumarDias } from "@/lib/tiempo";
 import { listarServicios, obtenerDisponibilidad, obtenerServicioReservable } from "@/modules/turnos/servicio.service";
 import { FormularioReserva } from "./FormularioReserva";
@@ -27,6 +30,7 @@ export default async function PaginaReservar({
 }: {
   searchParams: Promise<{ servicio?: string; fecha?: string; inicio?: string }>;
 }) {
+  await liberarVencidos(); // libera los horarios cuyo pago venció antes de calcular la disponibilidad
   const params = await searchParams;
   const servicio = params.servicio ? await obtenerServicioReservable(params.servicio) : null;
 
@@ -151,7 +155,11 @@ export default async function PaginaReservar({
               <p className="rounded-lg bg-marca/15 px-4 py-3 text-sm">
                 <strong>{servicio.nombre}</strong> · {formatearFecha(fecha)} a las <strong>{formatearHora(elegido.inicio)}</strong> hs
               </p>
-              <FormularioReserva servicioId={servicio.id} inicio={elegido.inicio.toISOString()} />
+              <FormularioReserva
+                servicioId={servicio.id}
+                inicio={elegido.inicio.toISOString()}
+                sena={(await obtenerSesion()) ? null : calcularSena(servicio.precioBase)}
+              />
             </div>
           </Paso>
         </div>
