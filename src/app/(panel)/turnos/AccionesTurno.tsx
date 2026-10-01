@@ -9,6 +9,7 @@ type Accion = { estado: EstadoTurno; etiqueta: string; variante: keyof typeof bo
 
 /** Próximos pasos posibles según el estado actual del turno. */
 const ACCIONES: Partial<Record<EstadoTurno, Accion[]>> = {
+  ESPERANDO_PAGO: [{ estado: "CANCELADO", etiqueta: "Cancelar", variante: "fantasma", confirmar: true }],
   PENDIENTE: [
     { estado: "CONFIRMADO", etiqueta: "Confirmar", variante: "primario" },
     { estado: "CANCELADO", etiqueta: "Cancelar", variante: "fantasma", confirmar: true },
