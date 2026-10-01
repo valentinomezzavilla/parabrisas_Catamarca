@@ -2,13 +2,24 @@ import type { EntidadCampo, TipoCampo } from "./tipos";
 
 // Puro. Campos que el sistema trae de fábrica; lo que el Admin ajusta se guarda aparte (configuracion_campos).
 
-export type SeccionCampo = "identificacion" | "principales" | "compatibilidades" | "stock" | "adicionales";
+export type SeccionCampo =
+  | "identificacion"
+  | "principales"
+  | "compatibilidades"
+  | "stock"
+  | "servicio"
+  | "agenda"
+  | "precio"
+  | "adicionales";
 
 export const SECCIONES: { id: SeccionCampo; etiqueta: string }[] = [
   { id: "identificacion", etiqueta: "Identificación" },
   { id: "principales", etiqueta: "Características principales" },
   { id: "compatibilidades", etiqueta: "Vehículos compatibles" },
   { id: "stock", etiqueta: "Stock y precios" },
+  { id: "servicio", etiqueta: "Datos del servicio" },
+  { id: "agenda", etiqueta: "Agenda y capacidad" },
+  { id: "precio", etiqueta: "Precio" },
   { id: "adicionales", etiqueta: "Datos adicionales" },
 ];
 
@@ -30,6 +41,8 @@ export interface CampoSistema {
   soloLectura?: boolean;
   /** Sección con diseño propio (vehículos compatibles). */
   especial?: boolean;
+  /** Se muestra en Administración pero no se puede ajustar (ni renombrar, ni ocultar, ni mover). */
+  fijo?: boolean;
 }
 
 const cristal = (
@@ -42,6 +55,15 @@ const cristal = (
   const protegido = extra.protegido ?? false;
   return { clave, etiqueta, tipo, seccion, requerido: protegido && clave !== "cantidad", protegido, ocultable: !protegido, ...extra };
 };
+
+/** Campo de referencia del servicio: lo usa el formulario existente y Administración solo lo muestra. */
+const servicio = (
+  clave: string,
+  etiqueta: string,
+  tipo: TipoCampo,
+  seccion: SeccionCampo,
+  extra: Partial<CampoSistema> = {},
+): CampoSistema => ({ clave, etiqueta, tipo, seccion, requerido: false, protegido: true, ocultable: false, fijo: true, ...extra });
 
 export const REGISTRO: Record<EntidadCampo, CampoSistema[]> = {
   CRISTAL: [
@@ -62,7 +84,20 @@ export const REGISTRO: Record<EntidadCampo, CampoSistema[]> = {
     cristal("costo", "Costo", "NUMERO", "stock"),
     cristal("precioVenta", "Precio de venta", "NUMERO", "stock"),
   ],
-  SERVICIO: [],
+  SERVICIO: [
+    servicio("nombre", "Nombre", "TEXTO", "servicio", { requerido: true }),
+    servicio("descripcion", "Descripción", "TEXTO_LARGO", "servicio"),
+    servicio("color", "Color en la agenda", "TEXTO", "servicio"),
+    servicio("activo", "Activo (se ofrece en el turnero)", "SI_NO", "servicio"),
+    servicio("duracionMinutos", "Duración (min)", "NUMERO", "agenda", { requerido: true, unidad: "min" }),
+    servicio("intervaloMinutos", "Turnos cada (min)", "NUMERO", "agenda", { requerido: true, unidad: "min" }),
+    servicio("margenMinutos", "Margen entre trabajos (min)", "NUMERO", "agenda", { unidad: "min" }),
+    servicio("capacidad", "Vehículos a la vez", "NUMERO", "agenda", { requerido: true }),
+    servicio("anticipacionMinutos", "Anticipación mínima", "NUMERO", "agenda", { requerido: true, unidad: "min" }),
+    servicio("requiereCristal", "Usa un cristal del stock", "SI_NO", "agenda"),
+    servicio("horarios", "Días y horarios de atención", "LISTA", "agenda", { requerido: true, especial: true }),
+    servicio("precioBase", "Precio base", "NUMERO", "precio"),
+  ],
   TURNO: [],
   CLIENTE: [],
 };

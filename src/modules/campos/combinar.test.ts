@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { camposVisibles, combinarCampos, moverCampo, type ConfigCampo } from "./combinar";
 import { claveUnica } from "./clave";
-import { clavesProhibidas, clavesReservadas, REGISTRO } from "./registro";
+import { clavesProhibidas, clavesReservadas, REGISTRO, SECCIONES } from "./registro";
 import type { CampoPropio } from "./tipos";
 
 const propio = (cambios: Partial<CampoPropio> = {}): CampoPropio => ({
@@ -39,6 +39,27 @@ describe("registro", () => {
       expect(c?.protegido, clave).toBe(true);
       expect(c?.ocultable, clave).toBe(false);
     }
+  });
+
+  it("todos los campos del sistema de Servicios son fijos, no ocultables y de una sección conocida", () => {
+    expect(REGISTRO.SERVICIO.length).toBe(12);
+    const secciones = new Set(SECCIONES.map((s) => s.id));
+    for (const c of REGISTRO.SERVICIO) {
+      expect(c.fijo, c.clave).toBe(true);
+      expect(c.ocultable, c.clave).toBe(false);
+      expect(secciones.has(c.seccion), c.clave).toBe(true);
+    }
+  });
+
+  it("las claves del sistema de Servicios no se repiten y están reservadas", () => {
+    const claves = REGISTRO.SERVICIO.map((c) => c.clave);
+    expect(new Set(claves).size).toBe(claves.length);
+    expect(clavesReservadas("SERVICIO")).toEqual(expect.arrayContaining(["nombre", "precioBase", "horarios", "capacidad"]));
+    expect(clavesProhibidas("SERVICIO")).toContain("nuevo");
+  });
+
+  it("los campos de Stock no son fijos", () => {
+    expect(REGISTRO.CRISTAL.some((c) => c.fijo)).toBe(false);
   });
 
   it("clavesReservadas devuelve todas las claves del sistema", () => {
@@ -129,5 +150,33 @@ describe("moverCampo", () => {
     expect(moverCampo(todos(), "descripcion", "ABAJO")).toEqual([]); // es el último de su sección
     expect(moverCampo(todos(), "codigoFabricante", "ABAJO").length).toBeGreaterThan(0);
     expect(moverCampo(todos(), "noExiste", "ABAJO")).toEqual([]);
+  });
+});
+
+describe("combinarCampos para Servicios", () => {
+  const propioServicio = (cambios: Partial<CampoPropio> = {}): CampoPropio =>
+    propio({ id: "s1", entidad: "SERVICIO", clave: "garantia", etiqueta: "Garantía", tipo: "TEXTO", ...cambios });
+
+  it("pone los campos del sistema primero (fijos) y los propios al final, en 'Datos adicionales'", () => {
+    const campos = combinarCampos("SERVICIO", [], [propioServicio()]);
+    const sistema = campos.filter((c) => c.origen === "SISTEMA");
+    expect(sistema.every((c) => c.fijo && !c.ocultable)).toBe(true);
+    expect(campos.at(-1)).toMatchObject({ clave: "garantia", origen: "PROPIO", seccion: "adicionales", fijo: false });
+  });
+
+  it("ignora los campos propios de otra entidad", () => {
+    const deCristal = propio({ clave: "sensor", entidad: "CRISTAL" });
+    expect(claves(combinarCampos("SERVICIO", [], [deCristal]))).not.toContain("sensor");
+  });
+
+  it("ordena los propios por `orden` y permite subir uno", () => {
+    const campos = combinarCampos("SERVICIO", [], [
+      propioServicio({ id: "a", clave: "a", etiqueta: "A", orden: 10 }),
+      propioServicio({ id: "b", clave: "b", etiqueta: "B", orden: 20 }),
+    ]);
+    expect(moverCampo(campos, "b", "ARRIBA")).toEqual([
+      { clave: "b", orden: 10 },
+      { clave: "a", orden: 20 },
+    ]);
   });
 });

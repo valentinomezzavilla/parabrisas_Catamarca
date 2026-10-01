@@ -20,6 +20,8 @@ export interface CampoFinal {
   seccion: SeccionCampo;
   requerido: boolean;
   protegido: boolean;
+  /** Se muestra pero no se puede ajustar desde Administración. */
+  fijo: boolean;
   ocultable: boolean;
   visible: boolean;
   archivado: boolean;
@@ -53,6 +55,7 @@ export function combinarCampos(
       seccion: c.seccion,
       requerido: c.requerido,
       protegido: c.protegido,
+      fijo: c.fijo ?? false,
       ocultable: c.ocultable,
       visible: c.ocultable ? !ajuste?.oculto : true,
       archivado: false,
@@ -78,6 +81,7 @@ export function combinarCampos(
         seccion: "adicionales",
         requerido: p.requerido,
         protegido: false,
+        fijo: false,
         ocultable: true,
         visible: p.visible && !p.archivado,
         archivado: p.archivado,
