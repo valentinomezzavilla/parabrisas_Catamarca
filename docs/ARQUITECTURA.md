@@ -100,7 +100,11 @@ Las fechas se guardan en UTC. Las franjas se guardan como minutos locales. Catam
 
 ## Administración de campos
 
-Solo Admin. `/administracion` muestra una card por módulo (hoy solo **Stock** está habilitado; Servicios y Turnos y clientes vienen después).
+Solo Admin. `/administracion` muestra una card por módulo (hoy están habilitados **Stock** y **Servicios**; Turnos y clientes viene después).
+
+Las pantallas de campos están **parametrizadas por módulo**: `MODULOS` (`src/modules/campos/modulos.ts`) fija la entidad y las rutas de cada uno, y los componentes y las Server Actions compartidos viven en `src/app/(panel)/administracion/_campos`. Una Server Action recibe el módulo desde el cliente y lo valida con `esModulo`: nunca se confía en él.
+
+**Servicios.** Solo campos propios: valores en `servicios.extras`, se completan en la sección "Datos adicionales" al crear o editar un servicio y se ven en la lista de `/servicios`. Los campos del sistema del servicio (nombre, duración, precio, franjas…) se muestran como **fijos**: no se renombran, ocultan ni mueven, y el servidor lo rechaza aunque el pedido se arme a mano (`CampoSistema.fijo`). No se muestran al cliente en `/reservar`. Un campo propio obligatorio no invalida a los servicios existentes: el valor se pide la próxima vez que se edite el servicio.
 
 - **Campos del sistema** (`src/modules/campos/registro.ts`): los trae el código. Los **protegidos** (código, descripción, marca, tipo, ubicación, stock mínimo, cantidad) no se ocultan ni cambian de tipo; a todos se les puede cambiar etiqueta, ayuda y orden, y a los demás ocultarlos. Esos ajustes se guardan en `configuracion_campos`.
 - **Campos propios**: seis tipos (texto, texto largo, número, sí/no, lista, fecha). Definición en `campos_personalizados`, valores en `cristales.extras`. Se pueden archivar (conservan sus valores) o eliminar (borran sus valores, con confirmación que muestra cuántos registros se afectan). Cambiar el tipo también borra los valores.
@@ -162,6 +166,7 @@ El menú se define una sola vez en `src/components/layout/navegacion.ts` y lo us
 | `/administracion` | Solo Admin. Cards por módulo. |
 | `/administracion/stock` | Solo Admin. Campos de Stock: ver tipos, renombrar, ocultar, reordenar y crear campos propios. |
 | `/administracion/stock/listas` | Solo Admin. Listas de Stock: marcas, tipos, ubicaciones, marcas y modelos de vehículo. |
+| `/administracion/servicios`, `/administracion/servicios/campos/nuevo`, `/administracion/servicios/campos/[clave]` | Solo Admin. Campos de Servicios: los del sistema (fijos) y los propios (crear, editar, ordenar, archivar y eliminar). |
 | `/login` | **Pública.** Ingreso al panel. |
 | `/usuarios`, `/usuarios/nuevo` | Solo Admin: alta, rol, activar/desactivar y nueva contraseña. |
 | `/reservar` | **Pública.** El cliente elige servicio, día y horario, y carga sus datos. |
@@ -173,7 +178,8 @@ Las rutas del panel están en `src/app/(panel)` (con barra lateral) y las públi
 ## Pendiente
 
 1. Protección anti-spam de `/reservar` (límite de reservas por teléfono o IP, o captcha).
-2. Administración de campos para Servicios y para Turnos y clientes (incluye los campos del formulario público `/reservar`). El motor ya está hecho; falta la columna `extras` y las pantallas de cada módulo.
+2. Administración de campos para Turnos y clientes (incluye los campos del formulario público `/reservar`). El motor y las pantallas ya están hechos; falta la columna `extras` y decidir qué campos propios ve el público.
+   Para renombrar, ocultar o reordenar también los campos del sistema de Servicios hay que reconstruir `FormularioServicio` sobre el motor.
    Además: limpiar un campo vacío al editar un cristal (hoy un costo vacío no borra el valor guardado).
 3. Bloqueos de agenda (feriados, vacaciones) desde el panel. La tabla ya existe y el cálculo de disponibilidad los respeta.
 4. Recordatorios de turno por WhatsApp.
