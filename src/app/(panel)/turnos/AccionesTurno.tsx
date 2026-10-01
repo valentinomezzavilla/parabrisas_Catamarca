@@ -22,7 +22,7 @@ const ACCIONES: Partial<Record<EstadoTurno, Accion[]>> = {
   EN_CURSO: [{ estado: "COMPLETADO", etiqueta: "Completar", variante: "primario" }],
 };
 
-export function AccionesTurno({ id, estado }: { id: string; estado: EstadoTurno }) {
+export function AccionesTurno({ id, estado, sena = null }: { id: string; estado: EstadoTurno; sena?: string | null }) {
   const [pendiente, iniciar] = useTransition();
   const [error, setError] = useState<string>();
   const [aConfirmar, setAConfirmar] = useState<Accion>();
@@ -44,6 +44,11 @@ export function AccionesTurno({ id, estado }: { id: string; estado: EstadoTurno 
         {aConfirmar ? (
           <>
             <span className="text-xs text-texto-suave">¿{aConfirmar.etiqueta}?</span>
+            {aConfirmar.estado === "CANCELADO" && sena && (
+              <span className="basis-full text-xs text-alerta">
+                Tiene una seña de {sena} cobrada por Mercado Pago. No se devuelve automáticamente.
+              </span>
+            )}
             <button type="button" disabled={pendiente} onClick={() => ejecutar(aConfirmar)} className={`${boton.peligro} ${boton.chico}`}>
               Sí
             </button>

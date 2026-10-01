@@ -157,7 +157,7 @@ export default async function PaginaTurnos({ searchParams }: { searchParams: Pro
                         <Pencil className="size-3.5" aria-hidden /> Editar
                       </Link>
                     )}
-                    <AccionesTurno id={t.id} estado={t.estado} />
+                    <AccionesTurno id={t.id} estado={t.estado} sena={t.pagos[0] ? pesos(t.pagos[0].monto) : null} />
                   </div>
                 </div>
               </li>
