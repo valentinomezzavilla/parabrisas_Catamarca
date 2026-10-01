@@ -52,6 +52,10 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
   --radius-tarjeta: 0.875rem;
+
+  /* Profundidad: sombras suaves y el "halo" amarillo del botón primario */
+  --shadow-tarjeta: 0 1px 2px rgb(16 17 20 / 0.06), 0 1px 1px rgb(16 17 20 / 0.04);
+  --shadow-marca: 0 1px 0 rgb(0 0 0 / 0.14), 0 6px 16px -6px rgb(253 221 61 / 0.55);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -69,6 +73,17 @@ body {
   background: var(--color-fondo);
   color: var(--color-texto);
   font-family: var(--font-sans);
+  /* El contenido no queda pegado al borde en pantallas con muesca (iOS). */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* En oscuro, un resplandor amarillo muy tenue arriba a la derecha le da carácter al fondo. */
+@media (prefers-color-scheme: dark) {
+  body {
+    background:
+      radial-gradient(60rem 28rem at 100% -8%, rgb(253 221 61 / 0.07), transparent 65%),
+      var(--color-fondo);
+  }
 }
 
 :focus-visible {
