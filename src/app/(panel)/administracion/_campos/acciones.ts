@@ -95,7 +95,7 @@ export async function guardarCampoPropioAccion(
       requerido: casilla(fd, "requerido"),
       unidad: texto(fd, "unidad"),
       visible: casilla(fd, "visible"),
-    });
+    }, MODULOS[modulo].entidad);
   } catch (e) {
     return aResultado(e);
   }
@@ -119,7 +119,11 @@ export async function moverCampoAccion(modulo: string, clave: string, direccion:
 export async function archivarCampoAccion(modulo: string, id: string, archivar: boolean): Promise<EstadoConConteo> {
   await requerirRol("ADMIN");
   if (!esModulo(modulo)) return MODULO_INVALIDO;
-  await archivarCampoPropio(id, archivar === true);
+  try {
+    await archivarCampoPropio(id, archivar === true, MODULOS[modulo].entidad);
+  } catch (e) {
+    return aResultado(e);
+  }
   refrescar(modulo);
   return { ok: true };
 }
@@ -129,7 +133,7 @@ export async function eliminarCampoAccion(modulo: string, id: string, confirmar:
   await requerirRol("ADMIN");
   if (!esModulo(modulo)) return MODULO_INVALIDO;
   try {
-    await eliminarCampoPropio(id, { confirmar: confirmar === true });
+    await eliminarCampoPropio(id, { confirmar: confirmar === true, entidad: MODULOS[modulo].entidad });
   } catch (e) {
     return aResultado(e);
   }
@@ -147,7 +151,7 @@ export async function cambiarTipoAccion(
   await requerirRol("ADMIN");
   if (!esModulo(modulo)) return MODULO_INVALIDO;
   try {
-    await cambiarTipoCampo(id, tipo as TipoCampo, { opcionesTexto, confirmar: confirmar === true });
+    await cambiarTipoCampo(id, tipo as TipoCampo, { opcionesTexto, confirmar: confirmar === true, entidad: MODULOS[modulo].entidad });
   } catch (e) {
     return aResultado(e);
   }
@@ -159,7 +163,7 @@ export async function opcionAccion(modulo: string, id: string, operacion: Operac
   await requerirRol("ADMIN");
   if (!esModulo(modulo)) return MODULO_INVALIDO;
   try {
-    await modificarOpciones(id, operacion);
+    await modificarOpciones(id, operacion, MODULOS[modulo].entidad);
   } catch (e) {
     return aResultado(e);
   }
