@@ -21,6 +21,13 @@ describe("esRutaPublica", () => {
     }
   });
 
+  it("permite el webhook de Mercado Pago y nada más de /api", () => {
+    expect(esRutaPublica("/api/mercadopago/webhook")).toBe(true);
+    for (const ruta of ["/api", "/api/mercadopago", "/api/mercadopago/otra", "/api/mercadopago/webhook-x", "/x/api/mercadopago/webhook"]) {
+      expect(esRutaPublica(ruta)).toBe(false);
+    }
+  });
+
   it("protege el panel", () => {
     for (const ruta of ["/", "/turnos", "/stock", "/stock/abc/editar", "/servicios", "/usuarios"]) {
       expect(esRutaPublica(ruta)).toBe(false);
