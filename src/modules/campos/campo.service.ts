@@ -42,8 +42,8 @@ export class ConfirmacionRequeridaError extends Error {
   }
 }
 
-// Solo Stock tiene columna `extras` en este paso. El nombre de tabla sale de este mapa, nunca de la entrada.
-const TABLAS: Partial<Record<EntidadCampo, string>> = { CRISTAL: "cristales" };
+// Tablas con columna `extras`. El nombre de tabla sale de este mapa, nunca de la entrada.
+const TABLAS: Partial<Record<EntidadCampo, string>> = { CRISTAL: "cristales", SERVICIO: "servicios" };
 
 function tabla(entidad: EntidadCampo): Prisma.Sql {
   const nombre = TABLAS[entidad];
@@ -152,6 +152,7 @@ export async function actualizarCampoSistema(
 ): Promise<void> {
   const definicion = REGISTRO[entidad].find((c) => c.clave === clave);
   if (!definicion) throw new CampoInvalidoError("Ese campo no existe.");
+  if (definicion.fijo) throw new CampoInvalidoError("Este campo no se puede ajustar desde Administración.");
   const datos = editarCampoSistemaSchema.parse(entrada);
   if (datos.oculto && !definicion.ocultable) {
     throw new CampoInvalidoError("Este campo es necesario para que el sistema funcione y no se puede ocultar.", "oculto");
@@ -170,6 +171,7 @@ export async function actualizarCampoSistema(
 
 export async function moverCampoAdmin(entidad: EntidadCampo, clave: string, direccion: "ARRIBA" | "ABAJO"): Promise<void> {
   const campos = await obtenerCampos(entidad);
+  if (campos.find((c) => c.clave === clave)?.fijo) throw new CampoInvalidoError("Este campo no se puede mover.");
   const cambios = moverCampo(campos, clave, direccion);
   if (cambios.length === 0) return;
   await db.$transaction(async (tx) => {
