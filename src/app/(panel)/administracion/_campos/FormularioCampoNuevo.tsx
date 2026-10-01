@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { boton, Campo, input, tarjeta } from "@/components/ui";
 import { useFormularioAccion } from "@/components/ui/cliente";
+import { MODULOS, type ModuloAdmin } from "@/modules/campos/modulos";
 import { ETIQUETA_TIPO, TIPOS_CAMPO, type TipoCampo } from "@/modules/campos/tipos";
-import { crearCampoAccion } from "../../acciones";
+import { crearCampoAccion } from "./acciones";
 
-export function FormularioCampoNuevo() {
-  const { estado, enviar, pendiente, error } = useFormularioAccion(crearCampoAccion);
+export function FormularioCampoNuevo({ modulo }: { modulo: ModuloAdmin }) {
+  const { estado, enviar, pendiente, error } = useFormularioAccion(crearCampoAccion.bind(null, modulo));
   const [tipo, setTipo] = useState<TipoCampo>("TEXTO");
 
   return (
@@ -46,13 +47,13 @@ export function FormularioCampoNuevo() {
       {tipo !== "SI_NO" && (
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="requerido" className="size-4 accent-amarillo-500" />
-          Obligatorio al cargar un cristal
+          Obligatorio al cargar {MODULOS[modulo].objeto}
         </label>
       )}
 
       <div className="flex gap-2">
         <button type="submit" disabled={pendiente} className={boton.primario}>{pendiente ? "Guardando…" : "Crear campo"}</button>
-        <Link href="/administracion/stock" className={boton.secundario}>Cancelar</Link>
+        <Link href={MODULOS[modulo].base} className={boton.secundario}>Cancelar</Link>
       </div>
     </form>
   );

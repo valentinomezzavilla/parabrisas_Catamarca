@@ -181,6 +181,7 @@ model Servicio {
   activo              Boolean           @default(true)
   orden               Int               @default(0)
   archivadoEn         DateTime?         @map("archivado_en")
+  extras              Json              @default("{}") // valores de campos propios: { [clave]: valor }
   creadoEn            DateTime          @default(now()) @map("creado_en")
   actualizadoEn       DateTime          @updatedAt @map("actualizado_en")
 

@@ -42,8 +42,8 @@ export class ConfirmacionRequeridaError extends Error {
   }
 }
 
-// Solo Stock tiene columna `extras` en este paso. El nombre de tabla sale de este mapa, nunca de la entrada.
-const TABLAS: Partial<Record<EntidadCampo, string>> = { CRISTAL: "cristales" };
+// Tablas con columna `extras`. El nombre de tabla sale de este mapa, nunca de la entrada.
+const TABLAS: Partial<Record<EntidadCampo, string>> = { CRISTAL: "cristales", SERVICIO: "servicios" };
 
 function tabla(entidad: EntidadCampo): Prisma.Sql {
   const nombre = TABLAS[entidad];
@@ -69,6 +69,16 @@ const aCampoPropio = (f: Fila): CampoPropio => ({
 });
 
 const json = (opciones: OpcionCampo[]) => opciones as unknown as Prisma.InputJsonArray;
+
+/**
+ * Fila de un campo propio, comprobando que pertenece a la entidad del módulo desde el que se la pide.
+ * Las acciones reciben el id desde el cliente: sin esto, una llamada armada a mano podría tocar el campo de otro módulo.
+ */
+async function filaDelModulo(id: string, entidad: EntidadCampo): Promise<Fila> {
+  const fila = await db.campoPersonalizado.findUniqueOrThrow({ where: { id } });
+  if (fila.entidad !== entidad) throw new CampoInvalidoError("Ese campo no pertenece a este módulo.");
+  return fila;
+}
 
 export async function listarCamposPropios(entidad: EntidadCampo): Promise<CampoPropio[]> {
   const filas = await db.campoPersonalizado.findMany({
@@ -127,9 +137,9 @@ export async function crearCampoPropio(entidad: EntidadCampo, entrada: CrearCamp
   return aCampoPropio(fila);
 }
 
-export async function actualizarCampoPropio(id: string, entrada: EditarCampoPropioInput): Promise<void> {
+export async function actualizarCampoPropio(id: string, entrada: EditarCampoPropioInput, entidad: EntidadCampo): Promise<void> {
   const datos = editarCampoPropioSchema.parse(entrada);
-  const fila = await db.campoPersonalizado.findUniqueOrThrow({ where: { id } });
+  const fila = await filaDelModulo(id, entidad);
   const existentes = await obtenerCampos(fila.entidad);
   if (etiquetaEnUso(existentes, datos.etiqueta, fila.clave)) throw new CampoInvalidoError("Ya hay un campo con ese nombre.", "etiqueta");
 
@@ -152,6 +162,7 @@ export async function actualizarCampoSistema(
 ): Promise<void> {
   const definicion = REGISTRO[entidad].find((c) => c.clave === clave);
   if (!definicion) throw new CampoInvalidoError("Ese campo no existe.");
+  if (definicion.fijo) throw new CampoInvalidoError("Este campo no se puede ajustar desde Administración.");
   const datos = editarCampoSistemaSchema.parse(entrada);
   if (datos.oculto && !definicion.ocultable) {
     throw new CampoInvalidoError("Este campo es necesario para que el sistema funcione y no se puede ocultar.", "oculto");
@@ -170,6 +181,7 @@ export async function actualizarCampoSistema(
 
 export async function moverCampoAdmin(entidad: EntidadCampo, clave: string, direccion: "ARRIBA" | "ABAJO"): Promise<void> {
   const campos = await obtenerCampos(entidad);
+  if (campos.find((c) => c.clave === clave)?.fijo) throw new CampoInvalidoError("Este campo no se puede mover.");
   const cambios = moverCampo(campos, clave, direccion);
   if (cambios.length === 0) return;
   await db.$transaction(async (tx) => {
@@ -187,7 +199,8 @@ export async function moverCampoAdmin(entidad: EntidadCampo, clave: string, dire
   });
 }
 
-export async function archivarCampoPropio(id: string, archivar: boolean): Promise<void> {
+export async function archivarCampoPropio(id: string, archivar: boolean, entidad: EntidadCampo): Promise<void> {
+  await filaDelModulo(id, entidad);
   await db.campoPersonalizado.update({ where: { id }, data: { archivadoEn: archivar ? new Date() : null } });
 }
 
@@ -206,8 +219,11 @@ async function contarUsoOpcion(entidad: EntidadCampo, clave: string, opcionId: s
 }
 
 /** Elimina el campo y sus valores. Devuelve cuántos registros tenían valor. Con datos, exige `confirmar`. */
-export async function eliminarCampoPropio(id: string, { confirmar }: { confirmar: boolean }): Promise<number> {
-  const fila = await db.campoPersonalizado.findUniqueOrThrow({ where: { id } });
+export async function eliminarCampoPropio(
+  id: string,
+  { confirmar, entidad }: { confirmar: boolean; entidad: EntidadCampo },
+): Promise<number> {
+  const fila = await filaDelModulo(id, entidad);
   const afectados = await contarValores(fila.entidad, fila.clave);
   if (afectados > 0 && !confirmar) throw new ConfirmacionRequeridaError(afectados);
   await db.$transaction(async (tx) => {
@@ -221,10 +237,10 @@ export async function eliminarCampoPropio(id: string, { confirmar }: { confirmar
 export async function cambiarTipoCampo(
   id: string,
   tipo: TipoCampo,
-  { opcionesTexto = "", confirmar }: { opcionesTexto?: string; confirmar: boolean },
+  { opcionesTexto = "", confirmar, entidad }: { opcionesTexto?: string; confirmar: boolean; entidad: EntidadCampo },
 ): Promise<number> {
   const nuevoTipo = tipoCampoSchema.parse(tipo);
-  const fila = await db.campoPersonalizado.findUniqueOrThrow({ where: { id } });
+  const fila = await filaDelModulo(id, entidad);
   if (fila.tipo === nuevoTipo) return 0;
 
   const opciones = nuevoTipo === "LISTA" ? crearOpciones(etiquetasDeTexto(opcionesTexto)) : [];
@@ -250,8 +266,8 @@ export type OperacionOpcion =
   | { tipo: "quitar"; opcionId: string };
 
 /** Agrega, renombra, desactiva o quita una opción de un campo de tipo lista. */
-export async function modificarOpciones(id: string, operacion: OperacionOpcion): Promise<void> {
-  const fila = await db.campoPersonalizado.findUniqueOrThrow({ where: { id } });
+export async function modificarOpciones(id: string, operacion: OperacionOpcion, entidad: EntidadCampo): Promise<void> {
+  const fila = await filaDelModulo(id, entidad);
   if (fila.tipo !== "LISTA") throw new CampoInvalidoError("Este campo no es una lista.");
   let opciones = aCampoPropio(fila).opciones;
 

@@ -5,9 +5,10 @@ import { Plus, Trash2 } from "lucide-react";
 import { boton, input } from "@/components/ui";
 import type { OperacionOpcion } from "@/modules/campos/campo.service";
 import type { OpcionCampo } from "@/modules/campos/tipos";
-import { opcionAccion } from "../../acciones";
+import type { ModuloAdmin } from "@/modules/campos/modulos";
+import { opcionAccion } from "./acciones";
 
-export function EditorOpciones({ id, opciones }: { id: string; opciones: OpcionCampo[] }) {
+export function EditorOpciones({ modulo, id, opciones }: { modulo: ModuloAdmin; id: string; opciones: OpcionCampo[] }) {
   const [pendiente, iniciar] = useTransition();
   const [error, setError] = useState<string>();
   const [nueva, setNueva] = useState("");
@@ -16,7 +17,7 @@ export function EditorOpciones({ id, opciones }: { id: string; opciones: OpcionC
   const ejecutar = (operacion: OperacionOpcion, despues?: () => void) =>
     iniciar(async () => {
       setError(undefined);
-      const r = await opcionAccion(id, operacion);
+      const r = await opcionAccion(modulo, id, operacion);
       if (!r.ok) setError(r.mensaje);
       else despues?.();
     });
