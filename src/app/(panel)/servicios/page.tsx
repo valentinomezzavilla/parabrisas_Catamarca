@@ -3,6 +3,9 @@ import { Clock, Pencil, Plus, Users } from "lucide-react";
 import { Aviso, boton, EncabezadoPagina, Insignia, tarjeta, Vacio } from "@/components/ui";
 import { BotonConfirmar, BotonEnviar } from "@/components/ui/cliente";
 import { DIAS_CORTOS, minutosAHora, SEMANA } from "@/lib/tiempo";
+import { obtenerCampos } from "@/modules/campos/campo.service";
+import { formatearValor } from "@/modules/campos/extras";
+import type { Extras } from "@/modules/campos/tipos";
 import { listarServicios } from "@/modules/turnos/servicio.service";
 import { alternarServicio, borrarServicio } from "./acciones";
 import { requerirRol } from "@/lib/sesion";
@@ -39,7 +42,8 @@ function resumenHorario(horarios: { diaSemana: number; horaInicio: number; horaF
 
 export default async function PaginaServicios({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
   await requerirRol("ADMIN");
-  const [{ aviso }, servicios] = await Promise.all([searchParams, listarServicios()]);
+  const [{ aviso }, servicios, campos] = await Promise.all([searchParams, listarServicios(), obtenerCampos("SERVICIO")]);
+  const propios = campos.filter((c) => c.origen === "PROPIO" && c.visible);
 
   return (
     <>
@@ -80,6 +84,22 @@ export default async function PaginaServicios({ searchParams }: { searchParams: 
                 <ul className="space-y-0.5 text-xs text-texto-suave">
                   {s.horarios.length ? resumenHorario(s.horarios).map((linea) => <li key={linea}>{linea}</li>) : <li>Sin horarios cargados</li>}
                 </ul>
+
+                {(() => {
+                  const extras = s.extras as Extras;
+                  const cargados = propios.filter((c) => extras[c.clave] !== undefined);
+                  if (cargados.length === 0) return null;
+                  return (
+                    <dl className="grid gap-x-4 gap-y-0.5 border-t border-borde pt-3 text-xs sm:grid-cols-2">
+                      {cargados.map((c) => (
+                        <div key={c.clave} className="flex gap-1">
+                          <dt className="text-texto-suave">{c.etiqueta}:</dt>
+                          <dd className="font-medium">{formatearValor(c, extras[c.clave])}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  );
+                })()}
 
                 <div className="flex flex-wrap items-center gap-1 border-t border-borde pt-3">
                   <Link href={`/servicios/${s.id}`} className={`${boton.secundario} ${boton.chico}`}>

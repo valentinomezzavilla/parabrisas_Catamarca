@@ -1,6 +1,9 @@
 import { db } from "@/lib/db";
 import { fechaLocal, instanteLocal, sumarMinutos } from "@/lib/tiempo";
 import type { Prisma } from "@/generated/prisma/client";
+import { listarCamposPropios } from "@/modules/campos/campo.service";
+import { procesarExtras } from "@/modules/campos/extras";
+import type { Extras } from "@/modules/campos/tipos";
 import { calcularDisponibilidad } from "./disponibilidad";
 import { reservaSchema, servicioSchema, type ReservaInput, type ServicioInput } from "./schemas";
 
@@ -42,21 +45,32 @@ export function cambiarEstadoServicio(id: string, activo: boolean) {
 }
 
 export async function crearServicio(input: ServicioInput) {
-  const { horarios, ...datos } = servicioSchema.parse(input);
+  const { horarios, extrasEntrada, extrasDibujados, ...datos } = servicioSchema.parse(input);
+  // Sin entrada de extras (otro origen que el formulario) no se validan los campos propios.
+  const extras: Extras = extrasEntrada
+    ? procesarExtras(await listarCamposPropios("SERVICIO"), extrasEntrada, {}, extrasDibujados)
+    : {};
   // Si no se indica un orden, el servicio nuevo va al final del listado.
   const { _max } = await db.servicio.aggregate({ _max: { orden: true } });
   return db.servicio.create({
-    data: { ...datos, orden: input.orden ?? (_max.orden ?? 0) + 1, horarios: { create: horarios } },
+    data: { ...datos, extras, orden: input.orden ?? (_max.orden ?? 0) + 1, horarios: { create: horarios } },
     include: { horarios: true },
   });
 }
 
-/** Reemplaza la configuración completa del servicio (datos + franjas horarias). */
+/** Reemplaza la configuración completa del servicio (datos + franjas horarias). Los extras solo se tocan si llegan. */
 export async function actualizarServicio(id: string, input: ServicioInput) {
-  const { horarios, ...datos } = servicioSchema.parse(input);
+  const { horarios, extrasEntrada, extrasDibujados, ...datos } = servicioSchema.parse(input);
+
+  let extras: Extras | undefined;
+  if (extrasEntrada) {
+    const actual = await db.servicio.findUniqueOrThrow({ where: { id }, select: { extras: true } });
+    extras = procesarExtras(await listarCamposPropios("SERVICIO"), extrasEntrada, actual.extras as Extras, extrasDibujados);
+  }
+
   return db.servicio.update({
     where: { id },
-    data: { ...datos, horarios: { deleteMany: {}, create: horarios } },
+    data: { ...datos, ...(extras && { extras }), horarios: { deleteMany: {}, create: horarios } },
     include: { horarios: true },
   });
 }

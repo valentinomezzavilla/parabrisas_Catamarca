@@ -4,8 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { Copy, Plus, X } from "lucide-react";
 import { Aviso, boton, Campo, input, tarjeta } from "@/components/ui";
+import { CampoPersonalizado } from "@/components/campos/CampoPersonalizado";
 import { useFormularioAccion } from "@/components/ui/cliente";
 import { DIAS_LARGOS, minutosAHora, SEMANA } from "@/lib/tiempo";
+import type { CampoFinal } from "@/modules/campos/combinar";
+import { nombreInput, type Extras } from "@/modules/campos/tipos";
 import { guardarServicio } from "./acciones";
 
 export interface ServicioEditable {
@@ -23,6 +26,7 @@ export interface ServicioEditable {
   requiereCristal: boolean;
   activo: boolean;
   orden: number;
+  extras: Extras;
   horarios: { diaSemana: number; horaInicio: number; horaFin: number }[];
 }
 
@@ -45,7 +49,7 @@ const ANTICIPACIONES = [
 
 const FRANJA_NUEVA = { desde: "08:30", hasta: "12:30" };
 
-export function FormularioServicio({ servicio }: { servicio?: ServicioEditable }) {
+export function FormularioServicio({ servicio, campos = [] }: { servicio?: ServicioEditable; campos?: CampoFinal[] }) {
   const { estado, enviar, pendiente, error } = useFormularioAccion(guardarServicio.bind(null, servicio?.id ?? null));
 
   const [franjas, setFranjas] = useState<Franja[]>(
@@ -80,6 +84,7 @@ export function FormularioServicio({ servicio }: { servicio?: ServicioEditable }
         </>
       )}
       <input type="hidden" name="horarios" value={JSON.stringify(franjas)} />
+      <input type="hidden" name="camposDibujados" value={JSON.stringify(campos.map((c) => c.clave))} />
 
       <section className={`${tarjeta} grid gap-5 p-5 sm:grid-cols-2`}>
         <h2 className="font-display font-bold sm:col-span-2">Datos del servicio</h2>
@@ -175,6 +180,17 @@ export function FormularioServicio({ servicio }: { servicio?: ServicioEditable }
           })}
         </div>
       </section>
+
+      {campos.length > 0 && (
+        <section className={`${tarjeta} space-y-4 p-5`}>
+          <h2 className="font-display font-bold">Datos adicionales</h2>
+          <div className="grid gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+            {campos.map((c) => (
+              <CampoPersonalizado key={c.clave} campo={c} valor={servicio?.extras[c.clave]} error={error(nombreInput(c.clave))} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="flex justify-end gap-2">
         <Link href="/servicios" className={boton.secundario}>Cancelar</Link>

@@ -22,6 +22,15 @@ import {
   eliminarServicio,
 } from "@/modules/turnos/servicio.service";
 
+/** Campos propios: cada control `extra_<clave>` del formulario. Las casillas sin tildar no llegan. */
+function leerExtras(fd: FormData): Record<string, unknown> {
+  const extras: Record<string, unknown> = {};
+  for (const [clave, valor] of fd.entries()) {
+    if (clave.startsWith("extra_") && typeof valor === "string") extras[clave] = valor;
+  }
+  return extras;
+}
+
 export async function guardarServicio(
   id: string | null,
   _previo: EstadoFormulario,
@@ -44,6 +53,8 @@ export async function guardarServicio(
     activo: casilla(fd, "activo"),
     orden: numero(fd, "orden"),
     horarios: json(fd, "horarios", []),
+    extrasEntrada: leerExtras(fd),
+    extrasDibujados: json<string[] | undefined>(fd, "camposDibujados", undefined),
   } as ServicioInput;
 
   try {

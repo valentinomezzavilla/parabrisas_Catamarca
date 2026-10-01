@@ -40,6 +40,9 @@ export const servicioSchema = z
     activo: z.boolean().default(true),
     orden: z.number().int().default(0),
     horarios: z.array(franjaSchema).min(1, "El servicio necesita al menos una franja horaria"),
+    // Campos propios (Administración): controles `extra_<clave>` del formulario. Se validan en el servicio.
+    extrasEntrada: z.record(z.string(), z.unknown()).optional(),
+    extrasDibujados: z.array(z.string()).optional(),
   })
   .superRefine((s, ctx) => {
     const porDia = new Map<number, typeof s.horarios>();
