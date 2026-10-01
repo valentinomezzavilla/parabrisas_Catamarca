@@ -40,9 +40,11 @@ Solo se completa en `ESPERANDO_PAGO`: `creado + 8 min`. Se vacía al confirmar.
 | `monto` | Decimal(12,2): la seña calculada al reservar. No se recalcula. |
 | `estado` | Enum `EstadoPago`: `PENDIENTE`, `APROBADO`, `RECHAZADO`, `VENCIDO`. |
 | `mp_preferencia_id` | Id de la preferencia creada en Mercado Pago. |
+| `mp_init_point` | Link de pago de la preferencia. Permite reintentar el pago sin crear otra preferencia mientras el turno siga vigente. |
 | `mp_pago_id` | Id del pago real. **Único** (permite varios nulos): un mismo pago nunca se aplica dos veces. |
 | `acepto_condiciones_en` | Cuándo el cliente marcó "entiendo que la seña no se devuelve". |
 | `requiere_devolucion` | `Boolean`, por defecto `false`. |
+| `motivo_devolucion` | `String?`. Por qué hay que devolver (monto distinto, horario tomado, turno cancelado, pago duplicado) e id del pago de Mercado Pago. |
 | `devuelto_en` | `DateTime?`. Lo completa el local al marcar el pago como devuelto. |
 | `creado_en`, `actualizado_en` | Auditoría. |
 
@@ -67,6 +69,8 @@ Función pura `calcularSena(precioBase)` en `src/modules/pagos/sena.ts`: devuelv
 5. En paralelo, el **webhook** (`POST /api/mercadopago/webhook`) ejecuta la misma lógica de confirmación. Cubre el caso de que el cliente cierre la pestaña antes de volver.
 
 Si la creación de la preferencia falla, el turno recién creado se cancela y el cliente ve "No pudimos iniciar el pago, probá de nuevo".
+
+**Turnos cargados por el local.** El botón "Nuevo turno" del panel abre este mismo formulario. Si quien reserva tiene una sesión del panel iniciada, **no se cobra seña**: el turno nace `PENDIENTE` como hoy, el formulario no muestra la seña ni la casilla, y el botón dice "Confirmar turno". Solo el cliente anónimo paga seña.
 
 ## Confirmación de un pago
 
@@ -97,8 +101,8 @@ También se marca `requiere_devolucion` cuando el monto cobrado no coincide.
 
 ## Panel
 
-- **Agenda (`/turnos`):** insignia "Seña pagada $X" en los turnos con pago aprobado. Los `ESPERANDO_PAGO` se muestran en otro tono, con cuenta regresiva hasta `venceEn`, y se pueden cancelar.
-- **Inicio (`/`):** aviso "Pagos para devolver" con cliente, monto y número de pago de Mercado Pago de cada pago con `requiere_devolucion` y sin `devuelto_en`. Un botón (solo Admin) lo marca como devuelto.
+- **Agenda (`/turnos`):** insignia "Seña pagada $X" en los turnos con pago aprobado. Los `ESPERANDO_PAGO` se muestran en otro tono, con la hora a la que vencen, y se pueden cancelar.
+- **Inicio (`/`):** aviso "Pagos para devolver" con cliente, monto, motivo y número de pago de Mercado Pago de cada pago con `requiere_devolucion` y sin `devuelto_en`. Un botón (cualquier usuario del personal) lo marca como devuelto.
 - **Servicios (`/servicios`):** junto al precio base, "Seña: $X"; si no hay precio, "Sin precio: se reserva sin seña".
 
 ## Configuración y seguridad
