@@ -7,6 +7,7 @@ import { liberarVencidos } from "@/modules/pagos/pagos.service";
 import { calcularSena } from "@/modules/pagos/sena";
 import { DIAS_CORTOS, diaSemana, formatearFecha, formatearHora, hoy, sumarDias } from "@/lib/tiempo";
 import { listarServicios, obtenerDisponibilidad, obtenerServicioReservable } from "@/modules/turnos/servicio.service";
+import { BuscarReserva } from "./BuscarReserva";
 import { FormularioReserva } from "./FormularioReserva";
 
 export const metadata = { title: "Reservar turno" };
@@ -38,6 +39,14 @@ export default async function PaginaReservar({
   if (!servicio) {
     const servicios = (await listarServicios()).filter((s) => s.activo);
     return (
+      <>
+        <div className={`${tarjeta} flex flex-wrap items-center justify-between gap-3 p-4`}>
+          <div>
+            <p className="font-display font-bold">¿Ya reservaste?</p>
+            <p className="text-sm text-texto-suave">Buscá tu reserva para ver sus datos o cancelarla.</p>
+          </div>
+          <BuscarReserva servicios={servicios.map((s) => ({ id: s.id, nombre: s.nombre }))} />
+        </div>
       <Paso numero={1} titulo="¿Qué necesitás?">
         {servicios.length === 0 ? (
           <Vacio>En este momento no hay servicios disponibles para reservar online.</Vacio>
@@ -61,6 +70,7 @@ export default async function PaginaReservar({
           </ul>
         )}
       </Paso>
+      </>
     );
   }
 
