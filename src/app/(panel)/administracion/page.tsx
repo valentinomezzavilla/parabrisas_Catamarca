@@ -16,9 +16,9 @@ const modulos = [
   {
     href: "/administracion/servicios",
     titulo: "Servicios",
-    descripcion: "Campos de los servicios: duración, capacidad, precio y campos propios.",
+    descripcion: "Datos propios de los servicios, además de duración, capacidad y precio.",
     Icono: Wrench,
-    disponible: false,
+    disponible: true,
   },
   {
     href: "/administracion/turnos",
