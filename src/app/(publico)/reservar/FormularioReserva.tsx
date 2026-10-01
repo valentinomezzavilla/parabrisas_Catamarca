@@ -2,9 +2,12 @@
 
 import { Aviso, boton, Campo, input } from "@/components/ui";
 import { useFormularioAccion } from "@/components/ui/cliente";
+import { pesos } from "@/lib/formato";
+import { MINUTOS_RETENCION } from "@/modules/pagos/sena";
 import { reservar } from "./acciones";
 
-export function FormularioReserva({ servicioId, inicio }: { servicioId: string; inicio: string }) {
+/** `sena`: monto a pagar ahora por Mercado Pago, o `null` si el turno se reserva sin seña. */
+export function FormularioReserva({ servicioId, inicio, sena }: { servicioId: string; inicio: string; sena: number | null }) {
   const { estado, enviar, pendiente, error } = useFormularioAccion(reservar);
 
   return (
@@ -34,8 +37,22 @@ export function FormularioReserva({ servicioId, inicio }: { servicioId: string; 
         </Campo>
       </div>
 
+      {sena !== null && (
+        <div className="space-y-3 rounded-lg border border-marca/60 bg-marca/10 p-4 text-sm">
+          <p>
+            Para confirmar el turno se paga una <strong>seña de {pesos(sena)}</strong> (la mitad del servicio) con Mercado Pago.
+            Tenés <strong>{MINUTOS_RETENCION} minutos</strong> para pagar: pasado ese tiempo el horario se libera.
+          </p>
+          <label className="flex items-start gap-2">
+            <input type="checkbox" name="aceptaCondiciones" className="mt-0.5 size-5 shrink-0" aria-invalid={!!error("aceptaCondiciones")} />
+            <span>Entiendo que la seña no se devuelve.</span>
+          </label>
+          {error("aceptaCondiciones") && <p role="alert" className="text-xs text-peligro">{error("aceptaCondiciones")}</p>}
+        </div>
+      )}
+
       <button type="submit" disabled={pendiente} className={`${boton.primario} w-full py-3 text-base`}>
-        {pendiente ? "Reservando…" : "Confirmar turno"}
+        {pendiente ? "Reservando…" : sena !== null ? `Pagar seña de ${pesos(sena)}` : "Confirmar turno"}
       </button>
     </form>
   );
