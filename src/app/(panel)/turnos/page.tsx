@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Car, ChevronLeft, ChevronRight, Phone, Plus, StickyNote } from "lucide-react";
+import { Car, ChevronLeft, ChevronRight, Pencil, Phone, Plus, StickyNote } from "lucide-react";
 import { boton, EncabezadoPagina, Insignia, input, tarjeta, Vacio } from "@/components/ui";
 import { BotonEnviar } from "@/components/ui/cliente";
 import { pesos } from "@/lib/formato";
 import { DIAS_CORTOS, diaSemana, formatearFecha, formatearHora, hoy, sumarDias } from "@/lib/tiempo";
 import { liberarVencidos } from "@/modules/pagos/pagos.service";
+import { puedeEditar } from "@/modules/turnos/edicion";
 import { listarServicios, obtenerDisponibilidad } from "@/modules/turnos/servicio.service";
 import { contarTurnosPorDia, cristalesDisponibles, listarTurnosDelDia } from "@/modules/turnos/turno.service";
 import { actualizarCristalTurno } from "./acciones";
@@ -150,7 +151,12 @@ export default async function PaginaTurnos({ searchParams }: { searchParams: Pro
                     )}
                   </div>
 
-                  <div className="sm:text-right">
+                  <div className="space-y-2 sm:text-right">
+                    {puedeEditar(t.estado) && (
+                      <Link href={`/turnos/${t.id}/editar`} className={`${boton.secundario} ${boton.chico}`}>
+                        <Pencil className="size-3.5" aria-hidden /> Editar
+                      </Link>
+                    )}
                     <AccionesTurno id={t.id} estado={t.estado} />
                   </div>
                 </div>
