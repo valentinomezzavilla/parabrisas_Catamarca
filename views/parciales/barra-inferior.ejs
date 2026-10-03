@@ -1,0 +1,66 @@
+<%#
+  Navegación de celular (< 768 px): barra fija abajo con los tres accesos de todos los días y "Más",
+  que abre una hoja con el resto (Servicios, Usuarios, Administración), la página pública y "Salir".
+  "Más" es un <details>: funciona sin JavaScript; app.js lo cierra con Escape o tocando afuera.
+%>
+<%
+  const [principal, ...resto] = gruposVisibles(usuario.rol);
+  const secundarios = resto.flatMap((g) => g.items);
+  const masActivo = secundarios.some((i) => esActiva(i.href, ruta));
+  const estiloItem = (activo) => `relative flex min-h-16 flex-col items-center justify-center gap-1 px-2 text-[11px] font-semibold transition-colors ${activo ? 'text-marca' : 'text-grafito-400 hover:text-white'}`;
+%>
+<nav aria-label="Principal" class="fixed inset-x-0 bottom-0 z-50 border-t border-grafito-800 bg-grafito-900/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+  <ul class="mx-auto grid max-w-lg grid-cols-4">
+    <% for (const item of principal.items) { const activa = esActiva(item.href, ruta); %>
+      <li>
+        <a href="<%= item.href %>"<% if (activa) { %> aria-current="page"<% } %> class="<%= estiloItem(activa) %>">
+          <% if (activa) { %><span aria-hidden="true" class="absolute inset-x-5 top-0 h-0.5 rounded-b-full bg-marca"></span><% } %>
+          <%- icono(item.icono, 'size-6') %>
+          <%= item.etiqueta %>
+        </a>
+      </li>
+    <% } %>
+    <li>
+      <details class="group" data-menu>
+        <summary class="<%= estiloItem(masActivo) %> w-full cursor-pointer list-none group-open:text-marca [&::-webkit-details-marker]:hidden">
+          <span aria-hidden="true" class="absolute inset-x-5 top-0 h-0.5 rounded-b-full bg-marca <%= masActivo ? '' : 'hidden group-open:block' %>"></span>
+          <%- icono('MoreHorizontal', 'size-6') %>
+          Más
+        </summary>
+        <div class="fixed inset-0 z-40 bg-black/50" data-cerrar aria-hidden="true"></div>
+        <div role="dialog" aria-label="Más opciones"
+             class="fixed inset-x-3 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)] z-50 rounded-2xl border border-grafito-700 bg-grafito-900 p-2 text-grafito-100 shadow-2xl">
+          <ul class="space-y-1">
+            <% for (const item of secundarios) { const activa = esActiva(item.href, ruta); %>
+              <li>
+                <a href="<%= item.href %>"<% if (activa) { %> aria-current="page"<% } %>
+                   class="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold <%= activa ? 'bg-grafito-800 text-marca' : 'hover:bg-grafito-800' %>">
+                  <%- icono(item.icono, 'size-5 shrink-0') %>
+                  <%= item.etiqueta %>
+                </a>
+              </li>
+            <% } %>
+            <li>
+              <a href="/reservar" target="_blank" rel="noopener" class="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold hover:bg-grafito-800">
+                <%- icono('ExternalLink', 'size-5 shrink-0') %>
+                Página pública de turnos
+              </a>
+            </li>
+          </ul>
+          <div class="mt-2 flex items-center gap-3 border-t border-grafito-800 px-3 pt-3 pb-1">
+            <span aria-hidden="true" class="flex size-9 shrink-0 items-center justify-center rounded-full bg-marca font-display text-sm font-extrabold text-sobre-marca"><%= inicialDe(usuario.nombre) %></span>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-semibold text-white"><%= usuario.nombre %></p>
+              <p class="text-xs text-grafito-400"><%= nombreDeRol(usuario.rol) %></p>
+            </div>
+            <form method="post" action="/salir">
+              <button type="submit" class="flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-semibold hover:bg-grafito-800">
+                <%- icono('LogOut', 'size-4') %> Salir
+              </button>
+            </form>
+          </div>
+        </div>
+      </details>
+    </li>
+  </ul>
+</nav>

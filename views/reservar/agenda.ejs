@@ -1,0 +1,93 @@
+<div class="<%= ui.tarjeta %> flex items-center justify-between gap-3 p-4">
+  <div>
+    <p class="text-xs text-texto-suave">Servicio</p>
+    <p class="font-display font-bold"><%= servicio.nombre %></p>
+  </div>
+  <%- enlaceBoton({ href: '/reservar', texto: 'Cambiar', variante: 'fantasma', icono: 'ArrowLeft', chico: true }) %>
+</div>
+
+<section class="space-y-3">
+  <%- include('../parciales/titulo-paso', { numero: 2, texto: 'Elegí el día' }) %>
+  <div class="grid grid-cols-4 gap-2 sm:grid-cols-7">
+    <% for (const dia of dias) {
+         const libres = libresPorDia.get(dia) ?? 0;
+         const actual = dia === fecha;
+         const contenido = `<span class="block text-xs">${DIAS_CORTOS[diaSemana(dia)]}</span>
+           <span class="block font-display text-lg font-bold">${Number(dia.slice(8))}</span>
+           <span class="block text-[11px]">${esc(formatearFecha(dia, { month: 'short' }))}</span>`; %>
+      <% if (libres === 0) { %>
+        <span class="rounded-lg border border-borde px-1 py-2 text-center text-texto-suave opacity-50" title="Sin horarios disponibles"><%- contenido %></span>
+      <% } else { %>
+        <a href="<%= urlPaso({ fecha: dia }) %>"<% if (actual) { %> aria-current="date"<% } %>
+           class="rounded-lg border px-1 py-2 text-center transition-colors <%= actual ? 'border-marca bg-marca text-sobre-marca' : 'border-borde bg-superficie hover:border-marca' %>"><%- contenido %></a>
+      <% } %>
+    <% } %>
+  </div>
+</section>
+
+<% if (fecha) { %>
+  <section class="space-y-3">
+    <%- include('../parciales/titulo-paso', { numero: 3, texto: `Horarios del ${formatearFecha(fecha)}` }) %>
+    <% if (turnos.length === 0) { %>
+      <%- vacio('No quedan horarios para este día. Probá con otro.') %>
+    <% } else { %>
+      <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
+        <% for (const t of turnos) { const iso = t.inicio.toISOString(); const actual = elegido && elegido.inicio.getTime() === t.inicio.getTime(); %>
+          <a href="<%= urlPaso({ fecha, inicio: iso }) %>#datos"
+             class="rounded-lg border py-2 text-center font-semibold tabular-nums transition-colors <%= actual ? 'border-marca bg-marca text-sobre-marca' : 'border-borde bg-superficie hover:border-marca' %>"><%= formatearHora(t.inicio) %></a>
+        <% } %>
+      </div>
+    <% } %>
+    <% if (inicioPedido && !elegido) { %>
+      <p class="text-sm text-peligro">El horario que elegiste ya no está disponible. Elegí otro, por favor.</p>
+    <% } %>
+  </section>
+<% } %>
+
+<% if (fecha && elegido) { %>
+  <div id="datos" class="scroll-mt-4">
+    <section class="space-y-3">
+      <%- include('../parciales/titulo-paso', { numero: 4, texto: 'Tus datos' }) %>
+      <div class="<%= ui.tarjeta %> space-y-4 p-5">
+        <p class="rounded-lg bg-marca/15 px-4 py-3 text-sm">
+          <strong><%= servicio.nombre %></strong> · <%= formatearFecha(fecha) %> a las <strong><%= formatearHora(elegido.inicio) %></strong> hs
+        </p>
+
+        <form method="post" action="<%= urlPaso({ fecha, inicio: elegido.inicio.toISOString() }) %>#datos" class="space-y-5" novalidate>
+          <% if (mensaje) { %><%- aviso('peligro', mensaje) %><% } %>
+          <input type="hidden" name="servicioId" value="<%= servicio.id %>">
+          <input type="hidden" name="inicio" value="<%= elegido.inicio.toISOString() %>">
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <%- campo({ nombre: 'nombre', etiqueta: 'Nombre y apellido', valor: valores.nombre, error: errores['cliente.nombre'], atributos: { autocomplete: 'name' } }) %>
+            <%- campo({ nombre: 'telefono', etiqueta: 'Teléfono / WhatsApp', tipo: 'tel', valor: valores.telefono, error: errores['cliente.telefono'],
+                        ayuda: 'Te escribimos si hay algún cambio', atributos: { autocomplete: 'tel', placeholder: '383 4123456' } }) %>
+            <%- campo({ nombre: 'email', etiqueta: 'Email (opcional)', tipo: 'email', valor: valores.email, error: errores['cliente.email'], atributos: { autocomplete: 'email' } }) %>
+            <%- campo({ nombre: 'vehiculo', etiqueta: 'Vehículo', valor: valores.vehiculo, error: errores.vehiculo, atributos: { placeholder: 'Toyota Hilux 2019' } }) %>
+            <%- campo({ nombre: 'patente', etiqueta: 'Patente (opcional)', valor: valores.patente, error: errores.patente, clase: `${ui.input} uppercase`, atributos: { placeholder: 'AB123CD' } }) %>
+            <%- campo({ nombre: 'notas', etiqueta: 'Comentarios (opcional)', tipo: 'textarea', valor: valores.notas, error: errores.notas, claseContenedor: 'sm:col-span-2',
+                        atributos: { rows: 2, placeholder: 'Ej.: el parabrisas tiene sensor de lluvia' } }) %>
+          </div>
+
+          <% if (sena !== null) { %>
+            <div class="space-y-3 rounded-lg border border-marca/60 bg-marca/10 p-4 text-sm">
+              <p>
+                Para confirmar el turno se paga una <strong>seña de <%= pesos(sena) %></strong> (la mitad del servicio) con Mercado Pago.
+                Tenés <strong><%= minutosRetencion %> minutos</strong> para pagar: pasado ese tiempo el horario se libera.
+              </p>
+              <label class="flex items-start gap-2">
+                <input type="checkbox" name="aceptaCondiciones" class="mt-0.5 size-5 shrink-0"<% if (errores.aceptaCondiciones) { %> aria-invalid="true"<% } %>>
+                <span>Entiendo que la seña no se devuelve.</span>
+              </label>
+              <% if (errores.aceptaCondiciones) { %><p role="alert" class="text-xs text-peligro"><%= errores.aceptaCondiciones %></p><% } %>
+            </div>
+          <% } %>
+
+          <button type="submit" data-enviando="Reservando…" class="<%= ui.boton.primario %> w-full py-3 text-base">
+            <%= sena !== null ? `Pagar seña de ${pesos(sena)}` : 'Confirmar turno' %>
+          </button>
+        </form>
+      </div>
+    </section>
+  </div>
+<% } %>

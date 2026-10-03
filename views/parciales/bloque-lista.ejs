@@ -1,0 +1,53 @@
+<%#
+  Elementos de una lista de Administración (marcas, tipos, ubicaciones, marcas y modelos de vehículo).
+  Parámetros: lista, ancla (id de la sección), marcaId (solo modelos), items: [{ id, nombre, activo, enUso, tieneLado? }]
+%>
+<%
+  const baseLista = `/administracion/stock/listas/${lista}`;
+  const ocultos = marcaId ? { marcaId } : {};
+  const chico = `${ui.boton.fantasma} ${ui.boton.chico}`;
+%>
+<div class="space-y-3">
+  <ul class="space-y-2">
+    <% if (items.length === 0) { %><li class="text-sm text-texto-suave">Todavía no hay elementos.</li><% } %>
+    <% items.forEach((it, i) => { const baseItem = `${baseLista}/${it.id}`; %>
+      <li class="flex flex-wrap items-center gap-2 <%= it.activo ? '' : 'opacity-60' %>">
+        <% if (lista === 'ubicaciones') { %>
+          <span class="flex">
+            <%- botonAccion({ accion: `${baseItem}/mover`, campos: { direccion: 'ARRIBA' }, texto: '', variante: 'fantasma', chico: true, deshabilitado: i === 0, etiquetaAccesible: 'Subir', html: icono('ArrowUp', 'size-3.5') }) %>
+            <%- botonAccion({ accion: `${baseItem}/mover`, campos: { direccion: 'ABAJO' }, texto: '', variante: 'fantasma', chico: true, deshabilitado: i === items.length - 1, etiquetaAccesible: 'Bajar', html: icono('ArrowDown', 'size-3.5') }) %>
+          </span>
+        <% } %>
+        <form method="post" action="<%= baseItem %>/nombre" class="flex flex-wrap items-center gap-2">
+          <% if (marcaId) { %><input type="hidden" name="marcaId" value="<%= marcaId %>"><% } %>
+          <input name="nombre" value="<%= it.nombre %>" aria-label="Nombre" data-original class="<%= ui.input %> max-w-64">
+          <button type="submit" data-si-cambia hidden class="<%= ui.boton.primario %> <%= ui.boton.chico %>">Guardar nombre</button>
+        </form>
+        <% if (lista === 'ubicaciones') { %>
+          <form method="post" action="<%= baseItem %>/lado" class="flex items-center gap-1.5">
+            <label class="flex items-center gap-1.5 text-xs text-texto-suave">
+              <input type="checkbox" name="tieneLado" data-enviar-al-cambiar<% if (it.tieneLado) { %> checked<% } %> class="<%= ui.casilla %>">
+              Tiene lado (izq./der.)
+            </label>
+            <noscript><button type="submit" class="<%= chico %>">Guardar</button></noscript>
+          </form>
+        <% } %>
+        <span class="text-xs text-texto-suave"><%= it.enUso > 0 ? `En uso: ${it.enUso}` : 'Sin uso' %></span>
+        <%- botonAccion({ accion: `${baseItem}/activo`, campos: { ...ocultos, activo: it.activo ? '0' : '1' }, texto: it.activo ? 'Desactivar' : 'Activar', variante: 'fantasma', chico: true }) %>
+        <%- botonAccion({ accion: `${baseItem}/eliminar`, campos: ocultos, texto: '', variante: 'fantasma', chico: true, deshabilitado: it.enUso > 0,
+                          titulo: it.enUso > 0 ? 'Está en uso: desactivalo en lugar de borrarlo' : 'Borrar', etiquetaAccesible: 'Borrar', html: icono('Trash2', 'size-3.5') }) %>
+      </li>
+    <% }) %>
+  </ul>
+
+  <%- include('aviso-en', { ancla }) %>
+
+  <form method="post" action="<%= baseLista %>" class="flex flex-wrap items-center gap-2">
+    <% if (marcaId) { %><input type="hidden" name="marcaId" value="<%= marcaId %>"><% } %>
+    <input name="nombre" aria-label="Nuevo elemento" placeholder="Nuevo elemento" required class="<%= ui.input %> max-w-64">
+    <% if (lista === 'ubicaciones') { %>
+      <label class="flex items-center gap-1.5 text-xs text-texto-suave"><input type="checkbox" name="tieneLado" class="<%= ui.casilla %>"> Tiene lado</label>
+    <% } %>
+    <button type="submit" class="<%= ui.boton.secundario %> <%= ui.boton.chico %>"><%- icono('Plus', 'size-3.5') %> Agregar</button>
+  </form>
+</div>

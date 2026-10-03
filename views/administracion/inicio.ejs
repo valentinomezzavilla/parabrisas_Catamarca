@@ -1,0 +1,24 @@
+<%
+  const modulos = [
+    { href: '/administracion/stock', titulo: 'Stock', descripcion: 'Campos y listas de los cristales: marcas, tipos, ubicaciones, medidas, precios y campos propios.', icono: 'Package', disponible: true },
+    { href: '/administracion/servicios', titulo: 'Servicios', descripcion: 'Datos propios de los servicios, además de duración, capacidad y precio.', icono: 'Wrench', disponible: true },
+    { href: '/administracion/turnos', titulo: 'Turnos y clientes', descripcion: 'Campos del turno y del cliente, también los del formulario público de reservas.', icono: 'CalendarClock', disponible: false },
+  ];
+%>
+<%- encabezado({
+  seccion: 'Administración',
+  titulo: '¿Qué querés administrar?',
+  descripcion: 'Elegí un módulo para ver, renombrar, ocultar y sumar campos, y para administrar sus listas de opciones.',
+}) %>
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <% for (const m of modulos) {
+       const contenido = `<div class="flex items-center justify-between">${icono(m.icono, 'size-6 text-acento')}${m.disponible ? icono('ArrowRight', 'size-4 text-texto-suave') : insignia('neutro', 'Próximamente')}</div>
+         <h2 class="mt-4 font-display text-xl font-extrabold">${esc(m.titulo)}</h2>
+         <p class="mt-1 text-sm text-texto-suave">${esc(m.descripcion)}</p>`; %>
+    <% if (m.disponible) { %>
+      <a href="<%= m.href %>" class="<%= ui.tarjeta %> block p-5 transition-colors hover:border-amarillo-500"><%- contenido %></a>
+    <% } else { %>
+      <div aria-disabled="true" class="<%= ui.tarjeta %> p-5 opacity-60"><%- contenido %></div>
+    <% } %>
+  <% } %>
+</div>

@@ -1,0 +1,56 @@
+<%
+  const sinTurno = vista.tipo === 'sin_turno' || vista.tipo === 'no_completado';
+  const nombreIcono = vista.tipo === 'esperando' ? 'Clock' : sinTurno ? 'XCircle' : 'CheckCircle2';
+  const claseIcono = vista.tipo === 'esperando' ? 'text-alerta' : sinTurno ? 'text-peligro' : 'text-exito';
+  const nombre = turno.cliente.nombre.split(' ')[0];
+  const tituloVista = {
+    esperando: 'Estamos esperando tu pago',
+    sin_turno: 'Recibimos tu pago, pero…',
+    no_completado: 'No se completó el pago',
+    confirmado: `¡Listo, ${nombre}!`,
+    reservado: `¡Listo, ${nombre}!`,
+  }[vista.tipo];
+  const hayTurno = vista.tipo === 'esperando' || vista.tipo === 'confirmado' || vista.tipo === 'reservado';
+%>
+<div class="<%= ui.tarjeta %> space-y-5 p-6 text-center">
+  <%- icono(nombreIcono, `mx-auto size-14 ${claseIcono}`) %>
+  <div class="space-y-1">
+    <h1 class="font-display text-2xl font-extrabold"><%= tituloVista %></h1>
+    <% if (vista.tipo === 'esperando') { %><p class="text-texto-suave">Cuando Mercado Pago nos avise, tu turno queda confirmado.</p><% } %>
+    <% if (vista.tipo === 'confirmado') { %><p class="text-texto-suave">Tu turno quedó confirmado<%= pago ? ` con la seña de ${pesos(pago.monto)}` : '' %>.</p><% } %>
+    <% if (vista.tipo === 'reservado') { %><p class="text-texto-suave">Tu turno quedó reservado.</p><% } %>
+  </div>
+
+  <% if (vista.tipo === 'sin_turno') { %>
+    <%- aviso('alerta', vista.devuelto
+      ? 'No pudimos confirmar tu turno, pero ya te devolvimos la seña.'
+      : 'No pudimos confirmar tu turno (el horario ya no estaba disponible o el monto no coincidía). Comunicate con el local para que te devuelvan la seña.') %>
+  <% } %>
+  <% if (vista.tipo === 'no_completado') { %><%- aviso('alerta', 'El pago no se completó y el horario se liberó. Podés sacar un turno nuevo.') %><% } %>
+  <% if (vista.tipo === 'confirmado' && vista.pagoDeMas) { %><%- aviso('alerta', 'Detectamos un pago de más. Comunicate con el local para que te lo devuelvan.') %><% } %>
+
+  <% if (hayTurno) { %>
+    <dl class="mx-auto grid max-w-sm grid-cols-2 gap-4 rounded-lg bg-marca/15 p-4 text-left text-sm">
+      <div class="col-span-2"><dt class="text-xs text-texto-suave">Servicio</dt><dd class="font-semibold"><%= turno.servicio.nombre %></dd></div>
+      <div><dt class="text-xs text-texto-suave">Día</dt><dd class="font-semibold"><%= formatearFecha(fechaLocal(turno.inicio)) %></dd></div>
+      <div><dt class="text-xs text-texto-suave">Hora</dt><dd class="font-semibold"><%= formatearHora(turno.inicio) %> hs</dd></div>
+      <div class="col-span-2 border-t border-borde pt-3">
+        <dt class="text-xs text-texto-suave">Código de reserva</dt>
+        <dd class="font-mono text-lg font-bold tracking-widest"><%= turno.codigo %></dd>
+        <p class="mt-1 text-xs text-texto-suave">Guardalo: lo necesitás para buscar o cancelar tu reserva.</p>
+      </div>
+    </dl>
+  <% } %>
+
+  <% if (vista.tipo === 'esperando') { %>
+    <div class="flex flex-wrap justify-center gap-2">
+      <%- enlaceBoton({ href: `/reservar/confirmado?turno=${encodeURIComponent(turno.id)}`, texto: 'Ya pagué, actualizar', variante: 'primario' }) %>
+      <% if (pago && pago.mpInitPoint) { %><%- enlaceBoton({ href: pago.mpInitPoint, texto: 'Volver a pagar' }) %><% } %>
+    </div>
+  <% } %>
+
+  <% if (vista.tipo === 'confirmado' || vista.tipo === 'reservado') { %>
+    <p class="text-sm text-texto-suave">Si necesitás cambiarlo o cancelarlo, comunicate con el local. La seña no se devuelve.</p>
+  <% } %>
+  <% if (vista.tipo !== 'esperando') { %><%- enlaceBoton({ href: '/reservar', texto: 'Sacar otro turno' }) %><% } %>
+</div>

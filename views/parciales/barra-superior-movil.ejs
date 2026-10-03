@@ -1,0 +1,11 @@
+<%# Barra superior de celular: marca a la izquierda y la inicial del usuario a la derecha. %>
+<header class="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-grafito-800 bg-grafito-900/95 px-4 py-2.5 backdrop-blur md:hidden">
+  <a href="/" aria-label="Parabrisas Catamarca, inicio" class="flex items-center gap-2.5">
+    <img src="/brand/logo-amarillo.png" alt="" width="56" height="40" class="h-8 w-auto">
+    <span class="font-display text-xs leading-tight font-extrabold tracking-wide text-marca uppercase">Parabrisas<br>Catamarca</span>
+  </a>
+  <span title="<%= usuario.nombre %>" class="flex size-9 items-center justify-center rounded-full bg-marca font-display text-sm font-extrabold text-sobre-marca">
+    <span aria-hidden="true"><%= inicialDe(usuario.nombre) %></span>
+    <span class="sr-only"><%= usuario.nombre %></span>
+  </span>
+</header>

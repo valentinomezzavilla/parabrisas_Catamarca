@@ -1,0 +1,56 @@
+<%- volver(urlVolver, 'Agenda') %>
+<%- encabezado({ seccion: 'Agenda', titulo: 'Editar turno', descripcion: `Código ${turno.codigo} · ${turno.cliente.nombre}` }) %>
+
+<section class="<%= ui.tarjeta %> space-y-4 p-5">
+  <h2 class="font-display font-bold">Día y horario</h2>
+  <p class="text-sm text-texto-suave">Ahora: <%= turno.servicio.nombre %>, <%= formatearFecha(fechaLocal(turno.inicio)) %> a las <%= formatearHora(turno.inicio) %> hs.</p>
+  <%# Formulario GET: no lleva datos personales, solo el servicio y el día. %>
+  <form method="get" action="/turnos/<%= turno.id %>/editar" class="flex flex-wrap items-end gap-3">
+    <%- campo({ nombre: 'servicio', etiqueta: 'Servicio', tipo: 'select', valor: servicioId, opciones: servicios.map((s) => ({ valor: s.id, texto: s.nombre })) }) %>
+    <%- campo({ nombre: 'fecha', etiqueta: 'Día', tipo: 'date', valor: fecha }) %>
+    <button type="submit" class="<%= ui.boton.secundario %>">Ver horarios</button>
+  </form>
+
+  <% if (libres.length === 0) { %>
+    <%- vacio(`No quedan horarios libres ese día para ${servicio.nombre}.`) %>
+  <% } else { %>
+    <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
+      <% for (const t of libres) { const iso = t.inicio.toISOString(); const actual = iso === inicio; %>
+        <a href="<%= urlHorario(iso) %>"
+           class="rounded-lg border py-2 text-center font-semibold tabular-nums transition-colors <%= actual ? 'border-marca bg-marca text-sobre-marca' : 'border-borde bg-superficie hover:border-marca' %>"><%= formatearHora(t.inicio) %></a>
+      <% } %>
+    </div>
+  <% } %>
+  <% if (inicioPedido && !inicio) { %><p class="text-sm text-peligro">Ese horario ya no está disponible. Elegí otro.</p><% } %>
+</section>
+
+<% if (inicio) { %>
+  <form method="post" action="<%= urlHorario(inicio) %>" class="<%= ui.tarjeta %> space-y-5 p-5" novalidate>
+    <% if (mensaje) { %><%- aviso('peligro', mensaje) %><% } %>
+    <% if (sena) { %><%- aviso('alerta', `Este turno tiene una seña de ${sena} pagada. La seña no cambia aunque modifiques el servicio.`) %><% } %>
+    <input type="hidden" name="servicioId" value="<%= servicioId %>">
+    <input type="hidden" name="inicio" value="<%= inicio %>">
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <%- campo({ nombre: 'nombre', etiqueta: 'Nombre y apellido', valor: valores.nombre, error: errores['cliente.nombre'] }) %>
+      <%- campo({ nombre: 'telefono', etiqueta: 'Teléfono / WhatsApp', tipo: 'tel', valor: valores.telefono, error: errores['cliente.telefono'],
+                  ayuda: 'Si lo cambiás, el turno pasa al cliente de ese teléfono' }) %>
+      <%- campo({ nombre: 'email', etiqueta: 'Email (opcional)', tipo: 'email', valor: valores.email, error: errores['cliente.email'] }) %>
+      <%- campo({ nombre: 'vehiculo', etiqueta: 'Vehículo', valor: valores.vehiculo, error: errores.vehiculo }) %>
+      <%- campo({ nombre: 'patente', etiqueta: 'Patente (opcional)', valor: valores.patente, error: errores.patente, clase: `${ui.input} uppercase` }) %>
+      <%- campo({ nombre: 'precio', etiqueta: 'Precio (opcional)', tipo: 'number', valor: valores.precio, error: errores.precio, atributos: { min: 0, step: '0.01' } }) %>
+      <% if (mostrarCristal) { %>
+        <%- campo({ nombre: 'cristalId', etiqueta: 'Cristal a colocar', tipo: 'select', valor: valores.cristalId, error: errores.cristalId, claseContenedor: 'sm:col-span-2',
+                    opciones: [{ valor: '', texto: 'Sin cristal asignado' }, ...opcionesCristal] }) %>
+      <% } %>
+      <%- campo({ nombre: 'notas', etiqueta: 'Notas', tipo: 'textarea', valor: valores.notas, error: errores.notas, claseContenedor: 'sm:col-span-2', atributos: { rows: 3 } }) %>
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <%- enlaceBoton({ href: urlVolver, texto: 'Cancelar' }) %>
+      <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %>">Guardar cambios</button>
+    </div>
+  </form>
+<% } else { %>
+  <%- vacio('Elegí un horario para poder guardar los cambios.') %>
+<% } %>

@@ -1,0 +1,42 @@
+<%
+  const { marcas, tipos, ubicaciones, marcasVehiculo } = listas;
+  const seccion = (tituloSeccion, descripcion) => `<div><h2 class="font-display font-bold">${esc(tituloSeccion)}</h2><p class="text-sm text-texto-suave">${esc(descripcion)}</p></div>`;
+%>
+<%- include('_cabecera') %>
+
+<div class="space-y-6">
+  <section id="marcas" class="<%= ui.tarjeta %> scroll-mt-6 space-y-3 p-5">
+    <%- seccion('Marcas de cristal', 'Pilkington, Fuyao, Vitro… Lo desactivado deja de ofrecerse al cargar un cristal.') %>
+    <%- include('../parciales/bloque-lista', { lista: 'marcas', ancla: 'marcas', marcaId: null,
+          items: marcas.map((m) => ({ id: m.id, nombre: m.nombre, activo: m.activo, enUso: m._count.cristales })) }) %>
+  </section>
+
+  <section id="tipos" class="<%= ui.tarjeta %> scroll-mt-6 space-y-3 p-5">
+    <%- seccion('Tipos de cristal', 'Laminado, templado, laminado acústico…') %>
+    <%- include('../parciales/bloque-lista', { lista: 'tipos', ancla: 'tipos', marcaId: null,
+          items: tipos.map((t) => ({ id: t.id, nombre: t.nombre, activo: t.activo, enUso: t._count.cristales })) }) %>
+  </section>
+
+  <section id="ubicaciones" class="<%= ui.tarjeta %> scroll-mt-6 space-y-3 p-5">
+    <%- seccion('Ubicaciones en el vehículo', 'Parabrisas, luneta, puertas… El orden de esta lista es el orden en el que se ofrecen.') %>
+    <%- include('../parciales/bloque-lista', { lista: 'ubicaciones', ancla: 'ubicaciones', marcaId: null,
+          items: ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre, activo: u.activo, enUso: u._count.cristales, tieneLado: u.tieneLado })) }) %>
+  </section>
+
+  <section id="marcasVehiculo" class="<%= ui.tarjeta %> scroll-mt-6 space-y-3 p-5">
+    <%- seccion('Marcas y modelos de vehículo', 'Se usan para indicar con qué vehículos es compatible cada cristal.') %>
+    <%- include('../parciales/bloque-lista', { lista: 'marcasVehiculo', ancla: 'marcasVehiculo', marcaId: null,
+          items: marcasVehiculo.map((m) => ({ id: m.id, nombre: m.nombre, activo: m.activo, enUso: m.modelos.length })) }) %>
+    <div class="space-y-2 pt-2">
+      <% for (const m of marcasVehiculo) { %>
+        <details id="m-<%= m.id %>" class="scroll-mt-6 rounded-lg border border-borde p-3"<% if (marcaAbierta === m.id) { %> open<% } %>>
+          <summary class="cursor-pointer text-sm font-semibold">Modelos de <%= m.nombre %> <span class="font-normal text-texto-suave">(<%= m.modelos.length %>)</span></summary>
+          <div class="pt-3">
+            <%- include('../parciales/bloque-lista', { lista: 'modelos', ancla: `m-${m.id}`, marcaId: m.id,
+                  items: m.modelos.map((mo) => ({ id: mo.id, nombre: mo.nombre, activo: mo.activo, enUso: mo._count.compatibilidades })) }) %>
+          </div>
+        </details>
+      <% } %>
+    </div>
+  </section>
+</div>

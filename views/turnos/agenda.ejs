@@ -1,0 +1,128 @@
+<%
+  // Próximos pasos posibles según el estado actual del turno.
+  const ACCIONES = {
+    ESPERANDO_PAGO: [{ estado: 'CANCELADO', etiqueta: 'Cancelar', variante: 'fantasma', confirmar: true }],
+    PENDIENTE: [
+      { estado: 'CONFIRMADO', etiqueta: 'Confirmar', variante: 'primario' },
+      { estado: 'CANCELADO', etiqueta: 'Cancelar', variante: 'fantasma', confirmar: true },
+    ],
+    CONFIRMADO: [
+      { estado: 'EN_CURSO', etiqueta: 'Iniciar trabajo', variante: 'primario' },
+      { estado: 'AUSENTE', etiqueta: 'No vino', variante: 'fantasma', confirmar: true },
+      { estado: 'CANCELADO', etiqueta: 'Cancelar', variante: 'fantasma', confirmar: true },
+    ],
+    EN_CURSO: [{ estado: 'COMPLETADO', etiqueta: 'Completar', variante: 'primario' }],
+  };
+%>
+<%- encabezado({
+  seccion: 'Agenda',
+  titulo: mayuscula(formatearFecha(fecha)),
+  descripcion: fecha === hoy() ? 'Hoy' : undefined,
+  acciones: enlaceBoton({ href: '/turnos', texto: 'Hoy' }) + enlaceBoton({ href: '/reservar', texto: 'Nuevo turno', variante: 'primario', icono: 'Plus' }),
+}) %>
+
+<nav aria-label="Semana" class="flex items-center gap-1">
+  <a href="/turnos?fecha=<%= sumarDias(fecha, -7) %>" aria-label="Semana anterior" class="<%= ui.boton.fantasma %> px-2"><%- icono('ChevronLeft') %></a>
+  <div class="grid flex-1 grid-cols-7 gap-1">
+    <% for (const [dia, cantidad] of porDia) { const actual = dia === fecha; %>
+      <a href="/turnos?fecha=<%= dia %>"<% if (actual) { %> aria-current="date"<% } %>
+         class="rounded-lg border px-1 py-2 text-center transition-colors <%= actual ? 'border-marca bg-marca text-sobre-marca' : 'border-borde bg-superficie hover:border-grafito-400' %>">
+        <span class="block text-xs"><%= DIAS_CORTOS[diaSemana(dia)] %></span>
+        <span class="block font-display text-lg font-bold"><%= Number(dia.slice(8)) %></span>
+        <span class="block text-[11px] <%= actual ? '' : 'text-texto-suave' %>"><%= cantidad ? `${cantidad} turno${cantidad > 1 ? 's' : ''}` : '—' %></span>
+      </a>
+    <% } %>
+  </div>
+  <a href="/turnos?fecha=<%= sumarDias(fecha, 7) %>" aria-label="Semana siguiente" class="<%= ui.boton.fantasma %> px-2"><%- icono('ChevronRight') %></a>
+</nav>
+
+<% if (activos.length > 0) { %>
+  <div class="flex flex-wrap gap-2 text-xs">
+    <% activos.forEach((s, i) => { %>
+      <span class="flex items-center gap-1.5 rounded-full border border-borde bg-superficie px-3 py-1">
+        <span class="size-2 rounded-full" style="background: <%= s.color %>"></span>
+        <%= s.nombre %>: <strong><%= libres[i].length %></strong> horarios libres
+      </span>
+    <% }) %>
+  </div>
+<% } %>
+
+<% if (turnos.length === 0) { %>
+  <%- vacio('No hay turnos para este día.') %>
+<% } else { %>
+  <ol class="space-y-3">
+    <% for (const t of turnos) {
+         const cerrado = ['CANCELADO', 'AUSENTE'].includes(t.estado);
+         const sena = t.pagos[0] ? pesos(t.pagos[0].monto) : null; %>
+      <li id="t-<%= t.id %>" class="<%= ui.tarjeta %> flex scroll-mt-4 overflow-hidden <%= cerrado ? 'opacity-60' : '' %>">
+        <div class="w-1.5 shrink-0" style="background: <%= t.servicio.color %>"></div>
+        <div class="grid flex-1 gap-4 p-4 sm:grid-cols-[7rem_1fr_auto]">
+          <div>
+            <p class="font-display text-xl font-bold tabular-nums"><%= formatearHora(t.inicio) %></p>
+            <p class="text-xs text-texto-suave">hasta <%= formatearHora(t.fin) %></p>
+            <p class="mt-1 font-mono text-[11px] tracking-wider text-texto-suave">#<%= t.codigo %></p>
+          </div>
+
+          <div class="min-w-0 space-y-1.5 text-sm">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-semibold"><%= t.servicio.nombre %></span>
+              <%- insignia(ESTADOS_TURNO[t.estado].tono, ESTADOS_TURNO[t.estado].etiqueta) %>
+              <% if (sena) { %><%- insignia('exito', `Seña pagada ${sena}`) %><% } %>
+              <% if (t.estado === 'ESPERANDO_PAGO' && t.venceEn) { %><span class="text-xs text-texto-suave">vence a las <%= formatearHora(t.venceEn) %></span><% } %>
+            </div>
+            <p class="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span><%= t.cliente.nombre %></span>
+              <a href="tel:<%= t.cliente.telefono %>" class="flex items-center gap-1 text-acento hover:underline"><%- icono('Phone', 'size-3.5') %><%= t.cliente.telefono %></a>
+            </p>
+            <% if (t.vehiculo || t.patente) { %>
+              <p class="flex items-center gap-1.5 text-texto-suave"><%- icono('Car', 'size-3.5') %><%= [t.vehiculo, t.patente].filter(Boolean).join(' · ') %></p>
+            <% } %>
+            <% if (t.notas) { %>
+              <p class="flex items-start gap-1.5 whitespace-pre-line text-texto-suave"><%- icono('StickyNote', 'mt-0.5 size-3.5 shrink-0') %><%= t.notas %></p>
+            <% } %>
+
+            <% if (t.servicio.requiereCristal && !cerrado) { %>
+              <% if (t.estado === 'COMPLETADO') { %>
+                <% if (t.cristal) { %><p class="text-xs text-texto-suave">Cristal colocado: <%= t.cristal.codigo %></p><% } %>
+              <% } else { %>
+                <form method="post" action="/turnos/<%= t.id %>/cristal" class="flex max-w-md flex-wrap gap-2 pt-1">
+                  <%- control({ nombre: 'cristalId', id: `cristal-${t.id}`, tipo: 'select', valor: t.cristalId ?? '', clase: `${ui.input} flex-1 py-1.5 text-xs`,
+                                atributos: { 'aria-label': 'Cristal a colocar' },
+                                opciones: [
+                                  { valor: '', texto: 'Sin cristal asignado' },
+                                  ...(t.cristal && !cristales.some((c) => c.id === t.cristal.id) ? [{ valor: t.cristal.id, texto: `${t.cristal.codigo} · sin stock` }] : []),
+                                  ...cristales.map((c) => ({ valor: c.id, texto: `${c.codigo} · ${c.descripcion} (${c.cantidad})` })),
+                                ] }) %>
+                  <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.secundario %> <%= ui.boton.chico %>">Asignar</button>
+                </form>
+              <% } %>
+            <% } %>
+          </div>
+
+          <div class="space-y-2 sm:text-right">
+            <% if (puedeEditar(t.estado)) { %>
+              <%- enlaceBoton({ href: `/turnos/${t.id}/editar`, texto: 'Editar', icono: 'Pencil', chico: true }) %>
+            <% } %>
+            <% const acciones = ACCIONES[t.estado] ?? []; if (acciones.length > 0) { %>
+              <div class="flex flex-wrap items-center gap-1.5 sm:justify-end">
+                <% for (const a of acciones) { %>
+                  <%- botonAccion({
+                    accion: `/turnos/${t.id}/estado`,
+                    campos: { estado: a.estado },
+                    texto: a.etiqueta,
+                    variante: a.variante,
+                    chico: true,
+                    pregunta: a.confirmar ? `¿${a.etiqueta}?` : undefined,
+                    confirmar: 'Sí',
+                    advertencia: a.estado === 'CANCELADO' && sena ? `Tiene una seña de ${sena} cobrada por Mercado Pago. No se devuelve automáticamente.` : undefined,
+                  }) %>
+                <% } %>
+              </div>
+            <% } %>
+            <%- include('../parciales/aviso-en', { ancla: `t-${t.id}` }) %>
+          </div>
+        </div>
+      </li>
+    <% } %>
+  </ol>
+<% } %>
