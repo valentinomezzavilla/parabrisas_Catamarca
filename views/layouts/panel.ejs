@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es-AR">
+<head><%- include('../parciales/head') %></head>
+<body class="min-h-dvh antialiased">
+  <div class="min-h-dvh md:flex">
+    <%- include('../parciales/barra-lateral') %>
+    <div class="flex min-w-0 flex-1 flex-col">
+      <%- include('../parciales/barra-superior-movil') %>
+      <%# En celular, espacio extra abajo para que la barra fija no tape el final de la página. %>
+      <main class="flex-1 px-4 pt-5 pb-28 md:px-8 md:py-8 lg:px-10">
+        <div class="mx-auto max-w-6xl space-y-6 md:space-y-8">
+          <%- include('../parciales/aviso-global') %>
+          <%- contenido %>
+        </div>
+      </main>
+    </div>
+    <%- include('../parciales/barra-inferior') %>
+  </div>
+</body>
+</html>

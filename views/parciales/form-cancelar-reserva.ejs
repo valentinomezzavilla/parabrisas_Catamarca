@@ -1,0 +1,9 @@
+<form method="post" action="/reservar/cancelar#reserva" class="space-y-3" novalidate>
+  <input type="hidden" name="codigo" value="<%= codigoReserva %>">
+  <% if (senaPagada) { %><%- aviso('alerta', 'Esta reserva tiene una seña pagada. Si la cancelás, la seña no se devuelve.') %><% } %>
+  <%- campo({ nombre: 'contacto', id: 'b-contacto', etiqueta: 'Para confirmar, escribí el teléfono o el mail con el que reservaste', atributos: { autocomplete: 'off', required: true } }) %>
+  <div class="flex gap-2">
+    <button type="submit" data-enviando="Cancelando…" class="<%= ui.boton.peligro %>">Sí, cancelar mi reserva</button>
+    <button type="button" data-cerrar class="<%= ui.boton.fantasma %>">No</button>
+  </div>
+</form>

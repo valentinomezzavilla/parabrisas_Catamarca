@@ -1,0 +1,2 @@
+<%# Aviso pendiente (POST → redirect) que no apunta a un elemento puntual de la página. %>
+<% const pendiente = locals.avisoPendiente; if (pendiente && !pendiente.ancla) { %><%- aviso(pendiente.tono, pendiente.mensaje) %><% } %>

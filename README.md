@@ -1,6 +1,6 @@
 # Parabrisas Catamarca — Sistema de gestión
 
-Stock de cristales y turnero del local. Arquitectura y modelo de datos: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+Stock de cristales y turnero del local. Es una app **Node.js** (Express + vistas EJS, en TypeScript) con PostgreSQL. Arquitectura y modelo de datos: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
 ## Puesta en marcha
 
@@ -11,7 +11,7 @@ npm install
 cp .env.example .env          # completar DATABASE_URL, SESSION_SECRET, ADMIN_USUARIO y ADMIN_PASSWORD
 npx prisma migrate deploy     # crea las tablas
 npm run db:seed               # catálogos, servicios, campos propios por defecto y el primer administrador
-npm run dev                   # http://localhost:3000
+npm run dev                   # http://localhost:3000 (recompila los estilos y reinicia el servidor al guardar)
 ```
 
 Si no tenés un Postgres a mano, `npx prisma dev --name local --detach` levanta uno local y muestra la URL de conexión. Agregale `&connection_limit=1` en `.env`: esa base embebida admite una sola conexión a la vez.
@@ -31,6 +31,17 @@ El seed crea un administrador con `ADMIN_USUARIO` y `ADMIN_PASSWORD` del `.env` 
 `SESSION_SECRET` firma la cookie de sesión (mínimo 32 caracteres). En producción usá una propia y distinta de la de desarrollo.
 
 > `npx prisma migrate dev` no funciona con la base embebida de `prisma dev` (su base de sombra hereda las tablas). Para una migración nueva usá `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script` y aplicala con `npx prisma migrate deploy`.
+
+## Producción
+
+```bash
+npm ci
+npm run build                 # genera el cliente de Prisma, public/css/app.css y dist/server.js
+npx prisma migrate deploy
+npm start                     # node dist/server.js (puerto: variable PORT, por defecto 3000)
+```
+
+Corre en cualquier servidor con Node 20+ (un VPS con PM2 o systemd, Railway, Render…). Si va detrás de un proxy (Nginx, Caddy), tiene que reenviar el encabezado `Host` (o `X-Forwarded-Host`): los formularios se rechazan si el `Origin` no coincide con el sitio. En producción la cookie de sesión es `Secure`, así que hace falta HTTPS.
 
 ## Mercado Pago (seña de los turnos)
 
@@ -61,8 +72,10 @@ En una base nueva no hace falta nada de esto.
 
 | Comando | Qué hace |
 |---|---|
-| `npm run dev` | Servidor de desarrollo |
-| `npm test` | Tests de la lógica de agenda |
+| `npm run dev` | Servidor de desarrollo (Express con recarga + Tailwind en modo watch) |
+| `npm run build` | Compila estilos y servidor para producción |
+| `npm start` | Arranca la versión compilada (`dist/server.js`) |
+| `npm test` | Tests (lógica de agenda, pagos, campos y protección de rutas) |
 | `npm run typecheck` | Chequeo de tipos |
 | `npm run db:migrate` | Crea una migración nueva tras editar `prisma/schema.prisma` |
 | `npm run db:studio` | Explorador visual de la base |

@@ -1,0 +1,2 @@
+<%# Aviso pendiente dirigido a un elemento puntual. Uso: include('parciales/aviso-en', { ancla: 'x' }) %>
+<% const pendiente = locals.avisoPendiente; if (pendiente && pendiente.ancla === ancla) { %><%- aviso(pendiente.tono, pendiente.mensaje) %><% } %>

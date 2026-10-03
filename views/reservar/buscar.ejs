@@ -1,0 +1,62 @@
+<%- volver('/reservar', 'Sacar un turno') %>
+
+<div class="<%= ui.tarjeta %> space-y-4 p-5">
+  <div>
+    <h1 class="font-display text-lg font-bold">Buscar tu reserva</h1>
+    <p class="text-sm text-texto-suave">Completá los datos que tengas: alcanza con uno.</p>
+  </div>
+
+  <form method="post" action="/reservar/buscar" class="grid gap-3 sm:grid-cols-2" novalidate>
+    <%- campo({ nombre: 'codigo', id: 'b-codigo', etiqueta: 'Código de reserva', valor: valores.codigo, clase: `${ui.input} uppercase`, atributos: { autocomplete: 'off', placeholder: 'K7Q2XA' } }) %>
+    <%- campo({ nombre: 'nombre', id: 'b-nombre', etiqueta: 'Nombre', valor: valores.nombre, atributos: { autocomplete: 'name' } }) %>
+    <%- campo({ nombre: 'telefono', id: 'b-telefono', etiqueta: 'Teléfono', tipo: 'tel', valor: valores.telefono, atributos: { autocomplete: 'tel' } }) %>
+    <%- campo({ nombre: 'email', id: 'b-email', etiqueta: 'Email', tipo: 'email', valor: valores.email, atributos: { autocomplete: 'email' } }) %>
+    <%- campo({ nombre: 'patente', id: 'b-patente', etiqueta: 'Patente', valor: valores.patente, clase: `${ui.input} uppercase` }) %>
+    <%- campo({ nombre: 'vehiculo', id: 'b-vehiculo', etiqueta: 'Vehículo', valor: valores.vehiculo }) %>
+    <%- campo({ nombre: 'servicioId', id: 'b-servicio', etiqueta: 'Servicio', tipo: 'select', valor: valores.servicioId,
+                opciones: [{ valor: '', texto: 'Cualquiera' }, ...servicios.map((s) => ({ valor: s.id, texto: s.nombre }))] }) %>
+    <%- campo({ nombre: 'fecha', id: 'b-fecha', etiqueta: 'Día del turno', tipo: 'date', valor: valores.fecha }) %>
+    <div class="sm:col-span-2">
+      <button type="submit" data-enviando="Buscando…" class="<%= ui.boton.primario %> w-full">Buscar</button>
+    </div>
+  </form>
+
+  <% if (respuesta.tipo === 'error') { %><%- aviso('peligro', respuesta.mensaje) %><% } %>
+  <% if (respuesta.tipo === 'ninguna') { %><%- aviso('alerta', 'No encontramos tu reserva. Revisá los datos o probá con otro.') %><% } %>
+  <% if (respuesta.tipo === 'varias') { %><%- aviso('alerta', 'Encontramos más de una reserva con esos datos. Agregá más datos para encontrar la tuya.') %><% } %>
+
+  <% if (respuesta.tipo === 'una') { const r = respuesta.reserva; %>
+    <div class="space-y-4 rounded-lg border border-borde p-4" id="reserva">
+      <dl class="grid grid-cols-2 gap-3 text-sm">
+        <div class="col-span-2"><dt class="text-xs text-texto-suave">Servicio</dt><dd class="font-semibold"><%= r.servicio %></dd></div>
+        <div><dt class="text-xs text-texto-suave">Día</dt><dd class="font-semibold"><%= r.dia %></dd></div>
+        <div><dt class="text-xs text-texto-suave">Hora</dt><dd class="font-semibold"><%= r.hora %> hs</dd></div>
+        <div><dt class="text-xs text-texto-suave">Estado</dt><dd class="font-semibold"><%= r.estado %><%= r.senaPagada ? ' · seña pagada' : '' %></dd></div>
+        <div><dt class="text-xs text-texto-suave">Código</dt><dd class="font-mono font-bold tracking-widest"><%= r.codigo %></dd></div>
+        <div><dt class="text-xs text-texto-suave">A nombre de</dt><dd><%= r.nombre %></dd></div>
+        <div><dt class="text-xs text-texto-suave">Teléfono</dt><dd><%= r.telefono %></dd></div>
+        <% if (r.patente) { %><div><dt class="text-xs text-texto-suave">Patente</dt><dd><%= r.patente %></dd></div><% } %>
+      </dl>
+
+      <details class="group space-y-3" data-confirmar>
+        <summary class="<%= ui.boton.peligro %> cursor-pointer list-none group-open:hidden [&::-webkit-details-marker]:hidden">Cancelar mi reserva</summary>
+        <%- include('../parciales/form-cancelar-reserva', { codigoReserva: r.codigo, senaPagada: r.senaPagada }) %>
+      </details>
+    </div>
+  <% } %>
+
+  <% if (cancelacion) { %>
+    <div class="space-y-4" id="reserva">
+      <% if (cancelacion.tipo === 'cancelada') { %>
+        <%- aviso('exito', `Tu reserva fue cancelada.${cancelacion.teniaSena ? ' La seña no se devuelve.' : ''}`) %>
+      <% } else if (cancelacion.tipo === 'contacto_incorrecto') { %>
+        <%- aviso('peligro', 'Ese dato no coincide con el de la reserva. Revisalo e intentá de nuevo.') %>
+        <%- include('../parciales/form-cancelar-reserva', { codigoReserva: codigo, senaPagada: false }) %>
+      <% } else if (cancelacion.tipo === 'bloqueada') { %>
+        <%- aviso('peligro', `Demasiados intentos. Probá de nuevo en ${plural(cancelacion.minutos, 'minuto', 'minutos')}.`) %>
+      <% } else { %>
+        <%- aviso('alerta', 'No encontramos la reserva. Puede que ya esté cancelada.') %>
+      <% } %>
+    </div>
+  <% } %>
+</div>

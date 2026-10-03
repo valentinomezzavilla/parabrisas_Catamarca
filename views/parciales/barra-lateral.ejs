@@ -1,0 +1,51 @@
+<%#
+  Menú lateral. Desde 1024 px se muestra completo; en tablet (768–1023 px) es un riel de iconos
+  (con el nombre en `title` y `aria-label`); en celular no se usa: ahí están la barra superior y la inferior.
+%>
+<aside class="hidden border-r border-grafito-800 bg-grafito-900 text-grafito-100 md:sticky md:top-0 md:flex md:h-dvh md:w-16 md:shrink-0 md:flex-col lg:w-64">
+  <a href="/" aria-label="Parabrisas Catamarca, inicio" class="flex items-center justify-center gap-3 px-3 py-5 lg:justify-start lg:px-5 lg:py-6">
+    <img src="/brand/logo-amarillo.png" alt="" width="56" height="40" class="h-9 w-auto lg:h-11">
+    <span class="hidden font-display text-sm leading-tight font-extrabold tracking-wide text-marca uppercase lg:block">Parabrisas<br>Catamarca</span>
+  </a>
+
+  <nav aria-label="Principal" class="flex-1 space-y-5 overflow-y-auto px-2 py-2 lg:px-3">
+    <% for (const g of gruposVisibles(usuario.rol)) { %>
+      <div>
+        <p class="mb-1.5 hidden px-3 text-[11px] font-semibold tracking-widest text-grafito-500 uppercase lg:block"><%= g.titulo %></p>
+        <ul class="space-y-1">
+          <% for (const item of g.items) { const activa = esActiva(item.href, ruta); %>
+            <li>
+              <a href="<%= item.href %>" title="<%= item.etiqueta %>" aria-label="<%= item.etiqueta %>"<% if (activa) { %> aria-current="page"<% } %>
+                 class="relative flex items-center justify-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors lg:justify-start <%= activa ? 'bg-grafito-800 text-white' : 'text-grafito-300 hover:bg-grafito-800/70 hover:text-white' %>">
+                <% if (activa) { %><span aria-hidden="true" class="absolute inset-y-2 left-0 w-1 rounded-r-full bg-marca"></span><% } %>
+                <%- icono(item.icono, `size-[1.15rem] shrink-0 ${activa ? 'text-marca' : ''}`) %>
+                <span class="hidden lg:inline"><%= item.etiqueta %></span>
+              </a>
+            </li>
+          <% } %>
+        </ul>
+      </div>
+    <% } %>
+  </nav>
+
+  <a href="/reservar" target="_blank" rel="noopener" title="Página pública de turnos" aria-label="Página pública de turnos (se abre en una pestaña nueva)"
+     class="mx-2 mb-2 flex items-center justify-center gap-2 rounded-lg border border-grafito-700 px-3 py-2 text-xs text-grafito-300 hover:border-marca hover:text-marca lg:mx-3 lg:justify-start">
+    <%- icono('ExternalLink', 'size-3.5 shrink-0') %>
+    <span class="hidden lg:inline">Página pública de turnos</span>
+  </a>
+
+  <div class="flex flex-col items-center gap-2 border-t border-grafito-800 p-2 lg:flex-row lg:gap-3 lg:p-3">
+    <span aria-hidden="true" class="flex size-9 shrink-0 items-center justify-center rounded-full bg-marca font-display text-sm font-extrabold text-sobre-marca"><%= inicialDe(usuario.nombre) %></span>
+    <div class="hidden min-w-0 flex-1 lg:block">
+      <p class="truncate text-sm font-semibold text-white"><%= usuario.nombre %></p>
+      <p class="text-xs text-grafito-400"><%= nombreDeRol(usuario.rol) %></p>
+    </div>
+    <form method="post" action="/salir">
+      <button type="submit" title="Salir" aria-label="Salir"
+              class="flex size-9 items-center justify-center rounded-lg text-grafito-300 hover:bg-grafito-800 hover:text-white lg:size-auto lg:gap-1.5 lg:px-2.5 lg:py-1.5 lg:text-xs lg:font-semibold">
+        <%- icono('LogOut', 'size-4 shrink-0') %>
+        <span class="hidden lg:inline">Salir</span>
+      </button>
+    </form>
+  </div>
+</aside>

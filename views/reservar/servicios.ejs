@@ -1,0 +1,32 @@
+<div class="<%= ui.tarjeta %> flex flex-wrap items-center justify-between gap-3 p-4">
+  <div>
+    <p class="font-display font-bold">¿Ya reservaste?</p>
+    <p class="text-sm text-texto-suave">Buscá tu reserva para ver sus datos o cancelarla.</p>
+  </div>
+  <%- enlaceBoton({ href: '/reservar/buscar', texto: 'Buscar tu reserva', icono: 'Search' }) %>
+</div>
+
+<section class="space-y-3">
+  <%- include('../parciales/titulo-paso', { numero: 1, texto: '¿Qué necesitás?' }) %>
+  <% if (servicios.length === 0) { %>
+    <%- vacio('En este momento no hay servicios disponibles para reservar online.') %>
+  <% } else { %>
+    <ul class="grid gap-3 sm:grid-cols-2">
+      <% for (const s of servicios) { %>
+        <li>
+          <a href="/reservar?servicio=<%= encodeURIComponent(s.slug) %>" class="<%= ui.tarjeta %> group flex h-full overflow-hidden transition-colors hover:border-marca">
+            <span class="w-1.5 shrink-0" style="background: <%= s.color %>"></span>
+            <span class="flex-1 space-y-1 p-4">
+              <span class="block font-display font-bold group-hover:text-acento"><%= s.nombre %></span>
+              <% if (s.descripcion) { %><span class="block text-sm text-texto-suave"><%= s.descripcion %></span><% } %>
+              <span class="flex items-center gap-3 pt-1 text-xs text-texto-suave">
+                <span class="flex items-center gap-1"><%- icono('Clock', 'size-3.5') %><%= s.duracionMinutos %> min aprox.</span>
+                <% if (s.precioBase) { %><span>Desde <%= pesos(s.precioBase) %></span><% } %>
+              </span>
+            </span>
+          </a>
+        </li>
+      <% } %>
+    </ul>
+  <% } %>
+</section>

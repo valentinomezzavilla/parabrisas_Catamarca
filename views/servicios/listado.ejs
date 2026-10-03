@@ -1,0 +1,59 @@
+<%- encabezado({
+  seccion: 'Turnero',
+  titulo: 'Servicios',
+  descripcion: 'Lo que se puede reservar, con sus horarios y tiempos.',
+  acciones: enlaceBoton({ href: '/servicios/nuevo', texto: 'Nuevo servicio', variante: 'primario', icono: 'Plus' }),
+}) %>
+
+<% if (servicios.length === 0) { %>
+  <%- vacio('Todavía no hay servicios. Creá el primero para empezar a dar turnos.') %>
+<% } else { %>
+  <ul class="grid gap-4 lg:grid-cols-2">
+    <% for (const s of servicios) { %>
+      <li class="<%= ui.tarjeta %> flex overflow-hidden">
+        <div class="w-1.5 shrink-0" style="background: <%= s.color %>"></div>
+        <div class="flex-1 space-y-3 p-5">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="font-display text-lg font-bold"><%= s.nombre %></h2>
+              <% if (s.descripcion) { %><p class="text-sm text-texto-suave"><%= s.descripcion %></p><% } %>
+            </div>
+            <%- s.activo ? insignia('exito', 'Activo') : insignia('neutro', 'Pausado') %>
+          </div>
+
+          <div class="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+            <span class="flex items-center gap-1.5"><%- icono('Clock', 'size-4 text-acento') %><%= s.duracionMinutos %> min</span>
+            <span class="flex items-center gap-1.5"><%- icono('Users', 'size-4 text-acento') %><%= s.capacidad %> a la vez</span>
+            <% if (s.precioBase) { %><span class="font-semibold">$<%= Number(s.precioBase).toLocaleString('es-AR') %></span><% } %>
+          </div>
+
+          <% if (s.sena === null) { %>
+            <p class="text-xs text-texto-suave">Sin precio: se reserva sin seña.</p>
+          <% } else { %>
+            <p class="text-xs text-texto-suave">Seña al reservar: <strong><%= pesos(s.sena) %></strong></p>
+          <% } %>
+
+          <ul class="space-y-0.5 text-xs text-texto-suave">
+            <% if (s.resumen.length) { for (const linea of s.resumen) { %><li><%= linea %></li><% } } else { %><li>Sin horarios cargados</li><% } %>
+          </ul>
+
+          <% if (s.datos.length > 0) { %>
+            <dl class="grid gap-x-4 gap-y-0.5 border-t border-borde pt-3 text-xs sm:grid-cols-2">
+              <% for (const d of s.datos) { %>
+                <div class="flex gap-1"><dt class="text-texto-suave"><%= d.etiqueta %>:</dt><dd class="font-medium"><%= d.texto %></dd></div>
+              <% } %>
+            </dl>
+          <% } %>
+
+          <div class="flex flex-wrap items-center gap-1 border-t border-borde pt-3">
+            <%- enlaceBoton({ href: `/servicios/${s.id}`, texto: 'Editar', icono: 'Pencil', chico: true }) %>
+            <%- botonAccion({ accion: `/servicios/${s.id}/estado`, texto: s.activo ? 'Pausar' : 'Activar', variante: 'fantasma', chico: true, campos: s.activo ? {} : { activo: 'on' } }) %>
+            <div class="ml-auto">
+              <%- botonAccion({ accion: `/servicios/${s.id}/eliminar`, texto: 'Eliminar', chico: true, pregunta: '¿Eliminar servicio?', confirmar: 'Eliminar' }) %>
+            </div>
+          </div>
+        </div>
+      </li>
+    <% } %>
+  </ul>
+<% } %>
