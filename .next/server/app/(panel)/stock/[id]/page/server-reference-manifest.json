@@ -1,0 +1,49 @@
+{
+  "node": {
+    "00149e3e33bab98882e1d71c53a183269bd1fdab6c": {
+      "workers": {
+        "app/(panel)/stock/[id]/page": {
+          "moduleId": 90436,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "salir",
+      "filename": "src/app/(auth)/login/acciones.ts"
+    },
+    "6077f4b7d870b9766465c7210b1752b41ac795355e": {
+      "workers": {
+        "app/(panel)/stock/[id]/page": {
+          "moduleId": 90436,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "alternarCristal",
+      "filename": "src/app/(panel)/stock/acciones.ts"
+    },
+    "70cd613691944e20d4029ceaae8755b896366c8253": {
+      "workers": {
+        "app/(panel)/stock/[id]/page": {
+          "moduleId": 90436,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "guardarMovimiento",
+      "filename": "src/app/(panel)/stock/acciones.ts"
+    },
+    "70f42c27a60e1ff7099d0e17a628d0e9e69e42c711": {
+      "workers": {
+        "app/(panel)/stock/[id]/page": {
+          "moduleId": 90436,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "guardarCristal",
+      "filename": "src/app/(panel)/stock/acciones.ts"
+    }
+  },
+  "edge": {}
+}

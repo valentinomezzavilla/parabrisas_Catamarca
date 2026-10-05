@@ -1,0 +1,27 @@
+{
+  "node": {
+    "00149e3e33bab98882e1d71c53a183269bd1fdab6c": {
+      "workers": {
+        "app/(panel)/servicios/[id]/page": {
+          "moduleId": 3898,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "salir",
+      "filename": "src/app/(auth)/login/acciones.ts"
+    },
+    "70667c8e536d536ea5ae346deaab00447c9bba9e95": {
+      "workers": {
+        "app/(panel)/servicios/[id]/page": {
+          "moduleId": 3898,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "guardarServicio",
+      "filename": "src/app/(panel)/servicios/acciones.ts"
+    }
+  },
+  "edge": {}
+}

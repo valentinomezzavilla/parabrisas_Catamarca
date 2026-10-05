@@ -1,0 +1,27 @@
+{
+  "node": {
+    "00149e3e33bab98882e1d71c53a183269bd1fdab6c": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/nuevo/page": {
+          "moduleId": 72519,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "salir",
+      "filename": "src/app/(auth)/login/acciones.ts"
+    },
+    "706acf8d99c2a63d34c13fa54d63083e2b293ee67a": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/nuevo/page": {
+          "moduleId": 72519,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "crearCampoAccion",
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts"
+    }
+  },
+  "edge": {}
+}

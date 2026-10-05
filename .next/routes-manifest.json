@@ -1,0 +1,226 @@
+{
+  "version": 3,
+  "pages404": true,
+  "appType": "app",
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "priority": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "onMatchHeaders": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/administracion/servicios/campos/[clave]",
+      "regex": "^/administracion/servicios/campos/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPclave": "nxtPclave"
+      },
+      "namedRegex": "^/administracion/servicios/campos/(?<nxtPclave>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/administracion/stock/campos/[clave]",
+      "regex": "^/administracion/stock/campos/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPclave": "nxtPclave"
+      },
+      "namedRegex": "^/administracion/stock/campos/(?<nxtPclave>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/servicios/[id]",
+      "regex": "^/servicios/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/servicios/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/stock/[id]",
+      "regex": "^/stock/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/stock/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/stock/[id]/editar",
+      "regex": "^/stock/([^/]+?)/editar(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/stock/(?<nxtPid>[^/]+?)/editar(?:/)?$"
+    },
+    {
+      "page": "/turnos/[id]/editar",
+      "regex": "^/turnos/([^/]+?)/editar(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/turnos/(?<nxtPid>[^/]+?)/editar(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_global-error",
+      "regex": "^/_global\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_global\\-error(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/administracion",
+      "regex": "^/administracion(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/administracion(?:/)?$"
+    },
+    {
+      "page": "/administracion/servicios",
+      "regex": "^/administracion/servicios(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/administracion/servicios(?:/)?$"
+    },
+    {
+      "page": "/administracion/servicios/campos/nuevo",
+      "regex": "^/administracion/servicios/campos/nuevo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/administracion/servicios/campos/nuevo(?:/)?$"
+    },
+    {
+      "page": "/administracion/stock",
+      "regex": "^/administracion/stock(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/administracion/stock(?:/)?$"
+    },
+    {
+      "page": "/administracion/stock/campos/nuevo",
+      "regex": "^/administracion/stock/campos/nuevo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/administracion/stock/campos/nuevo(?:/)?$"
+    },
+    {
+      "page": "/administracion/stock/listas",
+      "regex": "^/administracion/stock/listas(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/administracion/stock/listas(?:/)?$"
+    },
+    {
+      "page": "/api/mercadopago/webhook",
+      "regex": "^/api/mercadopago/webhook(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/mercadopago/webhook(?:/)?$"
+    },
+    {
+      "page": "/apple-icon.png",
+      "regex": "^/apple\\-icon\\.png(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/apple\\-icon\\.png(?:/)?$"
+    },
+    {
+      "page": "/icon.png",
+      "regex": "^/icon\\.png(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/icon\\.png(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/reservar",
+      "regex": "^/reservar(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/reservar(?:/)?$"
+    },
+    {
+      "page": "/reservar/confirmado",
+      "regex": "^/reservar/confirmado(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/reservar/confirmado(?:/)?$"
+    },
+    {
+      "page": "/servicios",
+      "regex": "^/servicios(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/servicios(?:/)?$"
+    },
+    {
+      "page": "/servicios/nuevo",
+      "regex": "^/servicios/nuevo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/servicios/nuevo(?:/)?$"
+    },
+    {
+      "page": "/stock",
+      "regex": "^/stock(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/stock(?:/)?$"
+    },
+    {
+      "page": "/stock/nuevo",
+      "regex": "^/stock/nuevo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/stock/nuevo(?:/)?$"
+    },
+    {
+      "page": "/turnos",
+      "regex": "^/turnos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/turnos(?:/)?$"
+    },
+    {
+      "page": "/usuarios",
+      "regex": "^/usuarios(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/usuarios(?:/)?$"
+    },
+    {
+      "page": "/usuarios/nuevo",
+      "regex": "^/usuarios/nuevo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/usuarios/nuevo(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments",
+    "clientParamParsing": false,
+    "dynamicRSCPrerender": false
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

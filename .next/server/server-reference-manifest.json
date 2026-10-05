@@ -1,0 +1,549 @@
+{
+  "node": {
+    "60fd8a20bf6d43ee56d26940a1c9ce0dbe6810735e": {
+      "workers": {
+        "app/(auth)/login/page": {
+          "moduleId": 38309,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(auth)/login/acciones.ts",
+      "exportedName": "iniciarSesionAccion"
+    },
+    "00149e3e33bab98882e1d71c53a183269bd1fdab6c": {
+      "workers": {
+        "app/(panel)/administracion/page": {
+          "moduleId": 30604,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/servicios/campos/nuevo/page": {
+          "moduleId": 72519,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/servicios/page": {
+          "moduleId": 25766,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/stock/campos/[clave]/page": {
+          "moduleId": 66006,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/stock/campos/nuevo/page": {
+          "moduleId": 67720,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/stock/page": {
+          "moduleId": 14557,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/page": {
+          "moduleId": 85720,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/servicios/[id]/page": {
+          "moduleId": 3898,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/servicios/nuevo/page": {
+          "moduleId": 50872,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/servicios/page": {
+          "moduleId": 2523,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/stock/[id]/editar/page": {
+          "moduleId": 34005,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/stock/[id]/page": {
+          "moduleId": 90436,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/stock/nuevo/page": {
+          "moduleId": 30740,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/stock/page": {
+          "moduleId": 29512,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/turnos/[id]/editar/page": {
+          "moduleId": 67478,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/turnos/page": {
+          "moduleId": 37983,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/usuarios/nuevo/page": {
+          "moduleId": 61011,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/usuarios/page": {
+          "moduleId": 26676,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(auth)/login/acciones.ts",
+      "exportedName": "salir"
+    },
+    "401652dca6c89a924cac35cf3f306472b289ddeb1e": {
+      "workers": {
+        "app/(panel)/page": {
+          "moduleId": 85720,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/turnos/page": {
+          "moduleId": 37983,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/turnos/acciones.ts",
+      "exportedName": "marcarPagoDevuelto"
+    },
+    "606d32589e4318b6e83dbf162661f7de3417456bad": {
+      "workers": {
+        "app/(panel)/page": {
+          "moduleId": 85720,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/turnos/page": {
+          "moduleId": 37983,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/turnos/acciones.ts",
+      "exportedName": "actualizarEstadoTurno"
+    },
+    "60f7fc29decbc8be16a2f11c82150216f128014f6c": {
+      "workers": {
+        "app/(panel)/page": {
+          "moduleId": 85720,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/turnos/page": {
+          "moduleId": 37983,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/turnos/acciones.ts",
+      "exportedName": "actualizarCristalTurno"
+    },
+    "70a6e3f2604aa4c76ace4e0897a592b207436f4361": {
+      "workers": {
+        "app/(panel)/page": {
+          "moduleId": 85720,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/turnos/[id]/editar/page": {
+          "moduleId": 67478,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/turnos/page": {
+          "moduleId": 37983,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/turnos/acciones.ts",
+      "exportedName": "editarTurnoAccion"
+    },
+    "709d73b2b0999ab7e84bf881cd98268eee5368133d": {
+      "workers": {
+        "app/(panel)/administracion/servicios/page": {
+          "moduleId": 25766,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/stock/page": {
+          "moduleId": 14557,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts",
+      "exportedName": "moverCampoAccion"
+    },
+    "7c7be6e4ba62a5834a853e826694c3dd8f25c69c4c": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/stock/campos/[clave]/page": {
+          "moduleId": 66006,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts",
+      "exportedName": "cambiarTipoAccion"
+    },
+    "708600be36fe4dcaf40f17bce299fad0fd85152abf": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/stock/campos/[clave]/page": {
+          "moduleId": 66006,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts",
+      "exportedName": "opcionAccion"
+    },
+    "78d29d0aa00db71be7b0d3f15262ac02534cac0cc2": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/stock/campos/[clave]/page": {
+          "moduleId": 66006,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts",
+      "exportedName": "guardarCampoPropioAccion"
+    },
+    "78402984f7d36121ea44c6d3ac6a9746555706ad05": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/stock/campos/[clave]/page": {
+          "moduleId": 66006,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts",
+      "exportedName": "guardarCampoSistemaAccion"
+    },
+    "7098df6e36da414a7ee86e551223ccc7f99dccbed4": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/stock/campos/[clave]/page": {
+          "moduleId": 66006,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts",
+      "exportedName": "archivarCampoAccion"
+    },
+    "705c2d18e99387559963c5e0b0dc5176116a616d54": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/stock/campos/[clave]/page": {
+          "moduleId": 66006,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts",
+      "exportedName": "eliminarCampoAccion"
+    },
+    "706acf8d99c2a63d34c13fa54d63083e2b293ee67a": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/nuevo/page": {
+          "moduleId": 72519,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/administracion/stock/campos/nuevo/page": {
+          "moduleId": 67720,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts",
+      "exportedName": "crearCampoAccion"
+    },
+    "709ccea013dd1734fed59107fc43ed431768e72920": {
+      "workers": {
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/stock/listas/acciones.ts",
+      "exportedName": "activarItemAccion"
+    },
+    "782e1ec7a68b2b5ba63e4cc32159a7ef8cde617651": {
+      "workers": {
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/stock/listas/acciones.ts",
+      "exportedName": "crearItemAccion"
+    },
+    "6011268dc50e03ddb82d515bca83eaddec630be077": {
+      "workers": {
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/stock/listas/acciones.ts",
+      "exportedName": "eliminarItemAccion"
+    },
+    "60ae558b7bc8333d864d838f0c4159bba68cee3383": {
+      "workers": {
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/stock/listas/acciones.ts",
+      "exportedName": "moverUbicacionAccion"
+    },
+    "708d6e4cc2c8cd77890730b69f99044215a7fae1b1": {
+      "workers": {
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/stock/listas/acciones.ts",
+      "exportedName": "renombrarItemAccion"
+    },
+    "60699ef9e1d07810ae6157667609ddcfed16749fb1": {
+      "workers": {
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/administracion/stock/listas/acciones.ts",
+      "exportedName": "tieneLadoAccion"
+    },
+    "40c1d0ad5345d0b27337b1a1bd8fc6eca5f168bc39": {
+      "workers": {
+        "app/(panel)/servicios/page": {
+          "moduleId": 2523,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/servicios/acciones.ts",
+      "exportedName": "borrarServicio"
+    },
+    "60b238de1d2feb9213046b2667d8c958ac2d2dc8e2": {
+      "workers": {
+        "app/(panel)/servicios/page": {
+          "moduleId": 2523,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/servicios/acciones.ts",
+      "exportedName": "alternarServicio"
+    },
+    "70667c8e536d536ea5ae346deaab00447c9bba9e95": {
+      "workers": {
+        "app/(panel)/servicios/[id]/page": {
+          "moduleId": 3898,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/servicios/nuevo/page": {
+          "moduleId": 50872,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/servicios/page": {
+          "moduleId": 2523,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/servicios/acciones.ts",
+      "exportedName": "guardarServicio"
+    },
+    "6077f4b7d870b9766465c7210b1752b41ac795355e": {
+      "workers": {
+        "app/(panel)/stock/[id]/page": {
+          "moduleId": 90436,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/stock/acciones.ts",
+      "exportedName": "alternarCristal"
+    },
+    "70cd613691944e20d4029ceaae8755b896366c8253": {
+      "workers": {
+        "app/(panel)/stock/[id]/page": {
+          "moduleId": 90436,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/stock/acciones.ts",
+      "exportedName": "guardarMovimiento"
+    },
+    "70f42c27a60e1ff7099d0e17a628d0e9e69e42c711": {
+      "workers": {
+        "app/(panel)/stock/[id]/editar/page": {
+          "moduleId": 34005,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/stock/[id]/page": {
+          "moduleId": 90436,
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/stock/nuevo/page": {
+          "moduleId": 30740,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/stock/acciones.ts",
+      "exportedName": "guardarCristal"
+    },
+    "6006f339f813c6cf779bafb9186b6c8a9097adc2b7": {
+      "workers": {
+        "app/(panel)/usuarios/page": {
+          "moduleId": 26676,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/usuarios/acciones.ts",
+      "exportedName": "alternarActivoAccion"
+    },
+    "60f4d5ea4ce81c9abd951b91a4763adcda2f9d819e": {
+      "workers": {
+        "app/(panel)/usuarios/page": {
+          "moduleId": 26676,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/usuarios/acciones.ts",
+      "exportedName": "cambiarRolAccion"
+    },
+    "7030353ee73411d61a3b286b6d76aef1494aca8a87": {
+      "workers": {
+        "app/(panel)/usuarios/page": {
+          "moduleId": 26676,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/usuarios/acciones.ts",
+      "exportedName": "resetearPasswordAccion"
+    },
+    "6024aea3099c362c552d8138f86a7327704856e6d1": {
+      "workers": {
+        "app/(panel)/usuarios/nuevo/page": {
+          "moduleId": 61011,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/usuarios/acciones.ts",
+      "exportedName": "crearUsuarioAccion"
+    },
+    "60a93d6670618c2e1d5b2bd8247d5933938c24acdf": {
+      "workers": {
+        "app/(publico)/reservar/page": {
+          "moduleId": 44805,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(publico)/reservar/acciones.ts",
+      "exportedName": "buscarReservaAccion"
+    },
+    "60b821c749732377a228dfca9fa91cb95d3d1f3d1d": {
+      "workers": {
+        "app/(publico)/reservar/page": {
+          "moduleId": 44805,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(publico)/reservar/acciones.ts",
+      "exportedName": "cancelarReservaAccion"
+    },
+    "601651ac7cb5526634f442c8748764dbcee34055c3": {
+      "workers": {
+        "app/(publico)/reservar/page": {
+          "moduleId": 44805,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(publico)/reservar/acciones.ts",
+      "exportedName": "reservar"
+    }
+  },
+  "edge": {},
+  "encryptionKey": "n+gNalER58ZiA3HkOzU+cVSEvTNNRqJs2EKfqjJJjJ0="
+}

@@ -1,0 +1,38 @@
+{
+  "node": {
+    "60725e2b3c4c2ece65290a54324d0beda4e02e7070": {
+      "workers": {
+        "app/(publico)/reservar/page": {
+          "moduleId": "[project]/.next-internal/server/app/(publico)/reservar/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/(publico)/reservar/acciones.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "reservar",
+      "filename": "src/app/(publico)/reservar/acciones.ts"
+    },
+    "60f8bcc8a6b5bb78d73e0569175ebd654e1f455bb8": {
+      "workers": {
+        "app/(publico)/reservar/page": {
+          "moduleId": "[project]/.next-internal/server/app/(publico)/reservar/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/(publico)/reservar/acciones.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "cancelarReservaAccion",
+      "filename": "src/app/(publico)/reservar/acciones.ts"
+    },
+    "60bd7586f76f1610122b6b7ec2caa52f3b357cfcd2": {
+      "workers": {
+        "app/(publico)/reservar/page": {
+          "moduleId": "[project]/.next-internal/server/app/(publico)/reservar/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/(publico)/reservar/acciones.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "buscarReservaAccion",
+      "filename": "src/app/(publico)/reservar/acciones.ts"
+    }
+  },
+  "edge": {}
+}

@@ -1,0 +1,3 @@
+module.exports=[84933,a=>a.a(async(b,c)=>{try{var d=a.i(9214),e=a.i(1481),f=b([d,e]);[d,e]=f.then?(await f)():f,a.s([]),c()}catch(a){c(a)}},!1),34005,a=>a.a(async(b,c)=>{try{var d=a.i(84933),e=a.i(9214),f=a.i(1481),g=b([d,e,f]);[d,e,f]=g.then?(await g)():g,a.s(["00149e3e33bab98882e1d71c53a183269bd1fdab6c",()=>e.salir,"70f42c27a60e1ff7099d0e17a628d0e9e69e42c711",()=>f.guardarCristal]),c()}catch(a){c(a)}},!1)];
+
+//# sourceMappingURL=_next-internal_server_app_%28panel%29_stock_%5Bid%5D_editar_page_actions_0snswai.js.map

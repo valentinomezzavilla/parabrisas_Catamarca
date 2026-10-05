@@ -1,0 +1,77 @@
+{
+  "node": {
+    "60e4868ecf7f0f4b996500b8e1e8fd2f8a8480c2ec": {
+      "workers": {
+        "app/(auth)/login/page": {
+          "moduleId": "[project]/.next-internal/server/app/(auth)/login/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/(auth)/login/acciones.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(auth)/login/acciones.ts",
+      "exportedName": "iniciarSesionAccion"
+    },
+    "000d49885e74325f066a888ed7d2c95fc1ad9860e1": {
+      "workers": {
+        "app/(panel)/administracion/page": {
+          "moduleId": "[project]/.next-internal/server/app/(panel)/administracion/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/(auth)/login/acciones.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "codeHash": null
+        },
+        "app/(panel)/page": {
+          "moduleId": "[project]/.next-internal/server/app/(panel)/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/(auth)/login/acciones.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/(panel)/turnos/acciones.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(auth)/login/acciones.ts",
+      "exportedName": "salir"
+    },
+    "40d8080071317950dfa7c88b4121057adc6482556d": {
+      "workers": {
+        "app/(panel)/page": {
+          "moduleId": "[project]/.next-internal/server/app/(panel)/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/(auth)/login/acciones.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/(panel)/turnos/acciones.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/turnos/acciones.ts",
+      "exportedName": "marcarPagoDevuelto"
+    },
+    "60197cb651c9482d569afba8328edd5e5b7d6b9cb0": {
+      "workers": {
+        "app/(panel)/page": {
+          "moduleId": "[project]/.next-internal/server/app/(panel)/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/(auth)/login/acciones.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/(panel)/turnos/acciones.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/turnos/acciones.ts",
+      "exportedName": "actualizarCristalTurno"
+    },
+    "603d6741e070d1c63f75f938f23d97eb747ff74d41": {
+      "workers": {
+        "app/(panel)/page": {
+          "moduleId": "[project]/.next-internal/server/app/(panel)/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/(auth)/login/acciones.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/(panel)/turnos/acciones.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/turnos/acciones.ts",
+      "exportedName": "actualizarEstadoTurno"
+    },
+    "708530965d0676d211a9fa3cc51f4491e2c7974ae1": {
+      "workers": {
+        "app/(panel)/page": {
+          "moduleId": "[project]/.next-internal/server/app/(panel)/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/(auth)/login/acciones.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/(panel)/turnos/acciones.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "filename": "src/app/(panel)/turnos/acciones.ts",
+      "exportedName": "editarTurnoAccion"
+    }
+  },
+  "edge": {},
+  "encryptionKey": "OX05Ut6B/chaoZOHGGAvp4BB2EbJO10L5pgCuhUlwYQ="
+}

@@ -1,0 +1,38 @@
+{
+  "node": {
+    "60a93d6670618c2e1d5b2bd8247d5933938c24acdf": {
+      "workers": {
+        "app/(publico)/reservar/page": {
+          "moduleId": 44805,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "buscarReservaAccion",
+      "filename": "src/app/(publico)/reservar/acciones.ts"
+    },
+    "60b821c749732377a228dfca9fa91cb95d3d1f3d1d": {
+      "workers": {
+        "app/(publico)/reservar/page": {
+          "moduleId": 44805,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "cancelarReservaAccion",
+      "filename": "src/app/(publico)/reservar/acciones.ts"
+    },
+    "601651ac7cb5526634f442c8748764dbcee34055c3": {
+      "workers": {
+        "app/(publico)/reservar/page": {
+          "moduleId": 44805,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "reservar",
+      "filename": "src/app/(publico)/reservar/acciones.ts"
+    }
+  },
+  "edge": {}
+}

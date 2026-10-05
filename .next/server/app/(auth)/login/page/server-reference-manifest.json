@@ -1,0 +1,16 @@
+{
+  "node": {
+    "60fd8a20bf6d43ee56d26940a1c9ce0dbe6810735e": {
+      "workers": {
+        "app/(auth)/login/page": {
+          "moduleId": 38309,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "iniciarSesionAccion",
+      "filename": "src/app/(auth)/login/acciones.ts"
+    }
+  },
+  "edge": {}
+}

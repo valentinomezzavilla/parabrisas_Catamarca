@@ -1,0 +1,27 @@
+{
+  "node": {
+    "00149e3e33bab98882e1d71c53a183269bd1fdab6c": {
+      "workers": {
+        "app/(panel)/usuarios/nuevo/page": {
+          "moduleId": 61011,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "salir",
+      "filename": "src/app/(auth)/login/acciones.ts"
+    },
+    "6024aea3099c362c552d8138f86a7327704856e6d1": {
+      "workers": {
+        "app/(panel)/usuarios/nuevo/page": {
+          "moduleId": 61011,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "crearUsuarioAccion",
+      "filename": "src/app/(panel)/usuarios/acciones.ts"
+    }
+  },
+  "edge": {}
+}

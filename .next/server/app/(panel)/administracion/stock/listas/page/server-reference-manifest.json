@@ -1,0 +1,82 @@
+{
+  "node": {
+    "00149e3e33bab98882e1d71c53a183269bd1fdab6c": {
+      "workers": {
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "salir",
+      "filename": "src/app/(auth)/login/acciones.ts"
+    },
+    "709ccea013dd1734fed59107fc43ed431768e72920": {
+      "workers": {
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "activarItemAccion",
+      "filename": "src/app/(panel)/administracion/stock/listas/acciones.ts"
+    },
+    "782e1ec7a68b2b5ba63e4cc32159a7ef8cde617651": {
+      "workers": {
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "crearItemAccion",
+      "filename": "src/app/(panel)/administracion/stock/listas/acciones.ts"
+    },
+    "6011268dc50e03ddb82d515bca83eaddec630be077": {
+      "workers": {
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "eliminarItemAccion",
+      "filename": "src/app/(panel)/administracion/stock/listas/acciones.ts"
+    },
+    "60ae558b7bc8333d864d838f0c4159bba68cee3383": {
+      "workers": {
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "moverUbicacionAccion",
+      "filename": "src/app/(panel)/administracion/stock/listas/acciones.ts"
+    },
+    "708d6e4cc2c8cd77890730b69f99044215a7fae1b1": {
+      "workers": {
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "renombrarItemAccion",
+      "filename": "src/app/(panel)/administracion/stock/listas/acciones.ts"
+    },
+    "60699ef9e1d07810ae6157667609ddcfed16749fb1": {
+      "workers": {
+        "app/(panel)/administracion/stock/listas/page": {
+          "moduleId": 52303,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "tieneLadoAccion",
+      "filename": "src/app/(panel)/administracion/stock/listas/acciones.ts"
+    }
+  },
+  "edge": {}
+}

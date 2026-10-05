@@ -1,0 +1,27 @@
+{
+  "node": {
+    "00149e3e33bab98882e1d71c53a183269bd1fdab6c": {
+      "workers": {
+        "app/(panel)/stock/nuevo/page": {
+          "moduleId": 30740,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "salir",
+      "filename": "src/app/(auth)/login/acciones.ts"
+    },
+    "70f42c27a60e1ff7099d0e17a628d0e9e69e42c711": {
+      "workers": {
+        "app/(panel)/stock/nuevo/page": {
+          "moduleId": 30740,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "guardarCristal",
+      "filename": "src/app/(panel)/stock/acciones.ts"
+    }
+  },
+  "edge": {}
+}

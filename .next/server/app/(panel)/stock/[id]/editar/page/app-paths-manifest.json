@@ -1,0 +1,3 @@
+{
+  "/(panel)/stock/[id]/editar/page": "app/(panel)/stock/[id]/editar/page.js"
+}

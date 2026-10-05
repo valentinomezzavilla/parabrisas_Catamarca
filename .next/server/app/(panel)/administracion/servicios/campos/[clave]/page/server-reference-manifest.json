@@ -1,0 +1,82 @@
+{
+  "node": {
+    "00149e3e33bab98882e1d71c53a183269bd1fdab6c": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "salir",
+      "filename": "src/app/(auth)/login/acciones.ts"
+    },
+    "7c7be6e4ba62a5834a853e826694c3dd8f25c69c4c": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "cambiarTipoAccion",
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts"
+    },
+    "708600be36fe4dcaf40f17bce299fad0fd85152abf": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "opcionAccion",
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts"
+    },
+    "78d29d0aa00db71be7b0d3f15262ac02534cac0cc2": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "guardarCampoPropioAccion",
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts"
+    },
+    "78402984f7d36121ea44c6d3ac6a9746555706ad05": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "guardarCampoSistemaAccion",
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts"
+    },
+    "7098df6e36da414a7ee86e551223ccc7f99dccbed4": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "archivarCampoAccion",
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts"
+    },
+    "705c2d18e99387559963c5e0b0dc5176116a616d54": {
+      "workers": {
+        "app/(panel)/administracion/servicios/campos/[clave]/page": {
+          "moduleId": 3429,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "eliminarCampoAccion",
+      "filename": "src/app/(panel)/administracion/_campos/acciones.ts"
+    }
+  },
+  "edge": {}
+}

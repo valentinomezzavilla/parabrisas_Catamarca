@@ -1,0 +1,3 @@
+{
+  "/(panel)/administracion/stock/campos/[clave]/page": "app/(panel)/administracion/stock/campos/[clave]/page.js"
+}

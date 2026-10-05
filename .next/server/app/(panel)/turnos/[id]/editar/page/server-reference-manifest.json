@@ -1,0 +1,27 @@
+{
+  "node": {
+    "00149e3e33bab98882e1d71c53a183269bd1fdab6c": {
+      "workers": {
+        "app/(panel)/turnos/[id]/editar/page": {
+          "moduleId": 67478,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "salir",
+      "filename": "src/app/(auth)/login/acciones.ts"
+    },
+    "70a6e3f2604aa4c76ace4e0897a592b207436f4361": {
+      "workers": {
+        "app/(panel)/turnos/[id]/editar/page": {
+          "moduleId": 67478,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "editarTurnoAccion",
+      "filename": "src/app/(panel)/turnos/acciones.ts"
+    }
+  },
+  "edge": {}
+}

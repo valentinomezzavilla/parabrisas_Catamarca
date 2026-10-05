@@ -1,0 +1,3 @@
+{
+  "/(panel)/turnos/[id]/editar/page": "app/(panel)/turnos/[id]/editar/page.js"
+}

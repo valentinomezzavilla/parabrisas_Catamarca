@@ -1,0 +1,49 @@
+{
+  "node": {
+    "00149e3e33bab98882e1d71c53a183269bd1fdab6c": {
+      "workers": {
+        "app/(panel)/usuarios/page": {
+          "moduleId": 26676,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "salir",
+      "filename": "src/app/(auth)/login/acciones.ts"
+    },
+    "6006f339f813c6cf779bafb9186b6c8a9097adc2b7": {
+      "workers": {
+        "app/(panel)/usuarios/page": {
+          "moduleId": 26676,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "alternarActivoAccion",
+      "filename": "src/app/(panel)/usuarios/acciones.ts"
+    },
+    "60f4d5ea4ce81c9abd951b91a4763adcda2f9d819e": {
+      "workers": {
+        "app/(panel)/usuarios/page": {
+          "moduleId": 26676,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "cambiarRolAccion",
+      "filename": "src/app/(panel)/usuarios/acciones.ts"
+    },
+    "7030353ee73411d61a3b286b6d76aef1494aca8a87": {
+      "workers": {
+        "app/(panel)/usuarios/page": {
+          "moduleId": 26676,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "resetearPasswordAccion",
+      "filename": "src/app/(panel)/usuarios/acciones.ts"
+    }
+  },
+  "edge": {}
+}

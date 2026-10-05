@@ -1,0 +1,60 @@
+{
+  "node": {
+    "00149e3e33bab98882e1d71c53a183269bd1fdab6c": {
+      "workers": {
+        "app/(panel)/page": {
+          "moduleId": 85720,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "salir",
+      "filename": "src/app/(auth)/login/acciones.ts"
+    },
+    "401652dca6c89a924cac35cf3f306472b289ddeb1e": {
+      "workers": {
+        "app/(panel)/page": {
+          "moduleId": 85720,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "marcarPagoDevuelto",
+      "filename": "src/app/(panel)/turnos/acciones.ts"
+    },
+    "606d32589e4318b6e83dbf162661f7de3417456bad": {
+      "workers": {
+        "app/(panel)/page": {
+          "moduleId": 85720,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "actualizarEstadoTurno",
+      "filename": "src/app/(panel)/turnos/acciones.ts"
+    },
+    "60f7fc29decbc8be16a2f11c82150216f128014f6c": {
+      "workers": {
+        "app/(panel)/page": {
+          "moduleId": 85720,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "actualizarCristalTurno",
+      "filename": "src/app/(panel)/turnos/acciones.ts"
+    },
+    "70a6e3f2604aa4c76ace4e0897a592b207436f4361": {
+      "workers": {
+        "app/(panel)/page": {
+          "moduleId": 85720,
+          "async": true,
+          "codeHash": null
+        }
+      },
+      "exportedName": "editarTurnoAccion",
+      "filename": "src/app/(panel)/turnos/acciones.ts"
+    }
+  },
+  "edge": {}
+}
