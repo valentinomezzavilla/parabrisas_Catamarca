@@ -1,0 +1,120 @@
+<%
+  const { base, objeto, plural: pluralModulo } = MODULOS[modulo];
+  const urlCampo = `${base}/campos/${encodeURIComponent(campoActual.clave)}`;
+  const f = formulario.valores;
+  const errorGeneral = formulario.mensaje && Object.keys(formulario.errores).length === 0 ? formulario.mensaje : null;
+%>
+<%- include('_cabecera') %>
+
+<div class="max-w-2xl space-y-6">
+  <div>
+    <h2 class="font-display text-2xl font-extrabold"><%= campoActual.etiqueta %></h2>
+    <p class="mt-1 flex flex-wrap items-center gap-2 text-sm text-texto-suave">
+      <%= ETIQUETA_TIPO[campoActual.tipo] %>
+      <%- insignia(campoActual.origen === 'PROPIO' ? 'marca' : 'neutro', campoActual.origen === 'PROPIO' ? 'Propio' : 'Sistema') %>
+      <% if (campoActual.protegido) { %><%- insignia('neutro', 'Protegido: el sistema lo necesita') %><% } %>
+      <% if (campoActual.archivado) { %><%- insignia('alerta', 'Archivado') %><% } %>
+    </p>
+  </div>
+
+  <form method="post" action="<%= urlCampo %>" novalidate class="<%= ui.tarjeta %> space-y-4 p-5">
+    <% if (errorGeneral) { %><p role="alert" class="rounded-lg border border-peligro/40 bg-peligro/10 px-3 py-2 text-sm text-peligro"><%= errorGeneral %></p><% } %>
+
+    <% if (campoActual.origen === 'SISTEMA') { %>
+      <%- campo({ nombre: 'etiqueta', etiqueta: 'Nombre que se muestra', valor: f.etiqueta, error: formulario.errores.etiqueta,
+                  ayuda: `De fábrica: ${fabrica}. Dejalo vacío para volver a ese nombre.` }) %>
+      <%- campo({ nombre: 'ayuda', etiqueta: 'Ayuda', valor: f.ayuda, error: formulario.errores.ayuda, ayuda: 'Aparece debajo del campo. Vacío = la de fábrica.' }) %>
+      <% if (campoActual.ocultable) { %>
+        <input type="hidden" name="puedeOcultar" value="1">
+        <%- casilla({ nombre: 'visible', etiqueta: 'Mostrar este campo en el formulario y en la ficha', marcada: f.visible }) %>
+        <% if (formulario.errores.oculto) { %><p class="text-xs text-peligro"><%= formulario.errores.oculto %></p><% } %>
+      <% } else { %>
+        <p class="text-sm text-texto-suave">Este campo es necesario para que el sistema funcione: no se puede ocultar.</p>
+      <% } %>
+    <% } else { %>
+      <%- campo({ nombre: 'etiqueta', etiqueta: 'Nombre del campo', valor: f.etiqueta, error: formulario.errores.etiqueta }) %>
+      <%- campo({ nombre: 'ayuda', etiqueta: 'Ayuda', valor: f.ayuda, error: formulario.errores.ayuda }) %>
+      <% if (campoActual.tipo === 'NUMERO') { %><%- campo({ nombre: 'unidad', etiqueta: 'Unidad', valor: f.unidad, error: formulario.errores.unidad }) %><% } %>
+      <% if (campoActual.tipo !== 'SI_NO') { %><%- casilla({ nombre: 'requerido', etiqueta: `Obligatorio al cargar ${objeto}`, marcada: f.requerido }) %><% } %>
+      <%- casilla({ nombre: 'visible', etiqueta: 'Mostrar este campo en el formulario y en la ficha', marcada: f.visible }) %>
+    <% } %>
+
+    <div class="flex gap-2">
+      <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %>">Guardar</button>
+      <%- enlaceBoton({ href: base, texto: 'Cancelar' }) %>
+    </div>
+  </form>
+
+  <% if (campoActual.origen === 'PROPIO') { %>
+    <% if (campoActual.tipo === 'LISTA') { %>
+      <section id="opciones" class="<%= ui.tarjeta %> scroll-mt-4 space-y-3 p-5">
+        <h3 class="font-display font-bold">Opciones</h3>
+        <ul class="space-y-2">
+          <% for (const o of campoActual.opciones) { const accion = `${urlCampo}/opciones#opciones`; %>
+            <li class="flex flex-wrap items-center gap-2 <%= o.activo ? '' : 'opacity-60' %>">
+              <form method="post" action="<%= accion %>" class="flex flex-wrap items-center gap-2">
+                <input type="hidden" name="operacion" value="renombrar">
+                <input type="hidden" name="opcionId" value="<%= o.id %>">
+                <input name="etiqueta" value="<%= o.etiqueta %>" aria-label="Nombre de la opción" data-original class="<%= ui.input %> max-w-64">
+                <button type="submit" data-si-cambia hidden class="<%= ui.boton.primario %> <%= ui.boton.chico %>">Guardar nombre</button>
+              </form>
+              <%- botonAccion({ accion, campos: { operacion: 'alternar', opcionId: o.id, activo: o.activo ? '0' : '1' }, texto: o.activo ? 'Desactivar' : 'Activar', variante: 'fantasma', chico: true }) %>
+              <%- botonAccion({ accion, campos: { operacion: 'quitar', opcionId: o.id }, texto: '', variante: 'fantasma', chico: true, etiquetaAccesible: 'Borrar opción', html: icono('Trash2', 'size-3.5') }) %>
+            </li>
+          <% } %>
+        </ul>
+        <%- include('../parciales/aviso-en', { ancla: 'opciones' }) %>
+        <form method="post" action="<%= urlCampo %>/opciones#opciones" class="flex gap-2">
+          <input type="hidden" name="operacion" value="agregar">
+          <input name="etiqueta" aria-label="Nueva opción" placeholder="Nueva opción" required class="<%= ui.input %> max-w-64">
+          <button type="submit" class="<%= ui.boton.secundario %> <%= ui.boton.chico %>"><%- icono('Plus', 'size-3.5') %> Agregar</button>
+        </form>
+        <p class="text-xs text-texto-suave">Una opción en uso no se puede borrar: desactivala y deja de ofrecerse, pero se sigue viendo donde ya está cargada.</p>
+      </section>
+    <% } %>
+
+    <section id="tipo" class="<%= ui.tarjeta %> scroll-mt-4 space-y-3 p-5">
+      <h3 class="font-display font-bold">Cambiar el tipo de dato</h3>
+      <form method="post" action="<%= urlCampo %>/tipo#tipo" class="space-y-3" novalidate>
+        <div class="flex flex-wrap items-center gap-2">
+          <%- control({ nombre: 'tipo', id: 'nuevo-tipo', tipo: 'select', valor: cambioTipo.elegido, clase: `${ui.input} max-w-56`, atributos: { 'aria-label': 'Nuevo tipo' },
+                        opciones: TIPOS_CAMPO.map((t) => ({ valor: t, texto: ETIQUETA_TIPO[t] })) }) %>
+          <button type="submit" class="<%= ui.boton.secundario %>">Cambiar tipo</button>
+        </div>
+        <div data-mostrar-si="tipo=LISTA&tipo!=<%= campoActual.tipo %>"<% if (cambioTipo.elegido !== 'LISTA' || campoActual.tipo === 'LISTA') { %> hidden<% } %>>
+          <%- control({ nombre: 'opcionesTexto', tipo: 'textarea', valor: cambioTipo.opcionesTexto, error: cambioTipo.errores.opcionesTexto,
+                        atributos: { rows: 4, placeholder: 'Una opción por renglón', 'aria-label': 'Opciones, una por renglón' } }) %>
+        </div>
+        <% if (cambioTipo.confirmar) { %>
+          <div role="alert" class="space-y-2 rounded-lg border border-alerta/40 bg-alerta/10 p-3 text-sm">
+            <p><%= cambioTipo.confirmar %> Cambiar el tipo borra esos valores y no se puede deshacer.</p>
+            <div class="flex gap-2">
+              <button type="submit" name="confirmar" value="1" class="<%= ui.boton.peligro %> <%= ui.boton.chico %>">Sí, cambiar y borrar los valores</button>
+              <%- enlaceBoton({ href: `${urlCampo}#tipo`, texto: 'No', variante: 'fantasma', chico: true }) %>
+            </div>
+          </div>
+        <% } %>
+        <% if (cambioTipo.error) { %><p role="alert" class="text-sm text-peligro"><%= cambioTipo.error %></p><% } %>
+        <%- include('../parciales/aviso-en', { ancla: 'tipo' }) %>
+      </form>
+    </section>
+
+    <section id="zona-peligro" class="<%= ui.tarjeta %> scroll-mt-4 space-y-3 p-5">
+      <h3 class="font-display font-bold">Archivar o eliminar</h3>
+      <div class="flex flex-wrap gap-2">
+        <%- botonAccion({ accion: `${urlCampo}/archivar`, texto: campoActual.archivado ? 'Restaurar' : 'Archivar' }) %>
+        <%- botonAccion({ accion: `${urlCampo}/eliminar#zona-peligro`, texto: 'Eliminar', variante: 'peligro' }) %>
+      </div>
+      <p class="text-xs text-texto-suave">Archivar oculta el campo pero conserva sus valores. Eliminar borra el campo y sus valores de todos los <%= pluralModulo %>.</p>
+      <% if (eliminar.confirmar) { %>
+        <div role="alert" class="space-y-2 rounded-lg border border-peligro/40 bg-peligro/10 p-3 text-sm">
+          <p><%= eliminar.confirmar %> No se puede deshacer.</p>
+          <div class="flex gap-2">
+            <%- botonAccion({ accion: `${urlCampo}/eliminar`, campos: { confirmar: '1' }, texto: 'Sí, eliminar el campo y sus valores', variante: 'peligro', chico: true }) %>
+            <%- enlaceBoton({ href: `${urlCampo}#zona-peligro`, texto: 'No', variante: 'fantasma', chico: true }) %>
+          </div>
+        </div>
+      <% } %>
+    </section>
+  <% } %>
+</div>

@@ -1,18 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esRutaPublica, esServerAction } from "./rutas";
-
-describe("esServerAction", () => {
-  it("reconoce un POST con el encabezado next-action", () => {
-    expect(esServerAction("POST", true)).toBe(true);
-  });
-
-  it("un GET, o un POST sin el encabezado, no es una Server Action", () => {
-    expect(esServerAction("GET", true)).toBe(false);
-    expect(esServerAction("GET", false)).toBe(false);
-    expect(esServerAction("POST", false)).toBe(false);
-    expect(esServerAction("PUT", true)).toBe(false);
-  });
-});
+import { esRutaPublica } from "./rutas";
 
 describe("esRutaPublica", () => {
   it("permite /login y /reservar con sus subrutas", () => {

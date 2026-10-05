@@ -1,0 +1,40 @@
+<%- encabezado({
+  seccion: 'Administración',
+  titulo: 'Usuarios',
+  descripcion: 'Quién puede entrar al panel. El Admin gestiona usuarios y servicios; el Empleado maneja turnos y stock.',
+  acciones: enlaceBoton({ href: '/usuarios/nuevo', texto: 'Nuevo usuario', variante: 'primario', icono: 'Plus' }),
+}) %>
+
+<ul class="space-y-3">
+  <% for (const u of usuarios) { const esYo = u.id === usuario.id; %>
+    <li id="u-<%= u.id %>" class="<%= ui.tarjeta %> flex scroll-mt-4 flex-wrap items-start justify-between gap-4 p-4 <%= u.activo ? '' : 'opacity-70' %>">
+      <div class="min-w-0 space-y-1">
+        <p class="flex flex-wrap items-center gap-2 font-semibold">
+          <%= u.nombre %>
+          <% if (esYo) { %><%- insignia('neutro', 'Vos') %><% } %>
+          <%- insignia(u.rol === 'ADMIN' ? 'marca' : 'neutro', u.rol === 'ADMIN' ? 'Admin' : 'Empleado') %>
+          <% if (!u.activo) { %><%- insignia('peligro', 'Desactivado') %><% } %>
+        </p>
+        <p class="text-sm text-texto-suave"><%= u.usuario %></p>
+        <p class="text-xs text-texto-suave"><%= u.ultimoAcceso ? `Último acceso: ${fechaHora(u.ultimoAcceso)}` : 'Todavía no ingresó' %></p>
+      </div>
+
+      <div class="space-y-2">
+        <div class="flex flex-wrap gap-1.5">
+          <% if (!esYo) { %>
+            <%- botonAccion({ accion: `/usuarios/${u.id}/rol`, campos: { rol: u.rol === 'ADMIN' ? 'EMPLEADO' : 'ADMIN' }, texto: u.rol === 'ADMIN' ? 'Pasar a Empleado' : 'Pasar a Admin', chico: true }) %>
+            <%- botonAccion({ accion: `/usuarios/${u.id}/activo`, campos: { activo: u.activo ? '0' : '1' }, texto: u.activo ? 'Desactivar' : 'Activar', variante: 'fantasma', chico: true }) %>
+          <% } %>
+          <details class="group">
+            <summary class="<%= ui.boton.fantasma %> <%= ui.boton.chico %> cursor-pointer list-none [&::-webkit-details-marker]:hidden">Nueva contraseña</summary>
+            <form method="post" action="/usuarios/<%= u.id %>/password" class="mt-2 flex flex-wrap items-start gap-2" novalidate>
+              <input name="password" type="password" autocomplete="new-password" placeholder="Mínimo 5 caracteres" aria-label="Nueva contraseña" class="<%= ui.input %> max-w-56">
+              <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %> <%= ui.boton.chico %>">Guardar</button>
+            </form>
+          </details>
+        </div>
+        <%- include('../parciales/aviso-en', { ancla: `u-${u.id}` }) %>
+      </div>
+    </li>
+  <% } %>
+</ul>

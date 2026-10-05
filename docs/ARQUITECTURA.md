@@ -4,11 +4,11 @@
 
 | Capa | Elección | Por qué |
 |---|---|---|
-| App web (panel + turnero público) | **Next.js 16** (App Router, React 19, TypeScript) | Un solo proyecto para frontend y backend (Server Components / Server Actions). Fácil de desplegar. |
+| App web (panel + turnero público) | **Node.js + Express 5** (TypeScript) con vistas **EJS** | Un solo servidor Node para el panel, el turnero público y el webhook. Páginas renderizadas en el servidor y formularios HTML clásicos (POST → redirect); un JS chico (`public/js/app.js`) solo suma comodidades. |
 | Base de datos | **PostgreSQL** | Relacional (el stock y la agenda son datos muy relacionados), transacciones y locks para evitar sobreventa y turnos duplicados. |
 | ORM | **Prisma 7** + `@prisma/adapter-pg` | Esquema declarativo, migraciones versionadas, tipos generados. |
 | Validación | **Zod 4** | Las mismas reglas sirven para formularios y servidor. |
-| Estilos | **Tailwind CSS 4** con tokens de marca (`src/app/globals.css`) | La paleta vive en un solo lugar. |
+| Estilos | **Tailwind CSS 4** con tokens de marca (`src/web/estilos.css`, se compila con `@tailwindcss/cli` a `public/css/app.css`) | La paleta vive en un solo lugar. |
 | Tests | **Vitest** | Lógica de agenda como función pura, testeada sin base. |
 | Sesión | **jose** (JWT firmado en cookie `httpOnly`) + `scrypt` de `node:crypto` | Login propio sin dependencias nativas. Ver "Acceso y sesión". |
 
@@ -22,22 +22,25 @@ prisma/
   migrations/            ← historial SQL versionado
   seed.ts                ← catálogos + servicios por defecto
 src/
-  app/                   ← rutas Next.js (UI)
-    (panel)/administracion/  ← Administración de campos y listas (solo Admin)
-  components/layout/     ← barra lateral, shell
+  server.ts              ← arranque (lee .env, escucha en PORT)
+  app.ts                 ← la app Express: estáticos, seguridad, sesión, rutas, errores
+  rutas/                 ← un router por sección (turnos, stock, servicios, usuarios, administracion, reservar…)
+  web/                   ← vistas: render con layout, piezas HTML (componentes.ts), iconos, avisos, CSRF, estilos.css
   lib/db.ts              ← cliente Prisma
   lib/tiempo.ts          ← zona horaria (UTC-3), conversión HH:MM ↔ minutos
-  lib/sesion.ts          ← cookie de sesión y guardias (verificarSesion, requerirRol)
+  lib/sesion.ts          ← cookie de sesión y middlewares (verificarSesion, requerirRol)
   lib/token.ts           ← JWT de sesión (jose)
   lib/password.ts        ← hash de contraseñas (scrypt)
-  proxy.ts               ← redirige a /login cuando no hay sesión
   modules/
     inventario/          ← schemas.ts (Zod) + cristal.service.ts
     campos/              ← campos configurables: registro del sistema, combinación, valores propios, servicios
     turnos/              ← schemas.ts + servicio.service.ts + disponibilidad.ts (pura, con tests)
+views/                   ← plantillas EJS: layouts/ (panel, publico, auth), parciales/ y una carpeta por sección
+public/                  ← logo, iconos, js/app.js y css/app.css (generado por Tailwind)
+scripts/build.mjs        ← compila el servidor a dist/server.js (esbuild)
 ```
 
-Cada módulo expone funciones de servicio (`crearCristal`, `registrarMovimiento`, `reservarTurno`...). Las pantallas y Server Actions llaman a esas funciones y nunca usan Prisma directamente: así la lógica de negocio queda en un solo lugar.
+Cada módulo expone funciones de servicio (`crearCristal`, `registrarMovimiento`, `reservarTurno`...). Las rutas de Express (`src/rutas`) llaman a esas funciones y nunca usan Prisma directamente: así la lógica de negocio queda en un solo lugar.
 
 ## Modelo de datos
 
@@ -102,7 +105,7 @@ Las fechas se guardan en UTC. Las franjas se guardan como minutos locales. Catam
 
 Solo Admin. `/administracion` muestra una card por módulo (hoy están habilitados **Stock** y **Servicios**; Turnos y clientes viene después).
 
-Las pantallas de campos están **parametrizadas por módulo**: `MODULOS` (`src/modules/campos/modulos.ts`) fija la entidad y las rutas de cada uno, y los componentes y las Server Actions compartidos viven en `src/app/(panel)/administracion/_campos`. Una Server Action recibe el módulo desde el cliente y lo valida con `esModulo`: nunca se confía en él.
+Las pantallas de campos están **parametrizadas por módulo**: `MODULOS` (`src/modules/campos/modulos.ts`) fija la entidad y las rutas de cada uno, y las rutas compartidas viven en `src/rutas/administracion.ts` (`/administracion/:modulo/...`). El módulo llega en la URL y se valida con `esModulo`: nunca se confía en él.
 
 **Servicios.** Solo campos propios: valores en `servicios.extras`, se completan en la sección "Datos adicionales" al crear o editar un servicio y se ven en la lista de `/servicios`. Los campos del sistema del servicio (nombre, duración, precio, franjas…) se muestran como **fijos**: no se renombran, ocultan ni mueven, y el servidor lo rechaza aunque el pedido se arme a mano (`CampoSistema.fijo`). No se muestran al cliente en `/reservar`. Un campo propio obligatorio no invalida a los servicios existentes: el valor se pide la próxima vez que se edite el servicio.
 
@@ -118,10 +121,12 @@ Tabla `usuarios`: `usuario` (único; nombre de usuario en minúsculas, un email 
 
 La cookie `sesion` (httpOnly, sameSite=lax, 8 h) guarda un JWT firmado con `SESSION_SECRET` que solo contiene el id del usuario. En **cada request** se vuelve a leer al usuario en la base: desactivarlo o cambiarle el rol surte efecto de inmediato.
 
-Tres capas de protección:
-1. `src/proxy.ts`: chequeo optimista de la cookie; redirige a `/login`. No consulta la base.
-2. Layout y **cada página** del panel llaman a `verificarSesion()` (el layout no se vuelve a renderizar al navegar).
-3. **Cada Server Action** empieza con `verificarSesion()` o `requerirRol("ADMIN")`. Un test estático (`src/guardia-acciones.test.ts`) falla si una acción nueva del panel no lo hace.
+Protección en `src/app.ts`, antes de montar las rutas:
+1. **Toda ruta que no es pública** (`esRutaPublica`, `src/lib/rutas.ts`) pasa por `verificarSesion`: valida la cookie, relee al usuario y, si no hay sesión, redirige a `/login`. Como va antes de las rutas, una ruta nueva queda protegida por defecto, sea GET o POST.
+2. `/servicios`, `/usuarios` y `/administracion` pasan además por `requerirRol("ADMIN")`.
+3. **CSRF:** un POST cuyo `Origin` no es el propio sitio se rechaza con 403 (`src/web/seguridad.ts`); la cookie es `SameSite=Lax`. El webhook de Mercado Pago queda afuera: se valida por firma.
+
+`src/guardia-rutas.test.ts` levanta la app y comprueba las tres cosas para rutas del panel, de Admin y que no existen.
 
 El Empleado solo accede a Panel, Turnos y Stock. Reglas: nadie puede desactivarse ni cambiarse el rol a sí mismo, y siempre queda al menos un Admin activo.
 
@@ -143,7 +148,7 @@ Un turno de un servicio con `precio_base` pide una **seña del 50 %** (en pesos 
 - **Código de reserva.** Cada turno tiene `turnos.codigo` (6 caracteres del alfabeto `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`, sin 0, O, 1 ni I; único). Se muestra en la página de confirmación ("Guardalo para buscar o cancelar tu reserva") y en la agenda del panel. A los turnos anteriores a esta función la migración les completó un código hexadecimal único.
 - **Editar en el panel** (`/turnos/[id]/editar`, cualquier usuario con sesión). Se editan servicio, día y hora, nombre, teléfono, mail, vehículo, patente, cristal, precio y notas de los turnos `Pendiente`, `Confirmado` y `En curso` (no los completados, cancelados, ausentes ni los que esperan el pago). Si cambia el servicio o el horario, `editarTurno` toma el bloqueo por servicio de destino, recalcula la disponibilidad **ignorando el propio turno** y no guarda si el horario no está libre; la hora de fin se recalcula con la duración del servicio. Nunca toca los pagos: la seña pagada no se recalcula. Si cambia el teléfono, el turno pasa al cliente que tenga ese teléfono (o se crea uno) sin pisarle el nombre; si no, nombre y mail se corrigen en la ficha actual.
 - **Cancelar en el panel.** La confirmación del botón "Cancelar" avisa cuando el turno tiene una seña cobrada ("no se devuelve automáticamente"). Cancelar libera el horario.
-- **"Buscar tu reserva" en `/reservar`.** Un modal con ocho campos opcionales (código, nombre, teléfono, mail, patente, vehículo, servicio y día) que se combinan con "y". Hace falta al menos un dato que identifique: **el servicio y el día solos no alcanzan**. Comparación: código y mail exactos, teléfono por dígitos (uno termina con el otro, mínimo 6), patente sin espacios ni guiones, nombre y vehículo por coincidencia parcial sin tildes (mínimo 3 letras). Se consideran los turnos `Pendiente`, `Confirmado` y `Esperando pago` que empiezan en el futuro. Resultado: ninguna coincidencia, varias (no se muestra nada) o una exacta, con servicio, día, hora, estado y seña pagada, y nombre y patente **tapados**; nunca se muestran mail, precio, cristal ni notas, y **ni un dígito del teléfono** (con unos pocos dígitos se podría adivinar el resto y cancelar el turno de otra persona). Va por Server Action (POST), sin datos personales en la dirección.
+- **"Buscar tu reserva" en `/reservar`.** Un modal con ocho campos opcionales (código, nombre, teléfono, mail, patente, vehículo, servicio y día) que se combinan con "y". Hace falta al menos un dato que identifique: **el servicio y el día solos no alcanzan**. Comparación: código y mail exactos, teléfono por dígitos (uno termina con el otro, mínimo 6), patente sin espacios ni guiones, nombre y vehículo por coincidencia parcial sin tildes (mínimo 3 letras). Se consideran los turnos `Pendiente`, `Confirmado` y `Esperando pago` que empiezan en el futuro. Resultado: ninguna coincidencia, varias (no se muestra nada) o una exacta, con servicio, día, hora, estado y seña pagada, y nombre, teléfono y patente **tapados**; nunca se muestran mail, precio, cristal ni notas, y **ni un dígito del teléfono** (con unos pocos dígitos se podría adivinar el resto y cancelar el turno de otra persona). Es la página `/reservar/buscar` y va por POST, sin datos personales en la dirección.
 - **Cancelar desde el portal.** Pide escribir el teléfono **completo** (con código de área; los últimos dígitos solos no alcanzan) o el mail completo de la reserva. Si hay seña pagada, avisa que no se devuelve. El turno queda `Cancelado` con la nota "Cancelado por el cliente el dd/mm hh:mm". Su pago pendiente **no** se marca vencido a propósito: si Mercado Pago lo aprueba después, `decidirPago` lo trata como "turno cancelado" y lo deja para devolver, en vez de reconfirmar el turno. La cancelación toma el mismo bloqueo por servicio que `aplicarPagoMp`, y un turno que espera el pago y ya venció no se puede cancelar.
 - **Protecciones.** Tras 5 intentos fallidos de verificación para un mismo turno, 15 minutos de bloqueo (mismas reglas que el login, clave `cancelar:<id>` en `intentos_login`); tope de 30 búsquedas **sin resultado** por minuto en todo el sitio (clave `busqueda:<minuto>`): las búsquedas que sí encuentran una reserva no gastan el tope. Sin una identidad por visitante no se puede evitar que alguien lo agote a propósito: en ese caso el buscador deja de responder por un minuto, pero reservar y el resto del sitio siguen andando. Límite aceptado: quien conozca un dato único de otra persona (por ejemplo su patente) puede ver que tiene un turno vigente y sus datos tapados; para cancelarlo necesita su teléfono o mail.
 
@@ -164,7 +169,7 @@ Regla de contraste: el amarillo del logo sobre blanco da **1.35:1**, así que nu
 
 ### Componentes y adaptación a celular y tablet
 
-Los componentes compartidos están en `src/components/ui/index.tsx`: `boton`, `input`, `tarjeta`, `EncabezadoPagina` (barra amarilla junto al título), `Estadistica` (tarjeta de resumen con franja de color e icono), `ChipIcono`, `Insignia`, `Aviso` y `Vacio`. Las sombras y el resplandor amarillo del fondo oscuro son tokens en `src/app/globals.css`.
+Las clases compartidas (`boton`, `input`, `tarjeta`…) están en `src/web/ui.ts` y las piezas de HTML que usan las plantillas en `src/web/componentes.ts`: `encabezado` (barra amarilla junto al título), `estadistica` (tarjeta de resumen con franja de color e icono), `chipIcono`, `insignia`, `aviso`, `vacio`, `campo` (etiqueta + control + error), `botonAccion` (formulario de un botón, con confirmación en dos pasos) y `enlaceBoton`. Los iconos son Lucide en SVG (`src/web/iconos.ts`). Las sombras y el resplandor amarillo del fondo oscuro son tokens en `src/web/estilos.css`.
 
 | Ancho | Navegación | Listas |
 |---|---|---|
@@ -172,7 +177,7 @@ Los componentes compartidos están en `src/components/ui/index.tsx`: `boton`, `i
 | Tablet (768–1023 px) | **Riel de iconos** (4 rem) con el nombre en `title` y `aria-label`. | Tarjetas (la tabla necesita más ancho). |
 | Escritorio (≥ 1024 px) | Barra lateral completa, con grupos "Operación" y "Gestión". | Tablas. |
 
-El menú se define una sola vez en `src/components/layout/navegacion.ts` y lo usan `BarraLateral`, `BarraInferior` y `BarraSuperiorMovil`. Botones y campos miden 44 px de alto en celular y llevan texto de 16 px para evitar el zoom automático de iOS. Regla para grillas nuevas: en celular usar siempre `grid-cols-1` (o `minmax(0, 1fr)`); sin columnas definidas, la grilla se ensancha con su contenido y aparece scroll horizontal.
+El menú se define una sola vez en `src/web/navegacion.ts` y lo usan `views/parciales/barra-lateral.ejs`, `barra-inferior.ejs` y `barra-superior-movil.ejs`. Botones y campos miden 44 px de alto en celular y llevan texto de 16 px para evitar el zoom automático de iOS. Regla para grillas nuevas: en celular usar siempre `grid-cols-1` (o `minmax(0, 1fr)`); sin columnas definidas, la grilla se ensancha con su contenido y aparece scroll horizontal.
 
 ## Pantallas
 
@@ -190,11 +195,12 @@ El menú se define una sola vez en `src/components/layout/navegacion.ts` y lo us
 | `/login` | **Pública.** Ingreso al panel. |
 | `/usuarios`, `/usuarios/nuevo` | Solo Admin: alta, rol, activar/desactivar y nueva contraseña. |
 | `/reservar` | **Pública.** El cliente elige servicio, día y horario, carga sus datos y, si el servicio tiene precio, paga la seña por Mercado Pago. Incluye "Buscar tu reserva" para ver y cancelar una reserva. |
+| `/reservar/buscar` | **Pública.** Buscar una reserva (POST) y cancelarla verificando el teléfono o el mail. |
 | `/reservar/confirmado` | **Pública.** Estado del turno y del pago; consulta a Mercado Pago al cargar; muestra el código de reserva. |
 | `/turnos/[id]/editar` | Edición de un turno vigente: servicio, día y hora (con la disponibilidad real), datos del cliente, vehículo, cristal, precio y notas. |
 | `/api/mercadopago/webhook` | **Pública** (sin sesión): avisos de Mercado Pago, validados por firma. |
 
-Las rutas del panel están en `src/app/(panel)` (con barra lateral) y las públicas en `src/app/(publico)`. Cada sección tiene su `acciones.ts` con las Server Actions, que solo leen el formulario y delegan en `src/modules`.
+Cada sección tiene su router en `src/rutas` y sus plantillas en `views/<sección>`. Las páginas del panel usan el layout con barra lateral (`views/layouts/panel.ejs`) y las públicas `views/layouts/publico.ejs`. Los handlers solo leen el formulario y delegan en `src/modules`. Patrón de formularios: si la validación falla se vuelve a mostrar la página con lo cargado y los errores (422); si sale bien, redirect con un aviso de un solo uso (`src/web/avisos.ts`).
 
 **Estados de un turno:** Pendiente → Confirmado → En curso → Completado (o Cancelado / No vino). Al **completar** un turno que tiene cristal asignado, se registra el egreso de stock vinculado al turno, una sola vez. Si no hay stock, el turno no se completa y se avisa.
 
@@ -203,7 +209,7 @@ Las rutas del panel están en `src/app/(panel)` (con barra lateral) y las públi
 0. Que el cliente pueda **reprogramar** su reserva desde el portal, avisos por mail o WhatsApp al cancelar o editar, y devolución automática de la seña (hoy es a mano desde Mercado Pago).
 1. Reservas falsas en servicios **sin precio base**: no cobran seña y no tienen ningún freno (límite por teléfono o IP, o captcha). Además, devolución automática de la seña (hoy se devuelve a mano desde Mercado Pago).
 2. Administración de campos para Turnos y clientes (incluye los campos del formulario público `/reservar`). El motor y las pantallas ya están hechos; falta la columna `extras` y decidir qué campos propios ve el público.
-   Para renombrar, ocultar o reordenar también los campos del sistema de Servicios hay que reconstruir `FormularioServicio` sobre el motor.
+   Para renombrar, ocultar o reordenar también los campos del sistema de Servicios hay que reconstruir el formulario de servicios (`views/servicios/formulario.ejs`) sobre el motor.
    Además: limpiar un campo vacío al editar un cristal (hoy un costo vacío no borra el valor guardado).
 3. Bloqueos de agenda (feriados, vacaciones) desde el panel. La tabla ya existe y el cálculo de disponibilidad los respeta.
 4. Recordatorios de turno por WhatsApp.

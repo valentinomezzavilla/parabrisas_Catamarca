@@ -1,0 +1,16 @@
+<%# Cabecera de las pantallas de un módulo de Administración. Stock suma las pestañas Campos / Listas. %>
+<%- volver('/administracion', 'Administración') %>
+<%- encabezado({ seccion: 'Administración', titulo: MODULOS[modulo].titulo, descripcion: MODULOS[modulo].descripcion }) %>
+<% if (modulo === 'stock') {
+     const enListas = ruta.startsWith('/administracion/stock/listas');
+     const pestanas = [
+       { href: '/administracion/stock', etiqueta: 'Campos', activa: !enListas },
+       { href: '/administracion/stock/listas', etiqueta: 'Listas', activa: enListas },
+     ]; %>
+  <nav aria-label="Secciones de Stock" class="flex gap-1 border-b border-borde">
+    <% for (const p of pestanas) { %>
+      <a href="<%= p.href %>"<% if (p.activa) { %> aria-current="page"<% } %>
+         class="-mb-px border-b-2 px-4 py-2 text-sm font-semibold <%= p.activa ? 'border-amarillo-500 text-texto' : 'border-transparent text-texto-suave hover:text-texto' %>"><%= p.etiqueta %></a>
+    <% } %>
+  </nav>
+<% } %>

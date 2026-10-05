@@ -1,0 +1,92 @@
+<%
+  const v = (clave) => valores.campos[clave] ?? '';
+  const ANTICIPACIONES = [
+    [0, 'Sin anticipación'], [30, '30 minutos'], [60, '1 hora'], [120, '2 horas'],
+    [240, '4 horas'], [720, '12 horas'], [1440, '1 día'], [2880, '2 días'],
+  ];
+  const accion = servicio ? `/servicios/${servicio.id}` : '/servicios/nuevo';
+  // Cada franja conserva su posición en el formulario: los errores llegan como "horarios.<posición>.hasta".
+  const franjas = valores.franjas.map((f, i) => ({ ...f, i }));
+%>
+<%- encabezado(servicio
+  ? { seccion: 'Servicios', titulo: servicio.nombre, descripcion: 'Los cambios se aplican a los turnos nuevos; los ya reservados mantienen su horario.' }
+  : { seccion: 'Servicios', titulo: 'Nuevo servicio' }) %>
+
+<form method="post" action="<%= accion %>" class="space-y-6" novalidate>
+  <% if (mensaje) { %><%- aviso('peligro', mensaje) %><% } %>
+  <% if (servicio) { %>
+    <input type="hidden" name="slug" value="<%= servicio.slug %>">
+    <input type="hidden" name="orden" value="<%= servicio.orden %>">
+  <% } %>
+  <input type="hidden" name="dibujados" value="1">
+  <% for (const c of campos) { %><input type="hidden" name="dibujado" value="<%= c.clave %>"><% } %>
+
+  <section class="<%= ui.tarjeta %> grid gap-5 p-5 sm:grid-cols-2">
+    <h2 class="font-display font-bold sm:col-span-2">Datos del servicio</h2>
+    <%- campo({ nombre: 'nombre', etiqueta: 'Nombre', valor: v('nombre'), error: errores.nombre }) %>
+    <%- campo({ nombre: 'precioBase', etiqueta: 'Precio base (opcional)', tipo: 'number', valor: v('precioBase'), error: errores.precioBase,
+                ayuda: 'Se muestra como referencia al reservar', atributos: { min: 0, step: '0.01' } }) %>
+    <%- campo({ nombre: 'descripcion', etiqueta: 'Descripción', tipo: 'textarea', valor: v('descripcion'), error: errores.descripcion, claseContenedor: 'sm:col-span-2', atributos: { rows: 2 } }) %>
+    <%- campo({ nombre: 'color', etiqueta: 'Color en la agenda', tipo: 'color', valor: v('color') || '#FDDD3D', error: errores.color,
+                clase: 'h-10 w-20 cursor-pointer rounded-lg border border-borde bg-superficie p-1' }) %>
+    <div class="space-y-3 self-center">
+      <%- casilla({ nombre: 'activo', etiqueta: 'Activo (se ofrece en el turnero)', marcada: valores.activo }) %>
+      <%- casilla({ nombre: 'requiereCristal', etiqueta: 'Usa un cristal del stock (colocaciones)', marcada: valores.requiereCristal }) %>
+    </div>
+  </section>
+
+  <section class="<%= ui.tarjeta %> grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-4">
+    <h2 class="font-display font-bold sm:col-span-2 lg:col-span-4">Tiempos y capacidad</h2>
+    <%- campo({ nombre: 'duracionMinutos', etiqueta: 'Duración (min)', tipo: 'number', valor: v('duracionMinutos'), error: errores.duracionMinutos, ayuda: 'Tiempo estimado del trabajo', atributos: { min: 5, step: 5 } }) %>
+    <%- campo({ nombre: 'intervaloMinutos', etiqueta: 'Turnos cada (min)', tipo: 'number', valor: v('intervaloMinutos'), error: errores.intervaloMinutos, ayuda: 'Cada cuánto se ofrece un horario', atributos: { min: 5, step: 5 } }) %>
+    <%- campo({ nombre: 'margenMinutos', etiqueta: 'Margen entre trabajos (min)', tipo: 'number', valor: v('margenMinutos'), error: errores.margenMinutos, ayuda: 'Limpieza o preparación', atributos: { min: 0, step: 5 } }) %>
+    <%- campo({ nombre: 'capacidad', etiqueta: 'Vehículos a la vez', tipo: 'number', valor: v('capacidad'), error: errores.capacidad, ayuda: 'Boxes u operarios disponibles', atributos: { min: 1 } }) %>
+    <%- campo({ nombre: 'anticipacionMinutos', etiqueta: 'Anticipación mínima', tipo: 'select', valor: v('anticipacionMinutos'), error: errores.anticipacionMinutos, claseContenedor: 'sm:col-span-2',
+                opciones: ANTICIPACIONES.map(([valor, texto]) => ({ valor: String(valor), texto })) }) %>
+  </section>
+
+  <section class="<%= ui.tarjeta %> space-y-4 p-5">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h2 class="font-display font-bold">Días y horarios de atención</h2>
+        <p class="text-sm text-texto-suave">Podés cargar más de una franja por día (horario cortado).</p>
+      </div>
+      <button type="button" data-copiar-lunes class="<%= ui.boton.secundario %> <%= ui.boton.chico %>"><%- icono('Copy', 'size-3.5') %> Copiar lunes a días hábiles</button>
+    </div>
+    <% if (errores.horarios) { %><p class="text-sm text-peligro"><%= errores.horarios %></p><% } %>
+
+    <div class="divide-y divide-borde">
+      <% for (const dia of SEMANA) { const delDia = franjas.filter((f) => f.diaSemana === dia); %>
+        <div class="flex flex-col gap-2 py-3 sm:flex-row sm:items-start" data-dia-horario>
+          <span class="w-28 pt-2 text-sm font-semibold"><%= DIAS_LARGOS[dia] %></span>
+          <div class="flex flex-1 flex-wrap items-center gap-2">
+            <span data-cerrado class="py-2 text-sm text-texto-suave <%= delDia.length ? 'hidden' : '' %>">Cerrado</span>
+            <div id="franjas-<%= dia %>" class="contents">
+              <% for (const f of delDia) { %>
+                <%- include('../parciales/fila-franja', { dia, desde: f.desde, hasta: f.hasta, falla: errores[`horarios.${f.i}.hasta`] ?? errores[`horarios.${f.i}.desde`] }) %>
+              <% } %>
+            </div>
+            <template data-plantilla="franja-<%= dia %>"><%- include('../parciales/fila-franja', { dia, desde: '08:30', hasta: '12:30', falla: null }) %></template>
+            <button type="button" data-agregar="franja-<%= dia %>" data-destino="franjas-<%= dia %>" class="<%= ui.boton.fantasma %> <%= ui.boton.chico %>">
+              <%- icono('Plus', 'size-3.5') %> <span data-texto><%= delDia.length ? 'Franja' : 'Abrir' %></span>
+            </button>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </section>
+
+  <% if (campos.length > 0) { %>
+    <section class="<%= ui.tarjeta %> space-y-4 p-5">
+      <h2 class="font-display font-bold">Datos adicionales</h2>
+      <div class="grid gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+        <% for (const c of campos) { %><%- campoPersonalizado(c, valores.extras[c.clave], errores[nombreInput(c.clave)]) %><% } %>
+      </div>
+    </section>
+  <% } %>
+
+  <div class="flex justify-end gap-2">
+    <%- enlaceBoton({ href: '/servicios', texto: 'Cancelar' }) %>
+    <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %>"><%= servicio ? 'Guardar cambios' : 'Crear servicio' %></button>
+  </div>
+</form>

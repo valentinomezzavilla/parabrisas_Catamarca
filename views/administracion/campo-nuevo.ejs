@@ -1,0 +1,28 @@
+<%- include('_cabecera') %>
+
+<form method="post" action="<%= MODULOS[modulo].base %>/campos/nuevo" novalidate class="<%= ui.tarjeta %> max-w-xl space-y-4 p-6">
+  <% if (mensaje && Object.keys(errores).length === 0) { %>
+    <p role="alert" class="rounded-lg border border-peligro/40 bg-peligro/10 px-3 py-2 text-sm text-peligro"><%= mensaje %></p>
+  <% } %>
+
+  <%- campo({ nombre: 'etiqueta', etiqueta: 'Nombre del campo', valor: valores.etiqueta, error: errores.etiqueta,
+              ayuda: 'Como se va a ver en el formulario y en la ficha.', atributos: { autocomplete: 'off' } }) %>
+  <%- campo({ nombre: 'tipo', etiqueta: 'Tipo de dato', tipo: 'select', valor: valores.tipo, error: errores.tipo,
+              opciones: TIPOS_CAMPO.map((t) => ({ valor: t, texto: ETIQUETA_TIPO[t] })) }) %>
+  <div data-mostrar-si="tipo=LISTA"<% if (valores.tipo !== 'LISTA') { %> hidden<% } %>>
+    <%- campo({ nombre: 'opcionesTexto', etiqueta: 'Opciones', tipo: 'textarea', valor: valores.opcionesTexto, error: errores.opcionesTexto,
+                ayuda: 'Una opción por renglón. Después las podés renombrar, desactivar y sumar más.', atributos: { rows: 5 } }) %>
+  </div>
+  <div data-mostrar-si="tipo=NUMERO"<% if (valores.tipo !== 'NUMERO') { %> hidden<% } %>>
+    <%- campo({ nombre: 'unidad', etiqueta: 'Unidad', valor: valores.unidad, error: errores.unidad, ayuda: 'Opcional. Ej. mm, kg.' }) %>
+  </div>
+  <%- campo({ nombre: 'ayuda', etiqueta: 'Ayuda', valor: valores.ayuda, error: errores.ayuda, ayuda: 'Opcional. Aparece debajo del campo.' }) %>
+  <div data-mostrar-si="tipo!=SI_NO"<% if (valores.tipo === 'SI_NO') { %> hidden<% } %>>
+    <%- casilla({ nombre: 'requerido', etiqueta: `Obligatorio al cargar ${MODULOS[modulo].objeto}`, marcada: valores.requerido === 'on' }) %>
+  </div>
+
+  <div class="flex gap-2">
+    <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %>">Crear campo</button>
+    <%- enlaceBoton({ href: MODULOS[modulo].base, texto: 'Cancelar' }) %>
+  </div>
+</form>

@@ -1,0 +1,85 @@
+<%- encabezado({ seccion: 'Panel', titulo: 'Resumen del local', descripcion: mayuscula(formatearFecha(fecha)) }) %>
+
+<% if (aDevolver.length > 0) { %>
+  <section class="space-y-3">
+    <h2 class="font-display text-lg font-bold">Pagos para devolver</h2>
+    <ul class="<%= ui.tarjeta %> divide-y divide-borde overflow-hidden">
+      <% for (const p of aDevolver) { %>
+        <li class="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
+          <%- icono('Undo2', 'size-4 shrink-0 text-alerta') %>
+          <span class="min-w-0 flex-1">
+            <span class="block font-semibold"><%= p.turno.cliente.nombre %> · <%= pesos(p.monto) %></span>
+            <span class="block text-xs text-texto-suave"><%= p.turno.servicio.nombre %> · <%= p.motivoDevolucion %></span>
+          </span>
+          <%- botonAccion({ accion: `/pagos/${p.id}/devuelto`, texto: 'Ya lo devolví', chico: true }) %>
+        </li>
+      <% } %>
+    </ul>
+  </section>
+<% } %>
+
+<%# En celular las tres tarjetas van en una fila compacta en lugar de apilarse. %>
+<div class="grid grid-cols-3 gap-2.5 sm:gap-4">
+  <%- estadistica('Turnos hoy', activos.length, 'CalendarCheck', 'marca') %>
+  <%- estadistica('Sin confirmar', pendientes, 'Hourglass', pendientes ? 'alerta' : 'exito') %>
+  <%- estadistica('Para reponer', stockBajo.length, 'PackageMinus', stockBajo.length ? 'alerta' : 'exito') %>
+</div>
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
+  <section class="min-w-0 space-y-3">
+    <div class="flex items-center justify-between gap-2">
+      <h2 class="font-display text-lg font-bold">Turnos de hoy</h2>
+      <a href="/turnos" class="flex min-h-9 items-center gap-1 text-sm font-semibold text-acento hover:underline">Ver agenda <%- icono('ArrowRight', 'size-3.5') %></a>
+    </div>
+    <% if (turnos.length === 0) { %>
+      <%- vacio('No hay turnos para hoy.', 'CalendarClock') %>
+    <% } else { %>
+      <ul class="<%= ui.tarjeta %> divide-y divide-borde overflow-hidden">
+        <% for (const t of turnos) { %>
+          <li class="flex items-center gap-3 px-4 py-3 text-sm">
+            <span class="h-8 w-1 shrink-0 rounded-full" style="background: <%= t.servicio.color %>" aria-hidden="true"></span>
+            <span class="w-12 shrink-0 font-display font-bold tabular-nums"><%= formatearHora(t.inicio) %></span>
+            <span class="min-w-0 flex-1 truncate"><%= t.servicio.nombre %> · <span class="text-texto-suave"><%= t.cliente.nombre %></span></span>
+            <%- insignia(ESTADOS_TURNO[t.estado].tono, ESTADOS_TURNO[t.estado].etiqueta) %>
+          </li>
+        <% } %>
+      </ul>
+    <% } %>
+  </section>
+
+  <section class="min-w-0 space-y-3">
+    <div class="flex items-center justify-between gap-2">
+      <h2 class="font-display text-lg font-bold">Stock para reponer</h2>
+      <a href="/stock" class="flex min-h-9 items-center gap-1 text-sm font-semibold text-acento hover:underline">Ver stock <%- icono('ArrowRight', 'size-3.5') %></a>
+    </div>
+    <% if (stockBajo.length === 0) { %>
+      <%- vacio('No hay cristales por debajo del stock mínimo.', 'PackageMinus') %>
+    <% } else { %>
+      <ul class="<%= ui.tarjeta %> divide-y divide-borde overflow-hidden">
+        <% for (const c of stockBajo) { %>
+          <li>
+            <a href="/stock/<%= c.id %>" class="flex min-h-14 items-center gap-3 px-4 py-3 text-sm hover:bg-grafito-500/5">
+              <%- icono('AlertTriangle', `size-4 shrink-0 ${c.cantidad === 0 ? 'text-peligro' : 'text-alerta'}`) %>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate"><%= c.descripcion %></span>
+                <span class="font-mono text-xs text-texto-suave"><%= c.codigo %></span>
+              </span>
+              <span class="shrink-0 font-semibold tabular-nums"><%= c.cantidad %> <span class="font-normal text-texto-suave">/ mín. <%= c.stockMinimo %></span></span>
+            </a>
+          </li>
+        <% } %>
+      </ul>
+    <% } %>
+  </section>
+</div>
+
+<a href="/reservar" target="_blank" rel="noopener"
+   class="group relative flex items-center gap-4 overflow-hidden rounded-tarjeta bg-grafito-900 p-4 text-sm text-grafito-100 shadow-tarjeta ring-1 ring-grafito-800 transition-colors hover:ring-marca sm:p-5">
+  <span aria-hidden="true" class="absolute inset-y-0 left-0 w-1.5 bg-marca"></span>
+  <%- icono('CalendarClock', 'ml-1 size-6 shrink-0 text-marca') %>
+  <span class="min-w-0 flex-1">
+    <strong class="block font-display text-base text-white">Página pública de turnos</strong>
+    <span class="text-grafito-300">Compartí <code class="rounded bg-white/10 px-1 text-marca">/reservar</code> para que los clientes reserven solos.</span>
+  </span>
+  <%- icono('ArrowRight', 'size-5 shrink-0 text-grafito-400 transition-transform group-hover:translate-x-0.5 group-hover:text-marca') %>
+</a>

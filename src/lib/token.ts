@@ -1,6 +1,6 @@
 import { jwtVerify, SignJWT } from "jose";
 
-// Este módulo lo importa también `src/proxy.ts`: no puede usar Prisma ni `next/headers`.
+// Sin Prisma ni Express: solo firma y verifica el token (se prueba solo).
 
 export const NOMBRE_COOKIE = "sesion";
 export const DURACION_SESION_SEGUNDOS = 8 * 60 * 60;

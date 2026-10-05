@@ -1,0 +1,94 @@
+<%
+  const v = (clave) => valores.campos[clave] ?? '';
+  const ubicacionElegida = v('ubicacionId') || (catalogos.ubicaciones[0] ? catalogos.ubicaciones[0].id : '');
+  const tieneLado = catalogos.ubicaciones.find((u) => u.id === ubicacionElegida)?.tieneLado ?? false;
+  const deSeccion = (s) => visibles.filter((c) => c.seccion === s);
+  const elegir = (items) => [{ valor: '', texto: 'Elegir…', deshabilitada: true }, ...items.map((i) => ({ valor: i.id, texto: i.nombre }))];
+
+  /** Control de un campo del sistema. La etiqueta, la ayuda, el orden y la visibilidad vienen de `campos`. */
+  function controlSistema(c) {
+    const base = { nombre: c.clave, etiqueta: c.etiqueta, ayuda: c.ayuda, error: errores[c.clave], valor: v(c.clave) };
+    const numerico = (atributos) => campo({ ...base, tipo: 'number', atributos });
+    switch (c.clave) {
+      case 'codigo': return campo({ ...base, clase: `${ui.input} uppercase` });
+      case 'codigoFabricante': return campo(base);
+      case 'descripcion': return campo({ ...base, claseContenedor: 'sm:col-span-2', atributos: { placeholder: 'Parabrisas Hilux 2016+ con sensor' } });
+      case 'marcaId': return campo({ ...base, tipo: 'select', opciones: elegir(catalogos.marcas) });
+      case 'tipoId': return campo({ ...base, tipo: 'select', opciones: elegir(catalogos.tipos) });
+      case 'ubicacionId':
+        return campo({ ...base, tipo: 'select', valor: ubicacionElegida, atributos: { 'data-ubicacion': true },
+          opciones: catalogos.ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre, datos: { 'tiene-lado': u.tieneLado ? '1' : '0' } })) });
+      case 'lado':
+        return campo({ ...base, tipo: 'select', valor: v('lado') || 'NO_APLICA', atributos: { 'data-lado': true, disabled: !tieneLado },
+          opciones: [{ valor: 'NO_APLICA', texto: 'No aplica' }, { valor: 'IZQUIERDO', texto: 'Izquierdo' }, { valor: 'DERECHO', texto: 'Derecho' }] });
+      case 'anchoMm': case 'altoMm': return numerico({ min: 1 });
+      case 'espesorMm': return numerico({ min: 0, step: '0.1' });
+      case 'costo': case 'precioVenta': return numerico({ min: 0, step: '0.01' });
+      case 'cantidad':
+        return cristal
+          ? '<p class="self-end text-xs text-texto-suave lg:col-span-1">La cantidad se modifica con movimientos de stock, desde la ficha.</p>'
+          : campo({ ...base, nombre: 'cantidadInicial', etiqueta: `${c.etiqueta} inicial`, error: errores.cantidadInicial, valor: v('cantidadInicial'), tipo: 'number', atributos: { min: 0 } });
+      case 'stockMinimo': return numerico({ min: 0 });
+      case 'ubicacionDeposito': return campo({ ...base, atributos: { placeholder: 'Rack A-3' } });
+      default: return '';
+    }
+  }
+
+  const SECCIONES = [
+    { id: 'identificacion', titulo: 'Identificación', columnas: 'sm:grid-cols-2 lg:grid-cols-4', ancho: 'sm:col-span-2 lg:col-span-4' },
+    { id: 'principales', titulo: 'Características principales', columnas: 'sm:grid-cols-2 lg:grid-cols-4', ancho: 'sm:col-span-2 lg:col-span-4' },
+  ];
+  const compatibilidades = deSeccion('compatibilidades')[0];
+  const adicionales = deSeccion('adicionales');
+  const accion = cristal ? `/stock/${cristal.id}/editar` : '/stock/nuevo';
+%>
+<%- encabezado(cristal
+  ? { seccion: 'Stock', titulo: `Editar ${cristal.codigo}`, descripcion: cristal.descripcion }
+  : { seccion: 'Stock', titulo: 'Nuevo cristal' }) %>
+
+<form method="post" action="<%= accion %>" class="space-y-6" novalidate>
+  <% if (mensaje) { %><%- aviso('peligro', mensaje) %><% } %>
+  <input type="hidden" name="dibujados" value="1">
+  <% for (const c of visibles) { %><input type="hidden" name="dibujado" value="<%= c.clave %>"><% } %>
+
+  <% for (const s of [...SECCIONES, { id: 'stock', titulo: 'Stock y precios', columnas: 'sm:grid-cols-2 lg:grid-cols-5', ancho: 'sm:col-span-2 lg:col-span-5' }]) {
+       if (s.id === 'stock' && compatibilidades) { %>
+    <section class="<%= ui.tarjeta %> space-y-4 p-5">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="font-display font-bold"><%= compatibilidades.etiqueta %></h2>
+          <p class="text-sm text-texto-suave">Dejá “hasta” vacío si el modelo sigue vigente.</p>
+        </div>
+        <button type="button" data-agregar="compat" class="<%= ui.boton.secundario %> <%= ui.boton.chico %>"><%- icono('Plus', 'size-3.5') %> Agregar vehículo</button>
+      </div>
+      <% if (errores.compatibilidades) { %><p class="text-sm text-peligro"><%= errores.compatibilidades %></p><% } %>
+      <div class="space-y-3" data-filas="compat">
+        <% valores.compatibilidades.forEach((fila, i) => { %>
+          <%- include('../parciales/fila-compat', { fila, falla: errores[`compatibilidades.${i}.anioHasta`] ?? errores[`compatibilidades.${i}.anioDesde`] ?? errores[`compatibilidades.${i}.modeloId`] }) %>
+        <% }) %>
+      </div>
+      <template data-plantilla="compat"><%- include('../parciales/fila-compat', { fila: { modeloId: '', anioDesde: '', anioHasta: '', carroceria: '' }, falla: null }) %></template>
+    </section>
+  <%   }
+       const items = deSeccion(s.id);
+       if (items.length === 0) continue; %>
+    <section class="<%= ui.tarjeta %> grid gap-5 p-5 <%= s.columnas %>">
+      <h2 class="font-display font-bold <%= s.ancho %>"><%= s.titulo %></h2>
+      <% for (const c of items) { %><%- controlSistema(c) %><% } %>
+    </section>
+  <% } %>
+
+  <% if (adicionales.length > 0) { %>
+    <section class="<%= ui.tarjeta %> space-y-4 p-5">
+      <h2 class="font-display font-bold">Datos adicionales</h2>
+      <div class="grid gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+        <% for (const c of adicionales) { %><%- campoPersonalizado(c, valores.extras[c.clave], errores[nombreInput(c.clave)]) %><% } %>
+      </div>
+    </section>
+  <% } %>
+
+  <div class="flex justify-end gap-2">
+    <%- enlaceBoton({ href: cristal ? `/stock/${cristal.id}` : '/stock', texto: 'Cancelar' }) %>
+    <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %>"><%= cristal ? 'Guardar cambios' : 'Dar de alta' %></button>
+  </div>
+</form>
