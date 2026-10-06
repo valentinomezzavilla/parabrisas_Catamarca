@@ -2,7 +2,7 @@
   Menú lateral. Desde 1024 px se muestra completo; en tablet (768–1023 px) es un riel de iconos
   (con el nombre en `title` y `aria-label`); en celular no se usa: ahí están la barra superior y la inferior.
 %>
-<aside class="hidden border-r border-grafito-800 bg-grafito-900 text-grafito-100 md:sticky md:top-0 md:flex md:h-dvh md:w-16 md:shrink-0 md:flex-col lg:w-64">
+<aside class="hidden border-r border-grafito-800 bg-linear-to-b from-grafito-900 to-grafito-950 text-grafito-100 md:sticky md:top-0 md:flex md:h-dvh md:w-16 md:shrink-0 md:flex-col lg:w-64">
   <a href="/" aria-label="Parabrisas Catamarca, inicio" class="flex items-center justify-center gap-3 px-3 py-5 lg:justify-start lg:px-5 lg:py-6">
     <img src="/brand/logo-amarillo.png" alt="" width="56" height="40" class="h-9 w-auto lg:h-11">
     <span class="hidden font-display text-sm leading-tight font-extrabold tracking-wide text-marca uppercase lg:block">Parabrisas<br>Catamarca</span>
@@ -16,8 +16,8 @@
           <% for (const item of g.items) { const activa = esActiva(item.href, ruta); %>
             <li>
               <a href="<%= item.href %>" title="<%= item.etiqueta %>" aria-label="<%= item.etiqueta %>"<% if (activa) { %> aria-current="page"<% } %>
-                 class="relative flex items-center justify-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors lg:justify-start <%= activa ? 'bg-grafito-800 text-white' : 'text-grafito-300 hover:bg-grafito-800/70 hover:text-white' %>">
-                <% if (activa) { %><span aria-hidden="true" class="absolute inset-y-2 left-0 w-1 rounded-r-full bg-marca"></span><% } %>
+                 class="relative flex items-center justify-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200 lg:justify-start <%= activa ? 'bg-linear-to-r from-marca/15 to-grafito-800 text-white ring-1 ring-marca/20' : 'text-grafito-300 hover:bg-grafito-800/70 hover:text-white lg:hover:translate-x-0.5' %>">
+                <% if (activa) { %><span aria-hidden="true" class="absolute inset-y-2 left-0 w-1 rounded-r-full bg-marca shadow-[0_0_12px_rgb(253_221_61/0.7)]"></span><% } %>
                 <%- icono(item.icono, `size-[1.15rem] shrink-0 ${activa ? 'text-marca' : ''}`) %>
                 <span class="hidden lg:inline"><%= item.etiqueta %></span>
               </a>

@@ -2,13 +2,18 @@
 <html lang="es-AR">
 <head><%- include('../parciales/head') %></head>
 <body class="min-h-dvh antialiased">
-  <main class="flex min-h-dvh flex-col items-center justify-center bg-grafito-900 px-4 py-10">
-    <div class="w-full max-w-sm space-y-6">
-      <div class="flex flex-col items-center gap-3">
-        <img src="/brand/logo-amarillo.png" alt="Parabrisas Catamarca" width="96" height="68" class="h-16 w-auto">
-        <p class="font-display text-lg font-extrabold tracking-wide text-marca uppercase">Panel de gestión</p>
+  <main class="fondo-cristal flex min-h-dvh flex-col items-center justify-center px-4 py-10">
+    <div class="entrada w-full max-w-sm space-y-7">
+      <div class="flex flex-col items-center gap-4">
+        <span class="rounded-3xl bg-white/5 p-4 ring-1 ring-white/10 shadow-[0_0_48px_-8px_rgb(253_221_61/0.35)]">
+          <img src="/brand/logo-amarillo.png" alt="Parabrisas Catamarca" width="96" height="68" class="h-16 w-auto">
+        </span>
+        <p class="font-display text-lg font-extrabold tracking-[0.18em] text-marca uppercase">Panel de gestión</p>
       </div>
-      <div class="rounded-tarjeta border border-borde bg-superficie p-6 text-texto"><%- contenido %></div>
+      <div class="relative overflow-hidden rounded-2xl border border-white/10 bg-superficie p-6 text-texto shadow-[0_24px_60px_-20px_rgb(0_0_0/0.7)] sm:p-7">
+        <span aria-hidden="true" class="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-amarillo-300 via-marca to-amarillo-500"></span>
+        <%- contenido %>
+      </div>
     </div>
   </main>
 </body>

@@ -121,8 +121,11 @@ export function insignia(tono: Tono, texto: string): string {
   return `<span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${ui.insignia[tono]}">${esc(texto)}</span>`;
 }
 
+const ICONO_AVISO = { exito: "CheckCircle2", alerta: "AlertTriangle", peligro: "XCircle" } as const;
+const COLOR_AVISO = { exito: "text-exito", alerta: "text-alerta", peligro: "text-peligro" } as const;
+
 export function aviso(tono: "exito" | "alerta" | "peligro", mensaje: string, id?: string): string {
-  return `<div${attrs({ id, role: tono === "peligro" ? "alert" : "status" })} class="rounded-lg border px-4 py-3 text-sm ${ui.aviso[tono]}">${esc(mensaje)}</div>`;
+  return `<div${attrs({ id, role: tono === "peligro" ? "alert" : "status" })} class="flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-tarjeta ${ui.aviso[tono]}">${icono(ICONO_AVISO[tono], `mt-0.5 size-[1.1rem] shrink-0 ${COLOR_AVISO[tono]}`)}<span class="min-w-0">${esc(mensaje)}</span></div>`;
 }
 
 export function chipIcono(nombre: NombreIcono, tono: Tono = "marca", clase = ""): string {
@@ -130,15 +133,16 @@ export function chipIcono(nombre: NombreIcono, tono: Tono = "marca", clase = "")
 }
 
 export function vacio(mensaje: string, nombreIcono?: NombreIcono): string {
-  return `<div class="flex flex-col items-center gap-3 rounded-tarjeta border border-dashed border-borde p-8 text-center text-sm text-texto-suave">${
+  return `<div class="flex flex-col items-center gap-3 rounded-tarjeta border border-dashed border-grafito-300 bg-superficie/50 p-10 text-center text-sm text-texto-suave dark:border-grafito-700">${
     nombreIcono ? chipIcono(nombreIcono, "neutro") : ""
   }<div>${esc(mensaje)}</div></div>`;
 }
 
 /** Tarjeta de resumen: franja de color arriba, icono, número grande y etiqueta corta. */
 export function estadistica(etiqueta: string, valor: number | string, nombreIcono: NombreIcono, tono: "marca" | "alerta" | "peligro" | "exito" = "marca"): string {
-  return `<div class="${ui.tarjeta} relative overflow-hidden p-3 sm:p-5">
+  return `<div class="${ui.tarjeta} relative overflow-hidden p-3 transition-shadow duration-300 hover:shadow-elevada sm:p-5">
   <span aria-hidden="true" class="absolute inset-x-0 top-0 h-1 ${ui.estadistica.franja[tono]}"></span>
+  <span aria-hidden="true" class="pointer-events-none absolute -top-10 -right-10 size-28 rounded-full opacity-[0.14] blur-2xl ${ui.estadistica.franja[tono]}"></span>
   <div class="flex items-start justify-between gap-2">
     <p class="text-xs leading-snug text-texto-suave sm:text-sm">${esc(etiqueta)}</p>
     ${chipIcono(nombreIcono, tono, "hidden sm:flex")}
@@ -171,10 +175,10 @@ export function volver(href: string, texto: string): string {
 export function encabezado(e: { seccion: string; titulo: string; descripcion?: string | null; acciones?: string }): string {
   return `<header class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
   <div class="flex min-w-0 gap-3">
-    <span aria-hidden="true" class="mt-1 hidden h-11 w-1 shrink-0 rounded-full bg-marca sm:block"></span>
+    <span aria-hidden="true" class="mt-1 hidden h-12 w-1.5 shrink-0 rounded-full bg-linear-to-b from-amarillo-300 to-amarillo-500 shadow-[0_0_14px_rgb(253_221_61/0.55)] sm:block"></span>
     <div class="min-w-0">
-      <p class="text-xs font-semibold tracking-widest text-acento uppercase sm:text-sm">${esc(e.seccion)}</p>
-      <h1 class="font-display text-2xl leading-tight font-extrabold sm:text-3xl">${esc(e.titulo)}</h1>
+      <p class="text-xs font-bold tracking-[0.18em] text-acento uppercase sm:text-[0.8rem]">${esc(e.seccion)}</p>
+      <h1 class="font-display text-2xl leading-tight font-extrabold tracking-tight sm:text-4xl">${esc(e.titulo)}</h1>
       ${e.descripcion ? `<p class="mt-1 text-sm text-texto-suave">${esc(e.descripcion)}</p>` : ""}
     </div>
   </div>
