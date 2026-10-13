@@ -70,22 +70,15 @@ dpkg-reconfigure -plow unattended-upgrades   # responder "Sí": parches de segur
 
 > La app ya calcula los horarios en hora de Catamarca por su cuenta; la zona del servidor es para que los registros y las copias de seguridad tengan la hora local.
 
-### 2.2 Crear un usuario sin privilegios para la app
+### 2.2 Crear el usuario de la app
 
-Nunca correr la app como `root`.
+Nunca correr la app como `root`. Para administrar el servidor usá tu usuario `vezza` (que ya existe y tiene `sudo`); no hace falta crear otro.
 
 ```bash
 adduser --disabled-password --gecos "" parabrisas
-# Usuario administrador para vos (con sudo), así dejás de entrar como root:
-adduser valen
-usermod -aG sudo valen
-mkdir -p /home/valen/.ssh
-cp /root/.ssh/authorized_keys /home/valen/.ssh/
-chown -R valen:valen /home/valen/.ssh
-chmod 700 /home/valen/.ssh && chmod 600 /home/valen/.ssh/authorized_keys
 ```
 
-Probá en **otra terminal** que entrás con `ssh valen@IP_DEL_VPS` y que `sudo -v` funciona. Recién entonces:
+Probá en **otra terminal** que entrás con `ssh vezza@IP_DEL_VPS` y que `sudo -v` funciona. Recién entonces:
 
 ### 2.3 Cerrar el acceso por contraseña y de root
 
@@ -429,7 +422,7 @@ sudo -u postgres dropdb prueba_restore
 Sin abrir el puerto 5432, con un túnel SSH:
 
 ```powershell
-ssh -L 5433:localhost:5432 valen@IP_DEL_VPS
+ssh -L 5433:localhost:5432 vezza@IP_DEL_VPS
 ```
 
 Y conectás tu cliente (DBeaver, pgAdmin, `prisma studio` con otra `DATABASE_URL`) a `localhost:5433`.
@@ -462,7 +455,7 @@ chmod 700 /home/parabrisas/deploy.sh
 Cada actualización:
 
 ```bash
-ssh valen@IP_DEL_VPS
+ssh vezza@IP_DEL_VPS
 sudo -iu parabrisas ./deploy.sh
 sudo systemctl restart parabrisas
 journalctl -u parabrisas -n 30 --no-pager
