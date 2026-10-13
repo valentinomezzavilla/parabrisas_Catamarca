@@ -1,7 +1,11 @@
 <%
   // Próximos pasos posibles según el estado actual del turno.
   const ACCIONES = {
-    ESPERANDO_PAGO: [{ estado: 'CANCELADO', etiqueta: 'Cancelar', variante: 'fantasma', confirmar: true }],
+    // Reserva del cliente que espera la transferencia de la seña: el local la revisa y decide.
+    ESPERANDO_PAGO: [
+      { estado: 'CONFIRMADO', etiqueta: 'Confirmar', variante: 'primario', confirmar: true },
+      { estado: 'CANCELADO', etiqueta: 'Rechazar', variante: 'fantasma', confirmar: true },
+    ],
     PENDIENTE: [
       { estado: 'CONFIRMADO', etiqueta: 'Confirmar', variante: 'primario' },
       { estado: 'CANCELADO', etiqueta: 'Cancelar', variante: 'fantasma', confirmar: true },
@@ -53,8 +57,13 @@
   <ol class="space-y-3">
     <% for (const t of turnos) {
          const cerrado = ['CANCELADO', 'AUSENTE'].includes(t.estado);
-         const sena = t.pagos[0] ? pesos(t.pagos[0].monto) : null; %>
-      <li id="t-<%= t.id %>" class="<%= ui.tarjeta %> flex scroll-mt-4 overflow-hidden <%= cerrado ? 'opacity-60' : '' %>">
+         const web = t.origen === 'WEB';
+         const pagada = t.pagos.find((p) => p.estado === 'APROBADO');
+         const pendiente = t.pagos.find((p) => p.estado === 'PENDIENTE');
+         const sena = pagada ? pesos(pagada.monto) : null;
+         const senaATransferir = t.estado === 'ESPERANDO_PAGO' && pendiente ? pesos(pendiente.monto) : null; %>
+      <%# Las reservas web cerradas no se atenúan: su color rojo es justamente lo que tiene que verse. %>
+      <li id="t-<%= t.id %>" class="<%= ui.tarjetaTurno(t) %> flex scroll-mt-4 overflow-hidden <%= cerrado && !web ? 'opacity-60' : '' %>">
         <div class="w-1.5 shrink-0" style="background: <%= t.servicio.color %>"></div>
         <div class="grid flex-1 gap-4 p-4 sm:grid-cols-[7rem_1fr_auto]">
           <div>
@@ -67,7 +76,9 @@
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-semibold"><%= t.servicio.nombre %></span>
               <%- insignia(ESTADOS_TURNO[t.estado].tono, ESTADOS_TURNO[t.estado].etiqueta) %>
+              <% if (web) { %><%- insignia('neutro', 'Reserva web') %><% } %>
               <% if (sena) { %><%- insignia('exito', `Seña pagada ${sena}`) %><% } %>
+              <% if (senaATransferir) { %><%- insignia('alerta', `Seña a transferir ${senaATransferir}`) %><% } %>
               <% if (t.estado === 'ESPERANDO_PAGO' && t.venceEn) { %><span class="text-xs text-texto-suave">vence a las <%= formatearHora(t.venceEn) %></span><% } %>
             </div>
             <p class="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -103,18 +114,28 @@
             <% if (puedeEditar(t.estado)) { %>
               <%- enlaceBoton({ href: `/turnos/${t.id}/editar`, texto: 'Editar', icono: 'Pencil', chico: true }) %>
             <% } %>
+            <% const wsp = enlaceAviso(t); if (wsp) { %>
+              <%- enlaceBoton({ href: wsp, texto: t.estado === 'CONFIRMADO' ? 'Avisar por WhatsApp' : 'Escribir por WhatsApp', icono: 'MessageCircle', chico: true, nuevaPestana: true }) %>
+            <% } %>
             <% const acciones = ACCIONES[t.estado] ?? []; if (acciones.length > 0) { %>
               <div class="flex flex-wrap items-center gap-1.5 sm:justify-end">
-                <% for (const a of acciones) { %>
+                <% for (const a of acciones) {
+                     // Una reserva web que el local todavía no aceptó se "rechaza", no se "cancela".
+                     const etiqueta = web && t.estado === 'PENDIENTE' && a.estado === 'CANCELADO' ? 'Rechazar' : a.etiqueta;
+                     const advertencia =
+                       senaATransferir && a.estado === 'CONFIRMADO' ? `Confirmalo solo si ya recibiste la transferencia de ${senaATransferir}.`
+                       : senaATransferir && a.estado === 'CANCELADO' ? 'La reserva queda rechazada y el horario se libera.'
+                       : a.estado === 'CANCELADO' && sena ? `Tiene una seña de ${sena} cobrada. No se devuelve automáticamente.`
+                       : undefined; %>
                   <%- botonAccion({
                     accion: `/turnos/${t.id}/estado`,
                     campos: { estado: a.estado },
-                    texto: a.etiqueta,
+                    texto: etiqueta,
                     variante: a.variante,
                     chico: true,
-                    pregunta: a.confirmar ? `¿${a.etiqueta}?` : undefined,
+                    pregunta: a.confirmar ? `¿${etiqueta}?` : undefined,
                     confirmar: 'Sí',
-                    advertencia: a.estado === 'CANCELADO' && sena ? `Tiene una seña de ${sena} cobrada por Mercado Pago. No se devuelve automáticamente.` : undefined,
+                    advertencia,
                   }) %>
                 <% } %>
               </div>

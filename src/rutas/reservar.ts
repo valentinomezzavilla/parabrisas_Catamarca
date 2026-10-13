@@ -1,10 +1,12 @@
 import { Router, type Request, type Response } from "express";
 import { ZodError } from "zod";
 import { casilla, erroresDeZod, texto, type Errores } from "@/lib/formularios";
+import { pesos } from "@/lib/formato";
 import { obtenerSesion } from "@/lib/sesion";
-import { diaSemana, hoy, sumarDias } from "@/lib/tiempo";
+import { diaSemana, fechaLocal, formatearFecha, formatearHora, hoy, sumarDias } from "@/lib/tiempo";
 import { CobroNoDisponibleError, iniciarCobro, liberarVencidos, sincronizarPago } from "@/modules/pagos/pagos.service";
-import { calcularSena, MINUTOS_RETENCION } from "@/modules/pagos/sena";
+import { calcularSena, medioSena, MINUTOS_RETENCION } from "@/modules/pagos/sena";
+import { enlaceWhatsapp, leerDatosTransferencia, mensajeSena } from "@/modules/pagos/transferencia";
 import { vistaConfirmacion } from "@/modules/pagos/vista";
 import { SinCriteriosError, type RespuestaBusqueda, type RespuestaCancelacion } from "@/modules/turnos/busqueda";
 import { buscarReservas, BusquedasExcedidasError, cancelarReservaCliente } from "@/modules/turnos/reservas-cliente.service";
@@ -70,6 +72,7 @@ async function paginaReservar(req: Request, res: Response, formulario: EstadoFor
       inicioPedido: inicio,
       // Quien tiene sesión del panel carga turnos sin seña.
       sena: personal ? null : calcularSena(servicio.precioBase),
+      medio: medioSena(),
       minutosRetencion: MINUTOS_RETENCION,
       urlPaso: (extra: Record<string, string>) => url("/reservar", { servicio: servicio.slug, ...extra }),
       valores: formulario.valores ?? {},
@@ -101,7 +104,11 @@ rutasReservar.post("/", async (req, res) => {
       },
       { omitirSena: personal, aceptoCondiciones: casilla(req.body, "aceptaCondiciones") },
     );
-    destino = pagoId ? (await iniciarCobro(pagoId)).urlPago : url("/reservar/confirmado", { turno: turno.id });
+    // Por transferencia, la página de confirmación le da al cliente los datos y el mensaje de WhatsApp.
+    destino =
+      pagoId && medioSena() === "mercadopago"
+        ? (await iniciarCobro(pagoId)).urlPago
+        : url("/reservar/confirmado", { turno: turno.id });
   } catch (e) {
     if (e instanceof ZodError) return fallo(erroresDeZod(e));
     if (e instanceof CondicionesNoAceptadasError)
@@ -163,14 +170,14 @@ rutasReservar.post("/cancelar", async (req, res) => {
   await paginaBuscar(res, { cancelacion, codigo });
 });
 
-// --- Regreso desde Mercado Pago ------------------------------------------------
+// --- Después de reservar (o al volver de Mercado Pago) ---------------------------
 
 rutasReservar.get("/confirmado", async (req, res, next) => {
   const id = param(req, "turno");
   if (!id) return next();
 
   // Nada de lo que diga la URL sobre el pago se toma como cierto: se consulta a Mercado Pago.
-  await sincronizarPago(id);
+  if (medioSena() === "mercadopago") await sincronizarPago(id);
   await liberarVencidos();
   const turno = await obtenerTurno(id);
   if (!turno) return next();
@@ -179,8 +186,25 @@ rutasReservar.get("/confirmado", async (req, res, next) => {
   const vista = vistaConfirmacion({
     turnoEstado: turno.estado,
     venceEn: turno.venceEn,
-    pago: pago ? { requiereDevolucion: pago.requiereDevolucion, devuelto: !!pago.devueltoEn } : null,
+    pago: pago ? { estado: pago.estado, requiereDevolucion: pago.requiereDevolucion, devuelto: !!pago.devueltoEn } : null,
     ahora: new Date(),
   });
-  await mostrar(res, "reservar/confirmado", { titulo: "Tu turno", layout: "publico", turno, pago, vista });
+
+  const transferencia = leerDatosTransferencia();
+  const whatsapp =
+    vista.tipo === "esperando_transferencia" && pago && transferencia.whatsapp
+      ? enlaceWhatsapp(
+          transferencia.whatsapp,
+          mensajeSena({
+            nombre: turno.cliente.nombre,
+            servicio: turno.servicio.nombre,
+            dia: formatearFecha(fechaLocal(turno.inicio)),
+            hora: formatearHora(turno.inicio),
+            codigo: turno.codigo,
+            sena: pesos(pago.monto),
+          }),
+        )
+      : null;
+
+  await mostrar(res, "reservar/confirmado", { titulo: "Tu turno", layout: "publico", turno, pago, vista, transferencia, whatsapp });
 });

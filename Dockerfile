@@ -15,5 +15,5 @@ ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
-# Las migraciones se aplican al arrancar; el seed se corre a mano una vez (ver docs/COOLIFY.md).
+# Las migraciones se aplican al arrancar; el seed se corre a mano una vez (ver PLANVPS-COOLIFY.md, paso 15).
 CMD ["sh", "-c", "npx prisma migrate deploy && exec node --enable-source-maps dist/server.js"]

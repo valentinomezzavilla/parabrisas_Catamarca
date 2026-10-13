@@ -19,7 +19,8 @@ export function listarTurnosDelDia(fecha: string) {
       servicio: { select: { nombre: true, color: true, requiereCristal: true } },
       cliente: true,
       cristal: { select: { id: true, codigo: true, descripcion: true, cantidad: true } },
-      pagos: { where: { estado: "APROBADO" }, select: { monto: true } },
+      // La seña cobrada, o la que el cliente todavía tiene que transferir.
+      pagos: { where: { estado: { in: ["APROBADO", "PENDIENTE"] } }, select: { monto: true, estado: true } },
     },
     orderBy: [{ inicio: "asc" }, { creadoEn: "asc" }],
   });
@@ -55,6 +56,9 @@ export function obtenerTurno(id: string) {
  * Cambia el estado de un turno. Al completar un turno con cristal asignado se
  * registra el egreso de stock (una sola vez por turno). Si no hay stock, el
  * turno no se marca como completado y se propaga StockInsuficienteError.
+ *
+ * Un turno que espera la seña sale de ese estado cuando el personal la revisa: al confirmarlo la seña
+ * pendiente queda aprobada, y al cancelarlo (rechazar la reserva) queda rechazada.
  */
 export async function cambiarEstadoTurno(id: string, estado: EstadoTurno) {
   const turno = await db.turno.findUniqueOrThrow({
@@ -71,7 +75,17 @@ export async function cambiarEstadoTurno(id: string, estado: EstadoTurno) {
       turnoId: turno.id,
     });
   }
-  return db.turno.update({ where: { id }, data: { estado } });
+
+  const senaRevisada = turno.estado === "ESPERANDO_PAGO" && (estado === "CONFIRMADO" || estado === "CANCELADO");
+  return db.$transaction(async (tx) => {
+    if (senaRevisada) {
+      await tx.pago.updateMany({
+        where: { turnoId: id, estado: "PENDIENTE" },
+        data: { estado: estado === "CONFIRMADO" ? "APROBADO" : "RECHAZADO" },
+      });
+    }
+    return tx.turno.update({ where: { id }, data: { estado, ...(senaRevisada && { venceEn: null }) } });
+  });
 }
 
 /** Asigna (o quita, con null) el cristal a colocar en un turno. */

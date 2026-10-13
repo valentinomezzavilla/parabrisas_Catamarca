@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { fechaLocal, instanteLocal, sumarMinutos } from "@/lib/tiempo";
 import type { Prisma } from "@/generated/prisma/client";
-import { calcularSena, MINUTOS_RETENCION } from "@/modules/pagos/sena";
+import { calcularSena, medioSena, MINUTOS_RETENCION } from "@/modules/pagos/sena";
 import { listarCamposPropios } from "@/modules/campos/campo.service";
 import { procesarExtras } from "@/modules/campos/extras";
 import type { Extras } from "@/modules/campos/tipos";
@@ -151,9 +151,10 @@ async function codigoLibre(tx: Cliente): Promise<string> {
  * concurrentes, y la disponibilidad se recalcula dentro de la transacción: dos
  * clientes que eligen el mismo horario a la vez no pueden superar la capacidad.
  *
- * Si el servicio tiene precio, el turno nace `ESPERANDO_PAGO` (se retiene `MINUTOS_RETENCION` minutos)
- * con un `Pago` pendiente por la seña. Con `omitirSena` (carga hecha por el personal) o sin precio,
- * nace `PENDIENTE` como siempre.
+ * Si el servicio tiene precio, el turno nace `ESPERANDO_PAGO` con un `Pago` pendiente por la seña. Por
+ * transferencia el horario queda tomado sin vencimiento, hasta que el personal confirme o rechace la seña;
+ * con Mercado Pago se retiene `MINUTOS_RETENCION` minutos. Con `omitirSena` (carga hecha por el personal) o
+ * sin precio, nace `PENDIENTE` como siempre.
  */
 export async function reservarTurno(
   input: ReservaInput,
@@ -177,6 +178,7 @@ export async function reservarTurno(
       (await tx.cliente.create({ data: r.cliente }));
 
     const ahora = new Date();
+    const retener = sena !== null && medioSena() === "mercadopago";
     const turno = await tx.turno.create({
       data: {
         codigo: await codigoLibre(tx),
@@ -185,7 +187,8 @@ export async function reservarTurno(
         inicio: elegido.inicio,
         fin: elegido.fin,
         estado: sena === null ? "PENDIENTE" : "ESPERANDO_PAGO",
-        venceEn: sena === null ? null : sumarMinutos(ahora, MINUTOS_RETENCION),
+        origen: omitirSena ? "PANEL" : "WEB",
+        venceEn: retener ? sumarMinutos(ahora, MINUTOS_RETENCION) : null,
         precio: servicio.precioBase,
         vehiculo: r.vehiculo,
         patente: r.patente,

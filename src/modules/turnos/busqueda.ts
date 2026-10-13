@@ -143,7 +143,7 @@ export function etiquetaEstadoCliente(estado: EstadoTurno): string {
     case "CONFIRMADO":
       return "Confirmada";
     case "ESPERANDO_PAGO":
-      return "Esperando el pago";
+      return "Esperando la seña";
     default:
       return "Pendiente de confirmación";
   }

@@ -1,23 +1,32 @@
 <%
-  const sinTurno = vista.tipo === 'sin_turno' || vista.tipo === 'no_completado';
-  const nombreIcono = vista.tipo === 'esperando' ? 'Clock' : sinTurno ? 'XCircle' : 'CheckCircle2';
-  const claseIcono = vista.tipo === 'esperando' ? 'text-alerta' : sinTurno ? 'text-peligro' : 'text-exito';
+  const sinTurno = ['sin_turno', 'no_completado', 'rechazado'].includes(vista.tipo);
+  const espera = vista.tipo === 'esperando' || vista.tipo === 'esperando_transferencia';
+  const nombreIcono = espera ? 'Clock' : sinTurno ? 'XCircle' : 'CheckCircle2';
+  const claseIcono = espera ? 'text-alerta' : sinTurno ? 'text-peligro' : 'text-exito';
   const nombre = turno.cliente.nombre.split(' ')[0];
   const tituloVista = {
     esperando: 'Estamos esperando tu pago',
+    esperando_transferencia: `¡Reserva recibida, ${nombre}!`,
     sin_turno: 'Recibimos tu pago, pero…',
     no_completado: 'No se completó el pago',
+    rechazado: 'Tu reserva no fue confirmada',
     confirmado: `¡Listo, ${nombre}!`,
     reservado: `¡Listo, ${nombre}!`,
   }[vista.tipo];
-  const hayTurno = vista.tipo === 'esperando' || vista.tipo === 'confirmado' || vista.tipo === 'reservado';
+  const hayTurno = espera || vista.tipo === 'confirmado' || vista.tipo === 'reservado';
+  const datosCuenta = [
+    ['Alias', transferencia.alias],
+    ['CBU', transferencia.cbu],
+    ['Titular', transferencia.titular],
+  ].filter(([, valor]) => valor);
 %>
 <div class="<%= ui.tarjeta %> space-y-5 p-6 text-center">
   <%- icono(nombreIcono, `mx-auto size-14 ${claseIcono}`) %>
   <div class="space-y-1">
     <h1 class="font-display text-2xl font-extrabold"><%= tituloVista %></h1>
     <% if (vista.tipo === 'esperando') { %><p class="text-texto-suave">Cuando Mercado Pago nos avise, tu turno queda confirmado.</p><% } %>
-    <% if (vista.tipo === 'confirmado') { %><p class="text-texto-suave">Tu turno quedó confirmado<%= pago ? ` con la seña de ${pesos(pago.monto)}` : '' %>.</p><% } %>
+    <% if (vista.tipo === 'esperando_transferencia') { %><p class="text-texto-suave">Tu horario quedó reservado. Lo confirmamos cuando recibamos la seña.</p><% } %>
+    <% if (vista.tipo === 'confirmado') { %><p class="text-texto-suave">Tu turno quedó confirmado<%= pago && pago.estado === 'APROBADO' ? ` con la seña de ${pesos(pago.monto)}` : '' %>.</p><% } %>
     <% if (vista.tipo === 'reservado') { %><p class="text-texto-suave">Tu turno quedó reservado.</p><% } %>
   </div>
 
@@ -27,6 +36,7 @@
       : 'No pudimos confirmar tu turno (el horario ya no estaba disponible o el monto no coincidía). Comunicate con el local para que te devuelvan la seña.') %>
   <% } %>
   <% if (vista.tipo === 'no_completado') { %><%- aviso('alerta', 'El pago no se completó y el horario se liberó. Podés sacar un turno nuevo.') %><% } %>
+  <% if (vista.tipo === 'rechazado') { %><%- aviso('alerta', 'El local no pudo confirmar tu reserva y el horario se liberó. Si ya transferiste la seña, comunicate con el local.') %><% } %>
   <% if (vista.tipo === 'confirmado' && vista.pagoDeMas) { %><%- aviso('alerta', 'Detectamos un pago de más. Comunicate con el local para que te lo devuelvan.') %><% } %>
 
   <% if (hayTurno) { %>
@@ -42,6 +52,28 @@
     </dl>
   <% } %>
 
+  <% if (vista.tipo === 'esperando_transferencia' && pago) { %>
+    <div class="mx-auto max-w-sm space-y-4 rounded-lg border border-marca/60 bg-marca/10 p-4 text-left text-sm">
+      <p>
+        Para confirmar el turno, transferí la <strong>seña de <%= pesos(pago.monto) %></strong> y mandanos el comprobante por WhatsApp.
+      </p>
+      <% if (datosCuenta.length > 0) { %>
+        <dl class="space-y-2">
+          <% for (const [etiqueta, valor] of datosCuenta) { %>
+            <div><dt class="text-xs text-texto-suave"><%= etiqueta %></dt><dd class="font-mono font-semibold break-all select-all"><%= valor %></dd></div>
+          <% } %>
+          <div><dt class="text-xs text-texto-suave">Monto</dt><dd class="font-semibold"><%= pesos(pago.monto) %></dd></div>
+        </dl>
+      <% } else { %>
+        <p class="text-texto-suave">Pedile al local los datos para transferir.</p>
+      <% } %>
+      <% if (whatsapp) { %>
+        <%- enlaceBoton({ href: whatsapp, texto: 'Confirmar turno', variante: 'primario', icono: 'MessageCircle', nuevaPestana: true, clase: 'w-full' }) %>
+      <% } %>
+      <p class="text-xs text-texto-suave">La seña no se devuelve si cancelás la reserva.</p>
+    </div>
+  <% } %>
+
   <% if (vista.tipo === 'esperando') { %>
     <div class="flex flex-wrap justify-center gap-2">
       <%- enlaceBoton({ href: `/reservar/confirmado?turno=${encodeURIComponent(turno.id)}`, texto: 'Ya pagué, actualizar', variante: 'primario' }) %>
@@ -52,5 +84,5 @@
   <% if (vista.tipo === 'confirmado' || vista.tipo === 'reservado') { %>
     <p class="text-sm text-texto-suave">Si necesitás cambiarlo o cancelarlo, comunicate con el local. La seña no se devuelve.</p>
   <% } %>
-  <% if (vista.tipo !== 'esperando') { %><%- enlaceBoton({ href: '/reservar', texto: 'Sacar otro turno' }) %><% } %>
+  <% if (!espera) { %><%- enlaceBoton({ href: '/reservar', texto: 'Sacar otro turno' }) %><% } %>
 </div>

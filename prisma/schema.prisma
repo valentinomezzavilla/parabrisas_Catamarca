@@ -242,6 +242,12 @@ enum EstadoTurno {
   AUSENTE
 }
 
+/// Quién cargó el turno: el personal desde el panel o el cliente desde /reservar.
+enum OrigenTurno {
+  PANEL
+  WEB
+}
+
 /// Turno reservado. `fin` y `precio` se copian del servicio al reservar, así los
 /// cambios futuros en el servicio no alteran turnos ya dados.
 model Turno {
@@ -254,7 +260,8 @@ model Turno {
   inicio          DateTime
   fin             DateTime
   estado          EstadoTurno       @default(PENDIENTE)
-  venceEn         DateTime?         @map("vence_en") // solo en ESPERANDO_PAGO: hasta cuándo se retiene el horario
+  origen          OrigenTurno       @default(PANEL)
+  venceEn         DateTime?         @map("vence_en") // solo en ESPERANDO_PAGO con Mercado Pago: hasta cuándo se retiene el horario
   vehiculo       String? // texto libre: "Toyota Hilux 2019"
   patente         String?
   cristalId       String?           @map("cristal_id") // cristal a colocar, si aplica
@@ -278,7 +285,8 @@ enum EstadoPago {
   VENCIDO
 }
 
-/// Seña de un turno cobrada con Mercado Pago. `mpPagoId` es único: un mismo pago nunca se aplica dos veces.
+/// Seña de un turno. Por transferencia, el personal la aprueba o la rechaza desde la agenda; con Mercado Pago
+/// la confirma el webhook. `mpPagoId` es único: un mismo pago nunca se aplica dos veces.
 model Pago {
   id                  String     @id @default(cuid()) // también es el external_reference que viaja a Mercado Pago
   turnoId             String     @map("turno_id")

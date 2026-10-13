@@ -1,4 +1,4 @@
-import type { EstadoTurno } from "@/generated/prisma/client";
+import type { EstadoTurno, OrigenTurno } from "@/generated/prisma/client";
 
 // Clases compartidas de la interfaz (Tailwind). Las vistas las usan como `ui.boton.primario`.
 // Áreas táctiles: 44 px de alto en celular y 40 px desde `sm`; `boton.chico` es el tamaño compacto.
@@ -19,8 +19,33 @@ export type VarianteBoton = Exclude<keyof typeof boton, "chico">;
 export const input =
   "w-full min-h-11 rounded-lg border border-borde bg-superficie px-3 py-2 text-base shadow-tarjeta transition-[border-color,box-shadow] duration-200 placeholder:text-grafito-400 hover:border-grafito-400 focus:border-amarillo-500 focus:outline-none focus:ring-2 focus:ring-amarillo-500/30 aria-invalid:border-peligro sm:min-h-10 sm:text-sm";
 
-export const tarjeta =
-  "rounded-tarjeta border border-borde bg-superficie shadow-tarjeta dark:shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]";
+const baseTarjeta = "rounded-tarjeta border shadow-tarjeta dark:shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]";
+
+export const tarjeta = `${baseTarjeta} border-borde bg-superficie`;
+
+const COLOR_RESERVA_WEB = {
+  pendiente: "border-grafito-400/60 bg-grafito-500/10",
+  confirmada: "border-exito/50 bg-exito/10",
+  rechazada: "border-peligro/50 bg-peligro/10",
+};
+
+const GRUPO_RESERVA_WEB: Record<EstadoTurno, keyof typeof COLOR_RESERVA_WEB> = {
+  ESPERANDO_PAGO: "pendiente",
+  PENDIENTE: "pendiente",
+  CONFIRMADO: "confirmada",
+  EN_CURSO: "confirmada",
+  COMPLETADO: "confirmada",
+  CANCELADO: "rechazada",
+  AUSENTE: "rechazada",
+};
+
+/**
+ * Tarjeta de un turno en la agenda. Las reservas que hizo el cliente desde /reservar se pintan según en qué
+ * quedaron: gris mientras el local no las revisa, verde confirmadas y rojo rechazadas o canceladas.
+ */
+export function tarjetaTurno(t: { origen: OrigenTurno; estado: EstadoTurno }): string {
+  return t.origen === "WEB" ? `${baseTarjeta} ${COLOR_RESERVA_WEB[GRUPO_RESERVA_WEB[t.estado]]}` : tarjeta;
+}
 
 /** Tarjeta que es un enlace: se eleva y se tiñe de amarillo al pasar el mouse o enfocarla. */
 export const tarjetaEnlace = `${tarjeta} transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-amarillo-500/70 hover:shadow-elevada focus-visible:-translate-y-0.5 focus-visible:shadow-elevada`;
@@ -60,7 +85,7 @@ export const estadistica = {
 };
 
 export const ESTADOS_TURNO: Record<EstadoTurno, { etiqueta: string; tono: Tono }> = {
-  ESPERANDO_PAGO: { etiqueta: "Esperando pago", tono: "alerta" },
+  ESPERANDO_PAGO: { etiqueta: "Esperando seña", tono: "alerta" },
   PENDIENTE: { etiqueta: "Pendiente", tono: "alerta" },
   CONFIRMADO: { etiqueta: "Confirmado", tono: "marca" },
   EN_CURSO: { etiqueta: "En curso", tono: "neutro" },
@@ -69,4 +94,4 @@ export const ESTADOS_TURNO: Record<EstadoTurno, { etiqueta: string; tono: Tono }
   AUSENTE: { etiqueta: "No vino", tono: "neutro" },
 };
 
-export const ui = { boton, input, tarjeta, tarjetaEnlace, casilla, insignia, chip, aviso, estadistica };
+export const ui = { boton, input, tarjeta, tarjetaEnlace, tarjetaTurno, casilla, insignia, chip, aviso, estadistica };

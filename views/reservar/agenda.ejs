@@ -72,10 +72,17 @@
 
           <% if (sena !== null) { %>
             <div class="space-y-3 rounded-lg border border-marca/60 bg-marca/10 p-4 text-sm">
-              <p>
-                Para confirmar el turno se paga una <strong>seña de <%= pesos(sena) %></strong> (la mitad del servicio) con Mercado Pago.
-                Tenés <strong><%= minutosRetencion %> minutos</strong> para pagar: pasado ese tiempo el horario se libera.
-              </p>
+              <% if (medio === 'mercadopago') { %>
+                <p>
+                  Para confirmar el turno se paga una <strong>seña de <%= pesos(sena) %></strong> (el 10 % del servicio) con Mercado Pago.
+                  Tenés <strong><%= minutosRetencion %> minutos</strong> para pagar: pasado ese tiempo el horario se libera.
+                </p>
+              <% } else { %>
+                <p>
+                  Para confirmar el turno se transfiere una <strong>seña de <%= pesos(sena) %></strong> (el 10 % del servicio).
+                  Al reservar te mostramos los datos para transferir y te armamos el mensaje para mandarnos el comprobante por WhatsApp.
+                </p>
+              <% } %>
               <label class="flex items-start gap-2">
                 <input type="checkbox" name="aceptaCondiciones" class="mt-0.5 size-5 shrink-0"<% if (errores.aceptaCondiciones) { %> aria-invalid="true"<% } %>>
                 <span>Entiendo que la seña no se devuelve.</span>
@@ -85,7 +92,7 @@
           <% } %>
 
           <button type="submit" data-enviando="Reservando…" class="<%= ui.boton.primario %> w-full py-3 text-base">
-            <%= sena !== null ? `Pagar seña de ${pesos(sena)}` : 'Confirmar turno' %>
+            <%= sena !== null && medio === 'mercadopago' ? `Pagar seña de ${pesos(sena)}` : sena !== null ? 'Reservar turno' : 'Confirmar turno' %>
           </button>
         </form>
       </div>

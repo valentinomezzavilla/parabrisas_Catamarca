@@ -3,10 +3,12 @@ import { ZodError } from "zod";
 import { EstadoTurno } from "@/generated/prisma/enums";
 import { erroresDeZod, numero, texto, type Errores } from "@/lib/formularios";
 import { pesos } from "@/lib/formato";
-import { diaSemana, fechaLocal, hoy, sumarDias } from "@/lib/tiempo";
+import { diaSemana, fechaLocal, formatearFecha, formatearHora, hoy, sumarDias } from "@/lib/tiempo";
 import { z } from "@/lib/zod";
 import { StockInsuficienteError } from "@/modules/inventario/cristal.service";
 import { liberarVencidos } from "@/modules/pagos/pagos.service";
+import { enlaceWhatsapp } from "@/modules/pagos/transferencia";
+import { mensajeAvisoTurno, numeroWhatsappCliente } from "@/modules/turnos/aviso-cliente";
 import { puedeEditar } from "@/modules/turnos/edicion";
 import { listarServicios, obtenerDisponibilidad, TurnoNoDisponibleError } from "@/modules/turnos/servicio.service";
 import {
@@ -25,6 +27,24 @@ import { param, paramFecha, url } from "@/web/parametros";
 import { mostrar } from "@/web/vistas";
 
 export const rutasTurnos = Router();
+
+type TurnoDelDia = Awaited<ReturnType<typeof listarTurnosDelDia>>[number];
+
+/** Enlace de WhatsApp al cliente con el aviso que corresponde al estado del turno, o `null` si no hay qué avisar o el teléfono no sirve. */
+function enlaceAviso(t: TurnoDelDia): string | null {
+  const numero = numeroWhatsappCliente(t.cliente.telefono);
+  if (!numero) return null;
+  const pendiente = t.pagos.find((p) => p.estado === "PENDIENTE");
+  const mensaje = mensajeAvisoTurno(t.estado, {
+    nombre: t.cliente.nombre,
+    servicio: t.servicio.nombre,
+    dia: formatearFecha(fechaLocal(t.inicio)),
+    hora: formatearHora(t.inicio),
+    codigo: t.codigo,
+    senaPendiente: pendiente ? pesos(pendiente.monto) : null,
+  });
+  return mensaje ? enlaceWhatsapp(numero, mensaje) : null;
+}
 
 const agendaDe = (inicio: Date, id?: string) => url("/turnos", { fecha: fechaLocal(inicio) }, id && `t-${id}`);
 
@@ -52,6 +72,7 @@ rutasTurnos.get("/", async (req, res) => {
     cristales,
     sumarDias,
     puedeEditar,
+    enlaceAviso,
   });
 });
 

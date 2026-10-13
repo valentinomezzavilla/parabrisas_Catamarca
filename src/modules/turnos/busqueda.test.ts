@@ -169,7 +169,7 @@ describe("aReservaVisible", () => {
 describe("etiquetaEstadoCliente", () => {
   it("usa palabras para el cliente", () => {
     expect(etiquetaEstadoCliente("CONFIRMADO")).toBe("Confirmada");
-    expect(etiquetaEstadoCliente("ESPERANDO_PAGO")).toBe("Esperando el pago");
+    expect(etiquetaEstadoCliente("ESPERANDO_PAGO")).toBe("Esperando la seña");
     expect(etiquetaEstadoCliente("PENDIENTE")).toBe("Pendiente de confirmación");
   });
 });
