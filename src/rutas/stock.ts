@@ -15,6 +15,7 @@ import {
   StockInsuficienteError,
 } from "@/modules/inventario/cristal.service";
 import type { CrearCristalInput } from "@/modules/inventario/schemas";
+import { buscarModelo, nombreVehiculo } from "@/modules/inventario/vehiculos";
 import { avisar } from "@/web/avisos";
 import { param } from "@/web/parametros";
 import { mostrar } from "@/web/vistas";
@@ -59,7 +60,8 @@ rutasStock.get("/", async (req, res) => {
 export interface ValoresCristal {
   campos: Record<string, string>;
   extras: Record<string, ValorExtra | undefined>;
-  compatibilidades: { modeloId: string; anioDesde: string; anioHasta: string; carroceria: string }[];
+  /** `modelo` es el texto escrito ("Toyota Hilux"); al guardar se traduce al id con `buscarModelo`. */
+  compatibilidades: { modelo: string; anioDesde: string; anioHasta: string; carroceria: string }[];
 }
 
 const CAMPOS_CRISTAL = [
@@ -84,13 +86,13 @@ const aTexto = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 
 /** Filas de vehículos compatibles del formulario (controles `compat_*` repetidos), sin las que no tienen modelo. */
 function compatibilidadesDe(cuerpo: Cuerpo): ValoresCristal["compatibilidades"] {
-  const modelos = lista(cuerpo, "compat_modeloId");
+  const modelos = lista(cuerpo, "compat_modelo");
   const desde = lista(cuerpo, "compat_anioDesde");
   const hasta = lista(cuerpo, "compat_anioHasta");
   const carrocerias = lista(cuerpo, "compat_carroceria");
   return modelos
-    .map((modeloId, i) => ({ modeloId, anioDesde: desde[i] ?? "", anioHasta: hasta[i] ?? "", carroceria: carrocerias[i] ?? "" }))
-    .filter((c) => c.modeloId !== "");
+    .map((modelo, i) => ({ modelo: modelo.trim(), anioDesde: desde[i] ?? "", anioHasta: hasta[i] ?? "", carroceria: carrocerias[i] ?? "" }))
+    .filter((c) => c.modelo !== "");
 }
 
 function valoresEnviados(cuerpo: Cuerpo): ValoresCristal {
@@ -109,22 +111,26 @@ interface EstadoFormulario {
   mensaje?: string | null;
 }
 
+/** Catálogos del formulario: lo que el cristal ya tiene guardado se ofrece aunque esté desactivado en las listas. */
+function catalogosDelFormulario(cristal: Awaited<ReturnType<typeof obtenerCristal>>) {
+  const conservar = cristal
+    ? [cristal.marcaId, cristal.tipoId, cristal.ubicacionId, ...cristal.compatibilidades.flatMap((v) => [v.modeloId, v.modelo.marcaId])]
+    : [];
+  return obtenerCatalogos({ conservar });
+}
+
 async function paginaFormulario(res: Response, id: string | null, formulario: EstadoFormulario = {}, estado = 200) {
   const cristal = id ? await obtenerCristal(id) : null;
   if (id && !cristal) return mostrar(res, "errores/404", { titulo: "No encontrado" }, 404);
 
-  // Lo que el cristal ya tiene guardado se ofrece aunque esté desactivado en las listas.
-  const conservar = cristal
-    ? [cristal.marcaId, cristal.tipoId, cristal.ubicacionId, ...cristal.compatibilidades.flatMap((v) => [v.modeloId, v.modelo.marcaId])]
-    : [];
-  const [catalogos, campos] = await Promise.all([obtenerCatalogos({ conservar }), obtenerCampos("CRISTAL")]);
+  const [catalogos, campos] = await Promise.all([catalogosDelFormulario(cristal), obtenerCampos("CRISTAL")]);
 
   const guardados: ValoresCristal = cristal
     ? {
         campos: { ...Object.fromEntries(CAMPOS_CRISTAL.map((c) => [c, aTexto((cristal as Record<string, unknown>)[c])])), cantidadInicial: "0" },
         extras: cristal.extras as Extras,
         compatibilidades: cristal.compatibilidades.map((c) => ({
-          modeloId: c.modeloId,
+          modelo: nombreVehiculo(c.modelo.marca.nombre, c.modelo.nombre),
           anioDesde: aTexto(c.anioDesde),
           anioHasta: aTexto(c.anioHasta),
           carroceria: aTexto(c.carroceria),
@@ -159,12 +165,23 @@ async function guardarCristal(req: Request, res: Response, id: string | null) {
   // Un campo del sistema oculto no viaja en el formulario: queda sin valor al crear y sin tocar al editar.
   // Además, solo se toca lo que el formulario realmente mostró (`dibujado`): si un campo pasó a visible
   // mientras la persona tenía el formulario abierto, no viaja y no debe pisarse con un valor vacío.
-  const campos = await obtenerCampos("CRISTAL");
+  const [campos, catalogos] = await Promise.all([
+    obtenerCampos("CRISTAL"),
+    id ? obtenerCristal(id).then(catalogosDelFormulario) : catalogosDelFormulario(null),
+  ]);
   const dibujados = "dibujados" in cuerpo ? new Set(lista(cuerpo, "dibujado")) : null;
   const visible = (clave: string) =>
     (campos.find((c) => c.clave === clave)?.visible ?? true) && (dibujados ? dibujados.has(clave) : true);
   const siVisible = <T>(clave: string, leer: () => T): T | undefined => (visible(clave) ? leer() : undefined);
   const anio = (v: string) => (v === "" ? undefined : Number(v));
+
+  // El modelo se escribe: si no coincide con la lista viaja sin id, Zod rechaza la fila y acá se explica por qué.
+  const filas = compatibilidadesDe(cuerpo).map((c) => ({ ...c, modeloId: buscarModelo(c.modelo, catalogos.marcasVehiculo) ?? "" }));
+  const modelosDesconocidos: Errores = Object.fromEntries(
+    filas.flatMap((c, i) =>
+      c.modeloId ? [] : [[`compatibilidades.${i}.modeloId`, `No encontramos “${c.modelo}”: elegilo de la lista o agregalo en Administración.`]],
+    ),
+  );
 
   // Los tipos se validan en el servicio (crearCristalSchema); acá solo se leen los campos.
   const entrada = {
@@ -186,7 +203,7 @@ async function guardarCristal(req: Request, res: Response, id: string | null) {
     extrasEntrada: leerExtras(cuerpo),
     extrasDibujados: dibujados ? [...dibujados] : undefined,
     compatibilidades: siVisible("compatibilidades", () =>
-      compatibilidadesDe(cuerpo).map((c) => ({
+      filas.map((c) => ({
         modeloId: c.modeloId,
         anioDesde: anio(c.anioDesde),
         anioHasta: anio(c.anioHasta),
@@ -211,7 +228,7 @@ async function guardarCristal(req: Request, res: Response, id: string | null) {
       destino = `/stock/${creado.id}`;
     }
   } catch (e) {
-    if (e instanceof ZodError) return fallo(erroresDeZod(e));
+    if (e instanceof ZodError) return fallo({ ...erroresDeZod(e), ...modelosDesconocidos });
     if (esDuplicado(e)) return fallo({ codigo: "Ya existe un cristal con ese código" });
     throw e;
   }

@@ -67,7 +67,10 @@
           <%- include('../parciales/fila-compat', { fila, falla: errores[`compatibilidades.${i}.anioHasta`] ?? errores[`compatibilidades.${i}.anioDesde`] ?? errores[`compatibilidades.${i}.modeloId`] }) %>
         <% }) %>
       </div>
-      <template data-plantilla="compat"><%- include('../parciales/fila-compat', { fila: { modeloId: '', anioDesde: '', anioHasta: '', carroceria: '' }, falla: null }) %></template>
+      <template data-plantilla="compat"><%- include('../parciales/fila-compat', { fila: { modelo: '', anioDesde: '', anioHasta: '', carroceria: '' }, falla: null }) %></template>
+      <datalist id="modelos-vehiculo">
+        <% for (const m of catalogos.marcasVehiculo) { for (const mo of m.modelos) { %><option value="<%= `${m.nombre} ${mo.nombre}` %>"></option><% } } %>
+      </datalist>
     </section>
   <%   }
        const items = deSeccion(s.id);

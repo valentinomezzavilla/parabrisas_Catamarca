@@ -9,6 +9,7 @@ import { hashearPassword } from "../src/lib/password";
 import { generarClave } from "../src/modules/campos/clave";
 import { crearOpciones } from "../src/modules/campos/opciones";
 import { horaAMinutos } from "../src/lib/tiempo";
+import { VEHICULOS } from "./vehiculos";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
@@ -131,16 +132,7 @@ async function sembrarCatalogos() {
     });
   }
 
-  const vehiculos: Record<string, string[]> = {
-    Toyota: ["Hilux", "Corolla", "Etios", "Yaris"],
-    Ford: ["Ranger", "Ka", "Fiesta", "EcoSport"],
-    Volkswagen: ["Gol Trend", "Amarok", "Polo", "Suran"],
-    Chevrolet: ["Onix", "Prisma", "S10", "Cruze"],
-    Fiat: ["Cronos", "Palio", "Strada", "Toro"],
-    Peugeot: ["208", "2008", "Partner"],
-    Renault: ["Sandero", "Kangoo", "Duster"],
-  };
-  for (const [marca, modelos] of Object.entries(vehiculos)) {
+  for (const [marca, modelos] of Object.entries(VEHICULOS)) {
     const m = await db.marcaVehiculo.upsert(porNombre(marca));
     for (const nombre of modelos) {
       await db.modeloVehiculo.upsert({

@@ -1,9 +1,7 @@
 <div class="space-y-1" data-fila>
   <div class="grid grid-cols-2 gap-2 sm:grid-cols-[2fr_1fr_1fr_2fr_auto]">
-    <%- control({ nombre: 'compat_modeloId', tipo: 'select', valor: fila.modeloId, clase: `${ui.input} col-span-2 sm:col-span-1`,
-                  atributos: { id: undefined, 'aria-label': 'Modelo' },
-                  opciones: [{ valor: '', texto: 'Elegir modelo…' }],
-                  grupos: catalogos.marcasVehiculo.map((m) => ({ etiqueta: m.nombre, opciones: m.modelos.map((mo) => ({ valor: mo.id, texto: `${m.nombre} ${mo.nombre}` })) })) }) %>
+    <%# Se escribe o se elige de la lista (datalist `modelos-vehiculo` del formulario); el servidor lo traduce al modelo. %>
+    <input name="compat_modelo" value="<%= fila.modelo %>" list="modelos-vehiculo" autocomplete="off" placeholder="Escribí o elegí el modelo…" aria-label="Modelo" class="<%= ui.input %> col-span-2 sm:col-span-1">
     <input type="number" name="compat_anioDesde" value="<%= fila.anioDesde %>" placeholder="Desde" aria-label="Año desde" class="<%= ui.input %>">
     <input type="number" name="compat_anioHasta" value="<%= fila.anioHasta %>" placeholder="Hasta" aria-label="Año hasta" class="<%= ui.input %>">
     <input name="compat_carroceria" value="<%= fila.carroceria %>" placeholder="Carrocería / versión" aria-label="Carrocería o versión" class="<%= ui.input %>">
