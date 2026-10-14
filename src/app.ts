@@ -7,6 +7,7 @@ import { rutasAdministracion } from "@/rutas/administracion";
 import { rutasAuth } from "@/rutas/auth";
 import { rutasInicio } from "@/rutas/inicio";
 import { rutasMercadoPago } from "@/rutas/mercadopago";
+import { rutasOrdenes } from "@/rutas/ordenes";
 import { rutasReservar } from "@/rutas/reservar";
 import { rutasServicios } from "@/rutas/servicios";
 import { rutasStock } from "@/rutas/stock";
@@ -31,6 +32,8 @@ export function crearApp() {
   app.use(encabezadosSeguros);
   app.use(express.static(`${RAIZ}public`, { index: false, maxAge: PRODUCCION ? "1d" : 0 }));
   app.use(cookieParser());
+  // La importación desde Notion manda el CSV entero en el formulario. El resto usa el límite general.
+  app.use("/administracion/ordenes/importar", express.urlencoded({ extended: false, limit: "2mb" }));
   app.use(express.urlencoded({ extended: false, limit: "100kb" }));
   app.use(leerAviso);
   app.use((req, res, next) => {
@@ -52,6 +55,7 @@ export function crearApp() {
   app.use(rutasInicio);
   app.use("/turnos", rutasTurnos);
   app.use("/stock", rutasStock);
+  app.use("/ordenes", rutasOrdenes);
   app.use("/servicios", rutasServicios);
   app.use("/usuarios", rutasUsuarios);
   app.use("/administracion", rutasAdministracion);

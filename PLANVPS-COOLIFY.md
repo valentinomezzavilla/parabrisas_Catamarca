@@ -332,6 +332,17 @@ Abrí `https://TU_DOMINIO/login` e iniciá sesión con `ADMIN_USUARIO` y `ADMIN_
 - Probá que `https://TU_DOMINIO/reservar` abre la página pública de reservas.
 - Probá crear un turno desde el panel. Si al enviar un formulario aparece "Origen no permitido", avisame: significa que algo del proxy no está pasando el host.
 
+### Importar las órdenes de trabajo de Notion (una sola vez)
+
+1. En Notion, abrí la base "Órdenes de Trabajo" → **··· → Exportar** → formato *Markdown y CSV*. Descomprimí el archivo.
+2. En la app, como administrador: **Administración → Órdenes de trabajo → Importar desde Notion**. Elegí el `.csv` y tocá **Importar órdenes**.
+3. **Cómo sabés que salió bien:** aparece "Se importaron N órdenes…" y en **Órdenes** se ven todas, con sus estados.
+4. Renombrá las aseguradoras ("Aseguradora 1, 2…") y el proveedor en esa misma pantalla: en Notion las páginas no tenían título.
+5. Cargá el importe total de las órdenes instaladas o facturadas (ficha de la orden → *Facturación y cobro*) para que aparezcan en **Cobranzas**.
+
+- Solo funciona con el módulo vacío: si ya cargaste órdenes a mano, no deja importar.
+- Los nombres de los clientes no vienen en la exportación: quedan como "Sin nombre" con su teléfono, y se corrigen al editar cada orden.
+
 ---
 
 ## PARTE 7 — Seña por transferencia

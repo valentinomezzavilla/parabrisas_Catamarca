@@ -22,6 +22,7 @@ export const GRUPOS: GrupoNav[] = [
       { href: "/", etiqueta: "Panel", icono: "LayoutDashboard" },
       { href: "/turnos", etiqueta: "Turnos", icono: "CalendarClock" },
       { href: "/stock", etiqueta: "Stock", icono: "Package" },
+      { href: "/ordenes", etiqueta: "Órdenes", icono: "ClipboardList" },
     ],
   },
   {

@@ -35,6 +35,7 @@ src/
     inventario/          ← schemas.ts (Zod) + cristal.service.ts
     campos/              ← campos configurables: registro del sistema, combinación, valores propios, servicios
     turnos/              ← schemas.ts + servicio.service.ts + disponibilidad.ts (pura, con tests)
+    ordenes/             ← órdenes de trabajo: estados.ts y notion.ts (puras, con tests), schemas.ts, orden.service.ts, sincronizar.ts
 views/                   ← plantillas EJS: layouts/ (panel, publico, auth), parciales/ y una carpeta por sección
 public/                  ← logo, iconos, js/app.js y css/app.css (generado por Tailwind)
 scripts/build.mjs        ← compila el servidor a dist/server.js (esbuild)
@@ -98,12 +99,34 @@ Servicio ─< HorarioServicio
 
 **Baja de servicios:** si nunca tuvo turnos se borra. Si tiene historial se **archiva** (`activo = false`, `archivado_en`): deja de ofrecerse y los turnos pasados siguen consultables.
 
+### Órdenes de trabajo (seguros y particulares)
+
+Reemplazan la base "Órdenes de Trabajo" de Notion. Diseño completo en `docs/superpowers/specs/2026-10-14-ordenes-trabajo-design.md`.
+
+```
+Cliente ─< OrdenTrabajo >── Aseguradora / Proveedor / Cristal (opcionales)
+             │  └── Turno (opcional, 1 a 1)
+             └─< CobroOrden
+```
+
+| Tabla | Campos clave | Notas |
+|---|---|---|
+| `aseguradoras`, `proveedores` | nombre (único), activo | Listas en Administración → Órdenes de trabajo. |
+| `ordenes_trabajo` | numero (correlativo), tipo (`SEGURO`/`PARTICULAR`), estado, recibida_el (DATE), cliente_id, vehiculo, patente (normalizada: `AF722KI`), aseguradora_id, siniestro, codigo_cristal (texto libre), cristal_id, proveedor_id, turno_id (único), importe_total, factura_numero/fecha/importe, observaciones | |
+| `cobros_orden` | orden_id, fecha, monto, pagador (`ASEGURADORA`/`CLIENTE`), medio | Cobros parciales: el saldo es `importe_total − Σ cobros`. |
+
+**Estados** (`modules/ordenes/estados.ts`, puro): Falta pedir → Pedido → Turno asignado → Instalada → Facturada → Cobrada, más Cancelada. Todos se eligen a mano menos **Cobrada**, que la pone el sistema cuando lo cobrado alcanza el total y el trabajo está hecho (Instalada o Facturada); si después se borra un cobro o sube el total, vuelve atrás. Cargar el número de factura pasa una Instalada a Facturada. No se registra un cobro sin importe total ni uno que supere el saldo. Las operaciones de plata y estado de una orden se serializan con `pg_advisory_xact_lock` por orden.
+
+**Turno.** "Dar turno" crea un turno real en la agenda (mismo bloqueo por servicio y misma disponibilidad que las reservas) con el cliente, vehículo, patente y cristal de la orden, y la pasa a Turno asignado. `cambiarEstadoTurno` llama a `sincronizarOrdenConTurno` en su transacción: turno completado → Instalada (y se descuenta el stock como siempre); cancelado o ausente → vuelve a Pedido y se puede dar otro turno. Editar la orden actualiza los datos del turno que todavía no se hizo. La agenda muestra "Orden #N" en esos turnos.
+
+**Importar desde Notion** (`modules/ordenes/notion.ts`, puro): lee el CSV de la exportación por nombre de columna. Las relaciones sin título ("Sin título (link)") se identifican por el link: cada aseguradora y proveedor distinto queda como "Aseguradora N" / "Proveedor N" para renombrar. El código del principio de "Observaciones" va a `codigo_cristal`; en particulares, la columna "Siniestro" son notas de pago y van a observaciones. Corre una sola vez, con el módulo vacío, en una transacción. El formulario manda el CSV como texto (límite de 2 MB solo en esa ruta).
+
 ### Zona horaria
 Las fechas se guardan en UTC. Las franjas se guardan como minutos locales. Catamarca es UTC-3 fijo (Argentina no usa horario de verano). Toda la conversión está en `src/lib/tiempo.ts`.
 
 ## Administración de campos
 
-Solo Admin. `/administracion` muestra una card por módulo (hoy están habilitados **Stock** y **Servicios**; Turnos y clientes viene después).
+Solo Admin. `/administracion` muestra una card por módulo (hoy están habilitados **Stock**, **Servicios** y **Órdenes de trabajo**; Turnos y clientes viene después).
 
 Las pantallas de campos están **parametrizadas por módulo**: `MODULOS` (`src/modules/campos/modulos.ts`) fija la entidad y las rutas de cada uno, y las rutas compartidas viven en `src/rutas/administracion.ts` (`/administracion/:modulo/...`). El módulo llega en la URL y se valida con `esModulo`: nunca se confía en él.
 
@@ -123,12 +146,12 @@ La cookie `sesion` (httpOnly, sameSite=lax, 8 h) guarda un JWT firmado con `SESS
 
 Protección en `src/app.ts`, antes de montar las rutas:
 1. **Toda ruta que no es pública** (`esRutaPublica`, `src/lib/rutas.ts`) pasa por `verificarSesion`: valida la cookie, relee al usuario y, si no hay sesión, redirige a `/login`. Como va antes de las rutas, una ruta nueva queda protegida por defecto, sea GET o POST.
-2. `/servicios`, `/usuarios` y `/administracion` pasan además por `requerirRol("ADMIN")`.
+2. `/servicios`, `/usuarios` y `/administracion` pasan además por `requerirRol("ADMIN")`. En Órdenes, `/ordenes/cobranzas`, `/ordenes/:id/facturacion` y `/ordenes/:id/cobros` también (guardia en `src/rutas/ordenes.ts`).
 3. **CSRF:** un POST cuyo `Origin` no es el propio sitio se rechaza con 403 (`src/web/seguridad.ts`); la cookie es `SameSite=Lax`. El webhook de Mercado Pago queda afuera: se valida por firma.
 
 `src/guardia-rutas.test.ts` levanta la app y comprueba las tres cosas para rutas del panel, de Admin y que no existen.
 
-El Empleado solo accede a Panel, Turnos y Stock. Reglas: nadie puede desactivarse ni cambiarse el rol a sí mismo, y siempre queda al menos un Admin activo.
+El Empleado solo accede a Panel, Turnos, Stock y Órdenes (sin importes, facturas ni cobros). Reglas: nadie puede desactivarse ni cambiarse el rol a sí mismo, y siempre queda al menos un Admin activo.
 
 **Límite de intentos de login.** Tras 5 fallos seguidos, ese nombre de usuario queda bloqueado 15 minutos y se destraba solo (constantes `MAX_FALLOS` y `BLOQUEO_MINUTOS` en `src/modules/usuarios/limite.ts`). Con el bloqueo vigente ni se mira la contraseña: aunque sea correcta hay que esperar. Los fallos se cuentan en la tabla `intentos_login` por nombre de usuario, **exista o no**, así el bloqueo no revela qué cuentas existen. Sin fallos durante 15 minutos el contador vuelve a cero, y un login correcto lo borra. El conteo corre dentro de una transacción con `pg_advisory_xact_lock` por usuario, para que intentos en paralelo no se salten el límite. Cada fallo borra además las filas con más de un día. Límite aceptado: quien conozca un nombre de usuario puede bloquearlo 15 minutos a propósito; no se limita por IP.
 
@@ -173,7 +196,7 @@ Las clases compartidas (`boton`, `input`, `tarjeta`…) están en `src/web/ui.ts
 
 | Ancho | Navegación | Listas |
 |---|---|---|
-| Celular (< 768 px) | Barra superior compacta + **barra inferior fija** (Panel, Turnos, Stock y "Más", que abre una hoja con el resto, la página pública y Salir). | Tarjetas, sin scroll horizontal. Los filtros de Stock se pliegan detrás de un botón. |
+| Celular (< 768 px) | Barra superior compacta + **barra inferior fija** (Panel, Turnos, Stock, Órdenes y "Más", que abre una hoja con el resto, la página pública y Salir). | Tarjetas, sin scroll horizontal. Los filtros de Stock se pliegan detrás de un botón. |
 | Tablet (768–1023 px) | **Riel de iconos** (4 rem) con el nombre en `title` y `aria-label`. | Tarjetas (la tabla necesita más ancho). |
 | Escritorio (≥ 1024 px) | Barra lateral completa, con grupos "Operación" y "Gestión". | Tablas. |
 
@@ -192,6 +215,11 @@ El menú se define una sola vez en `src/web/navegacion.ts` y lo usan `views/parc
 | `/administracion/stock` | Solo Admin. Campos de Stock: ver tipos, renombrar, ocultar, reordenar y crear campos propios. |
 | `/administracion/stock/listas` | Solo Admin. Listas de Stock: marcas, tipos, ubicaciones, marcas y modelos de vehículo. |
 | `/administracion/servicios`, `/administracion/servicios/campos/nuevo`, `/administracion/servicios/campos/[clave]` | Solo Admin. Campos de Servicios: los del sistema (fijos) y los propios (crear, editar, ordenar, archivar y eliminar). |
+| `/ordenes` | Órdenes de trabajo: contadores por estado y filtros (estado, tipo, aseguradora, texto). Por defecto, las abiertas. El Admin ve el saldo y el total por cobrar. |
+| `/ordenes/nueva`, `/ordenes/[id]`, `/ordenes/[id]/editar` | Alta, ficha (datos, estado, turno; el Admin además factura y cobros) y edición de una orden. |
+| `/ordenes/[id]/turno` | Dar turno en la agenda desde la orden. |
+| `/ordenes/cobranzas` | Solo Admin. Lo que falta cobrar de trabajos instalados o facturados, por aseguradora, con días desde la factura. |
+| `/administracion/ordenes` | Solo Admin. Aseguradoras, proveedores e importación desde Notion. |
 | `/login` | **Pública.** Ingreso al panel. |
 | `/usuarios`, `/usuarios/nuevo` | Solo Admin: alta, rol, activar/desactivar y nueva contraseña. |
 | `/reservar` | **Pública.** El cliente elige servicio, día y horario, carga sus datos y, si el servicio tiene precio, paga la seña por Mercado Pago. Incluye "Buscar tu reserva" para ver y cancelar una reserva. |

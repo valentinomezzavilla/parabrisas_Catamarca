@@ -1,0 +1,76 @@
+<%
+  const opcionesCristal = [
+    { valor: '', texto: 'No está en stock / sin vincular' },
+    ...catalogos.cristales.map((c) => ({ valor: c.id, texto: `${c.codigo} · ${c.descripcion} (${c.cantidad} en stock)` })),
+  ];
+  const conInactivo = (items) => items.map((i) => ({ valor: i.id, texto: i.activo ? i.nombre : `${i.nombre} (desactivada)` }));
+%>
+<%- orden ? volver(`/ordenes/${orden.id}`, `Orden #${orden.numero}`) : volver('/ordenes', 'Órdenes') %>
+<%- encabezado({ seccion: 'Órdenes de trabajo', titulo: orden ? `Editar orden #${orden.numero}` : 'Nueva orden',
+                 descripcion: orden ? null : 'Cada orden es un trabajo pendiente: queda abierta hasta que se instala y se cobra.' }) %>
+
+<form method="post" action="<%= orden ? `/ordenes/${orden.id}/editar` : '/ordenes/nueva' %>" class="space-y-6" novalidate>
+  <% if (mensaje) { %><%- aviso('peligro', mensaje) %><% } %>
+
+  <section class="<%= ui.tarjeta %> space-y-4 p-5">
+    <h2 class="font-display font-bold">Trabajo</h2>
+    <fieldset class="space-y-1.5">
+      <legend class="text-sm font-medium">Tipo</legend>
+      <div class="inline-flex rounded-lg border border-borde bg-superficie p-1">
+        <% for (const t of ['SEGURO', 'PARTICULAR']) { %>
+          <label class="flex min-h-9 cursor-pointer items-center gap-2 rounded-md px-4 text-sm font-semibold text-texto-suave transition-colors has-checked:bg-marca has-checked:text-sobre-marca has-focus-visible:ring-2 has-focus-visible:ring-amarillo-500/40">
+            <input type="radio" name="tipo" value="<%= t %>" class="sr-only"<% if (valores.tipo === t) { %> checked<% } %>>
+            <%- icono(t === 'SEGURO' ? 'ShieldCheck' : 'Users', 'size-4') %><%= TIPO_ORDEN[t] %>
+          </label>
+        <% } %>
+      </div>
+      <% if (errores.tipo) { %><p class="text-xs text-peligro"><%= errores.tipo %></p><% } %>
+    </fieldset>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <%- campo({ nombre: 'recibidaEl', etiqueta: 'Fecha de recepción', tipo: 'date', valor: valores.recibidaEl, error: errores.recibidaEl }) %>
+      <div data-mostrar-si="tipo=SEGURO">
+        <%- campo({ nombre: 'aseguradoraId', etiqueta: 'Aseguradora', tipo: 'select', valor: valores.aseguradoraId, error: errores.aseguradoraId,
+                    ayuda: catalogos.aseguradoras.length === 0 ? 'Todavía no hay aseguradoras: cargalas en Administración → Órdenes de trabajo.' : null,
+                    opciones: [{ valor: '', texto: 'Elegí la aseguradora' }, ...conInactivo(catalogos.aseguradoras)] }) %>
+      </div>
+      <div data-mostrar-si="tipo=SEGURO" class="sm:col-span-2">
+        <%- campo({ nombre: 'siniestro', etiqueta: 'Siniestro (opcional)', valor: valores.siniestro, error: errores.siniestro,
+                    ayuda: 'Número de siniestro o el link a la orden en el sistema de la aseguradora.' }) %>
+      </div>
+    </div>
+  </section>
+
+  <section class="<%= ui.tarjeta %> space-y-4 p-5">
+    <h2 class="font-display font-bold">Cliente y vehículo</h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <%- campo({ nombre: 'nombre', etiqueta: 'Nombre y apellido', valor: valores.nombre, error: errores['cliente.nombre'], atributos: { autocomplete: 'off' } }) %>
+      <%- campo({ nombre: 'telefono', etiqueta: 'Teléfono / WhatsApp (opcional)', tipo: 'tel', valor: valores.telefono, error: errores['cliente.telefono'],
+                  ayuda: orden ? 'Si lo cambiás, la orden pasa al cliente de ese teléfono.' : 'Si ya es cliente, se usa su ficha.' }) %>
+      <%- campo({ nombre: 'vehiculo', etiqueta: 'Vehículo', valor: valores.vehiculo, error: errores.vehiculo, atributos: { placeholder: 'Toyota Hilux 2022' } }) %>
+      <%- campo({ nombre: 'patente', etiqueta: 'Patente', valor: valores.patente, error: errores.patente, clase: `${ui.input} uppercase` }) %>
+    </div>
+  </section>
+
+  <section class="<%= ui.tarjeta %> space-y-4 p-5">
+    <h2 class="font-display font-bold">Cristal y pedido</h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <%- campo({ nombre: 'codigoCristal', etiqueta: 'Código del cristal', valor: valores.codigoCristal, error: errores.codigoCristal,
+                  atributos: { placeholder: '10314-5' }, ayuda: 'El código con el que se pide, esté o no en stock.' }) %>
+      <%- campo({ nombre: 'proveedorId', etiqueta: 'Se pide a', tipo: 'select', valor: valores.proveedorId, error: errores.proveedorId,
+                  opciones: [{ valor: '', texto: 'Sin proveedor' }, ...conInactivo(catalogos.proveedores)] }) %>
+      <%- campo({ nombre: 'cristalId', etiqueta: 'Cristal del stock (opcional)', tipo: 'select', valor: valores.cristalId, error: errores.cristalId,
+                  claseContenedor: 'sm:col-span-2', opciones: opcionesCristal,
+                  ayuda: 'Si el cristal está en stock, vinculalo: al completar el turno se descuenta solo.' }) %>
+    </div>
+  </section>
+
+  <section class="<%= ui.tarjeta %> space-y-4 p-5">
+    <%- campo({ nombre: 'observaciones', etiqueta: 'Observaciones', tipo: 'textarea', valor: valores.observaciones, error: errores.observaciones, atributos: { rows: 4 } }) %>
+  </section>
+
+  <div class="flex justify-end gap-2">
+    <%- enlaceBoton({ href: orden ? `/ordenes/${orden.id}` : '/ordenes', texto: 'Cancelar' }) %>
+    <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %>"><%= orden ? 'Guardar cambios' : 'Crear orden' %></button>
+  </div>
+</form>

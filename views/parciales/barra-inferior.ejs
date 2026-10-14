@@ -1,5 +1,5 @@
 <%#
-  Navegación de celular (< 768 px): barra fija abajo con los tres accesos de todos los días y "Más",
+  Navegación de celular (< 768 px): barra fija abajo con los accesos de todos los días y "Más",
   que abre una hoja con el resto (Servicios, Usuarios, Administración), la página pública y "Salir".
   "Más" es un <details>: funciona sin JavaScript; app.js lo cierra con Escape o tocando afuera.
 %>
@@ -10,7 +10,8 @@
   const estiloItem = (activo) => `relative flex min-h-16 flex-col items-center justify-center gap-1 px-2 text-[11px] font-semibold transition-colors ${activo ? 'text-marca' : 'text-grafito-400 hover:text-white'}`;
 %>
 <nav aria-label="Principal" class="fixed inset-x-0 bottom-0 z-50 border-t border-grafito-800 bg-grafito-900/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-  <ul class="mx-auto grid max-w-lg grid-cols-4">
+  <%# Una columna por acceso principal más "Más". %>
+  <ul class="mx-auto grid max-w-lg <%= principal.items.length >= 4 ? 'grid-cols-5' : 'grid-cols-4' %>">
     <% for (const item of principal.items) { const activa = esActiva(item.href, ruta); %>
       <li>
         <a href="<%= item.href %>"<% if (activa) { %> aria-current="page"<% } %> class="<%= estiloItem(activa) %>">

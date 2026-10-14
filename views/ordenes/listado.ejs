@@ -1,0 +1,139 @@
+<%
+  const acciones = enlaceBoton({ href: '/ordenes/nueva', texto: 'Nueva orden', variante: 'primario', icono: 'Plus' })
+    + (admin ? enlaceBoton({ href: '/ordenes/cobranzas', texto: 'Cobranzas', icono: 'Wallet' }) : '');
+  const descripcion = f.estado === 'abiertas' && !hayFiltros
+    ? plural(abiertas, 'orden abierta', 'órdenes abiertas')
+    : `${plural(ordenes.length, 'orden', 'órdenes')} (filtrado)`;
+  /** Saldo de la orden para el Admin: lo que falta, "Cobrada" o "Sin importe". */
+  const saldoHtml = (o) => {
+    const s = situacionCobro(o.cuenta.total, o.cuenta.cobrado);
+    if (s === 'COBRADA' || s === 'SIN_IMPORTE') return insignia(SITUACION_COBRO[s].tono, SITUACION_COBRO[s].etiqueta);
+    return `<span class="font-semibold tabular-nums">${esc(pesos(o.cuenta.saldo))}</span>`;
+  };
+  const turnoTexto = (o) => o.turno && o.estado === 'TURNO_ASIGNADO'
+    ? `${formatearFecha(fechaLocal(o.turno.inicio), { day: '2-digit', month: '2-digit' })} ${formatearHora(o.turno.inicio)} hs`
+    : null;
+  const quien = (o) => o.tipo === 'SEGURO' ? (o.aseguradora?.nombre ?? 'Seguro sin aseguradora') : 'Particular';
+  const filtrosActivos = [f.estado !== 'abiertas', f.tipo, f.aseguradoraId].filter(Boolean).length;
+%>
+<%- encabezado({ seccion: 'Seguros y particulares', titulo: 'Órdenes de trabajo', descripcion, acciones }) %>
+
+<nav aria-label="Órdenes por estado" class="grid grid-cols-3 gap-2 <%= admin ? 'lg:grid-cols-6' : 'lg:grid-cols-5' %>">
+  <% for (const e of ESTADOS_ABIERTOS) { const activo = f.estado === e; %>
+    <a href="/ordenes?estado=<%= e %>"<% if (activo) { %> aria-current="true"<% } %>
+       class="<%= ui.tarjeta %> flex min-w-0 flex-col gap-0.5 px-2.5 py-2 transition-colors hover:border-amarillo-500 sm:px-3 sm:py-2.5 <%= activo ? 'border-amarillo-500 ring-2 ring-amarillo-500/30' : '' %>">
+      <span class="truncate text-[11px] text-texto-suave sm:text-xs"><%= ESTADOS_ORDEN[e].etiqueta %></span>
+      <span class="font-display text-xl font-extrabold tabular-nums sm:text-2xl"><%= conteo.get(e) ?? 0 %></span>
+    </a>
+  <% } %>
+  <% if (admin) { %>
+    <%# En celular y tablet, una franja de ancho completo arriba (el monto no entra en un cuadrito); desde lg, un contador más. %>
+    <a href="/ordenes/cobranzas" class="<%= ui.tarjeta %> order-first col-span-3 flex min-w-0 items-center justify-between gap-2 px-3 py-2 transition-colors hover:border-amarillo-500 lg:order-none lg:col-span-1 lg:flex-col lg:items-start lg:justify-start lg:gap-0.5 lg:py-2.5">
+      <span class="flex items-center gap-1 text-xs text-texto-suave"><%- icono('Wallet', 'size-3.5 shrink-0') %> Por cobrar</span>
+      <span class="font-display text-xl font-extrabold tabular-nums text-acento"><%= pesos(porCobrar) %></span>
+    </a>
+  <% } %>
+</nav>
+
+<form method="get" action="/ordenes" class="<%= ui.tarjeta %> space-y-3 p-3 sm:p-4">
+  <div class="flex gap-2">
+    <input name="texto" value="<%= f.texto ?? '' %>" placeholder="Patente, cliente, siniestro, código…" aria-label="Buscar" class="<%= ui.input %>">
+    <button class="<%= ui.boton.primario %> shrink-0" aria-label="Buscar"><%- icono('Search') %> <span class="hidden sm:inline">Buscar</span></button>
+  </div>
+
+  <%# En celular los filtros se pliegan detrás de un botón; desde `md` se muestran siempre. Cambiar uno ya filtra. %>
+  <button type="button" data-plegar aria-expanded="<%= filtrosActivos > 0 %>" aria-controls="filtros-ordenes"
+          class="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-borde px-3 text-sm font-semibold md:hidden">
+    <span class="flex items-center gap-2">
+      <%- icono('SlidersHorizontal') %> Filtros
+      <% if (filtrosActivos > 0) { %><span class="rounded-full bg-marca px-2 py-0.5 text-xs text-sobre-marca"><%= filtrosActivos %></span><% } %>
+    </span>
+    <span data-flecha class="transition-transform <%= filtrosActivos > 0 ? 'rotate-180' : '' %>"><%- icono('ChevronDown') %></span>
+  </button>
+  <div id="filtros-ordenes" class="<%= filtrosActivos > 0 ? 'grid' : 'hidden' %> grid-cols-1 gap-3 md:grid md:grid-cols-[repeat(3,minmax(0,1fr))_auto]">
+    <%- control({ nombre: 'estado', tipo: 'select', valor: f.estado, atributos: { 'aria-label': 'Estado', 'data-enviar-al-cambiar': true },
+                  opciones: [{ valor: 'abiertas', texto: 'Abiertas' }, { valor: 'todas', texto: 'Todas' },
+                             ...Object.entries(ESTADOS_ORDEN).map(([valor, e]) => ({ valor, texto: e.etiqueta }))] }) %>
+    <%- control({ nombre: 'tipo', tipo: 'select', valor: f.tipo ?? '', atributos: { 'aria-label': 'Tipo', 'data-enviar-al-cambiar': true },
+                  opciones: [{ valor: '', texto: 'Seguro y particular' }, { valor: 'SEGURO', texto: 'Solo seguros' }, { valor: 'PARTICULAR', texto: 'Solo particulares' }] }) %>
+    <%- control({ nombre: 'aseguradoraId', tipo: 'select', valor: f.aseguradoraId ?? '', atributos: { 'aria-label': 'Aseguradora', 'data-enviar-al-cambiar': true },
+                  opciones: [{ valor: '', texto: 'Toda aseguradora' }, ...aseguradoras.map((a) => ({ valor: a.id, texto: a.nombre }))] }) %>
+    <% if (hayFiltros) { %><%- enlaceBoton({ href: '/ordenes', texto: 'Limpiar', variante: 'fantasma' }) %><% } %>
+  </div>
+</form>
+
+<% if (ordenes.length === 0) { %>
+  <%- vacio(hayFiltros ? 'No hay órdenes que coincidan con la búsqueda.' : 'No hay órdenes abiertas. Cargá una con "Nueva orden".', 'ClipboardList') %>
+<% } else { %>
+  <% if (ordenes.length === limite) { %>
+    <p class="text-sm text-texto-suave">Se muestran las <%= limite %> más recientes. Usá los filtros para encontrar otras.</p>
+  <% } %>
+
+  <%# Celular y tablet: una tarjeta por orden. %>
+  <ul class="space-y-3 lg:hidden">
+    <% for (const o of ordenes) { const turno = turnoTexto(o); %>
+      <li>
+        <a href="/ordenes/<%= o.id %>" class="<%= ui.tarjeta %> block p-4 active:bg-grafito-500/5">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="font-mono text-xs font-semibold text-acento">#<%= o.numero %> · <%= diaCorto(o.recibidaEl) %></p>
+              <p class="mt-0.5 font-semibold leading-snug"><%= [o.patente, o.vehiculo].filter(Boolean).join(' · ') || 'Sin patente' %></p>
+              <p class="mt-0.5 text-xs text-texto-suave"><%= o.cliente.nombre %> · <%= quien(o) %><%= o.siniestro && !/^https?:/i.test(o.siniestro) ? ` · Sin. ${o.siniestro}` : '' %></p>
+            </div>
+            <span class="shrink-0"><%- insignia(ESTADOS_ORDEN[o.estado].tono, ESTADOS_ORDEN[o.estado].etiqueta) %></span>
+          </div>
+          <% if (o.codigoCristal || turno || admin) { %>
+            <div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-borde pt-3 text-xs text-texto-suave">
+              <span><%= o.codigoCristal ? `Cristal ${o.codigoCristal}` : '' %><%= turno ? `${o.codigoCristal ? ' · ' : ''}Turno ${turno}` : '' %></span>
+              <% if (admin) { %><span class="text-sm text-texto"><%- saldoHtml(o) %></span><% } %>
+            </div>
+          <% } %>
+        </a>
+      </li>
+    <% } %>
+  </ul>
+
+  <div class="<%= ui.tarjeta %> hidden overflow-x-auto lg:block">
+    <table class="w-full min-w-[860px] text-sm">
+      <thead class="border-b border-borde bg-grafito-500/5 text-left text-xs tracking-wide text-texto-suave uppercase">
+        <tr>
+          <th class="px-4 py-3 font-semibold">Orden</th>
+          <th class="px-4 py-3 font-semibold">Vehículo</th>
+          <th class="px-4 py-3 font-semibold">Cliente</th>
+          <th class="px-4 py-3 font-semibold">Aseguradora</th>
+          <th class="px-4 py-3 font-semibold">Cristal</th>
+          <th class="px-4 py-3 font-semibold">Estado</th>
+          <% if (admin) { %><th class="px-4 py-3 text-right font-semibold">Saldo</th><% } %>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-borde">
+        <% for (const o of ordenes) { const turno = turnoTexto(o); %>
+          <tr class="transition-colors hover:bg-marca/5">
+            <td class="px-4 py-3">
+              <a href="/ordenes/<%= o.id %>" class="font-mono text-xs font-semibold hover:text-acento">#<%= o.numero %></a>
+              <p class="text-xs text-texto-suave"><%= diaCorto(o.recibidaEl) %></p>
+            </td>
+            <td class="px-4 py-3">
+              <a href="/ordenes/<%= o.id %>" class="font-semibold hover:underline"><%= o.patente || 'Sin patente' %></a>
+              <p class="text-xs text-texto-suave"><%= o.vehiculo ?? '' %></p>
+            </td>
+            <td class="px-4 py-3">
+              <%= o.cliente.nombre %>
+              <p class="text-xs text-texto-suave"><%= o.cliente.telefono %></p>
+            </td>
+            <td class="px-4 py-3">
+              <%= quien(o) %>
+              <% if (o.siniestro) { %><p class="max-w-48 truncate text-xs text-texto-suave" title="<%= o.siniestro %>">Sin. <%= o.siniestro %></p><% } %>
+            </td>
+            <td class="px-4 py-3 font-mono text-xs"><%= o.codigoCristal ?? '—' %></td>
+            <td class="px-4 py-3">
+              <%- insignia(ESTADOS_ORDEN[o.estado].tono, ESTADOS_ORDEN[o.estado].etiqueta) %>
+              <% if (turno) { %><p class="mt-1 text-xs text-texto-suave"><%= turno %></p><% } %>
+            </td>
+            <% if (admin) { %><td class="px-4 py-3 text-right"><%- saldoHtml(o) %></td><% } %>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+<% } %>

@@ -66,3 +66,12 @@ export function hoy(): string {
 export function sumarMinutos(fecha: Date, minutos: number): Date {
   return new Date(fecha.getTime() + minutos * 60_000);
 }
+
+// Columnas DATE (un día, sin hora; por ejemplo la fecha de una factura). Prisma las lee como un Date a las 00:00 UTC,
+// así que se convierten sin pasar por la zona horaria.
+
+/** "2026-10-14" → Date para una columna DATE. */
+export const fechaADia = (fecha: string): Date => new Date(`${fecha}T00:00:00Z`);
+
+/** Date leído de una columna DATE → "2026-10-14". */
+export const diaAFecha = (dia: Date): string => dia.toISOString().slice(0, 10);
