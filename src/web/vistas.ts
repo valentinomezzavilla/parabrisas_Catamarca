@@ -11,12 +11,14 @@ import {
   minutosAHora,
   SEMANA,
   ZONA_HORARIA,
+  diaAFecha,
 } from "@/lib/tiempo";
+import { ETIQUETA_MEDIO, ETIQUETA_PAGADOR, ETIQUETA_TIPO } from "@/modules/ordenes/estados";
 import * as componentes from "./componentes";
 import { attrs, esc } from "./html";
 import { icono } from "./iconos";
 import { esActiva, gruposVisibles, inicialDe, nombreDeRol } from "./navegacion";
-import { ESTADOS_TURNO, ui } from "./ui";
+import { ESTADOS_ORDEN, ESTADOS_TURNO, SITUACION_COBRO, ui } from "./ui";
 
 export type Layout = "panel" | "publico" | "auth";
 
@@ -33,6 +35,10 @@ const mayuscula = (t: string) => t.replace(/^./, (c) => c.toUpperCase());
 /** "05/10/26 14:30" en hora de Catamarca. */
 const fechaHora = (fecha: Date) => fecha.toLocaleString("es-AR", { timeZone: ZONA_HORARIA, dateStyle: "short", timeStyle: "short" });
 
+/** "14/10/26" a partir de una columna DATE (un día sin hora), o "—". */
+const diaCorto = (dia: Date | null | undefined) =>
+  dia ? formatearFecha(diaAFecha(dia), { day: "2-digit", month: "2-digit", year: "2-digit" }) : "—";
+
 /** "1 artículo" / "3 artículos". */
 const plural = (n: number, singular: string, plural: string) => `${n} ${n === 1 ? singular : plural}`;
 
@@ -44,6 +50,11 @@ export const ayudas = {
   attrs,
   ...componentes,
   ESTADOS_TURNO,
+  ESTADOS_ORDEN,
+  SITUACION_COBRO,
+  TIPO_ORDEN: ETIQUETA_TIPO,
+  PAGADOR_COBRO: ETIQUETA_PAGADOR,
+  MEDIO_COBRO: ETIQUETA_MEDIO,
   pesos,
   medidas,
   NOMBRE_LADO,
@@ -58,6 +69,8 @@ export const ayudas = {
   hoy,
   mayuscula,
   fechaHora,
+  diaCorto,
+  diaAFecha,
   plural,
   esActiva,
   gruposVisibles,

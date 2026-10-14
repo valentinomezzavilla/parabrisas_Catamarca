@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { fechaLocal, instanteLocal, sumarDias, sumarMinutos } from "@/lib/tiempo";
 import type { EstadoTurno } from "@/generated/prisma/client";
 import { registrarMovimiento } from "@/modules/inventario/cristal.service";
+import { sincronizarOrdenConTurno } from "@/modules/ordenes/sincronizar";
 import { cambiaAgenda, puedeEditar } from "./edicion";
 import { editarTurnoSchema, type EditarTurnoInput } from "./schemas";
 import { disponibilidadDelDia, TurnoNoDisponibleError } from "./servicio.service";
@@ -19,6 +20,7 @@ export function listarTurnosDelDia(fecha: string) {
       servicio: { select: { nombre: true, color: true, requiereCristal: true } },
       cliente: true,
       cristal: { select: { id: true, codigo: true, descripcion: true, cantidad: true } },
+      orden: { select: { id: true, numero: true } },
       // La seña cobrada, o la que el cliente todavía tiene que transferir.
       pagos: { where: { estado: { in: ["APROBADO", "PENDIENTE"] } }, select: { monto: true, estado: true } },
     },
@@ -59,6 +61,8 @@ export function obtenerTurno(id: string) {
  *
  * Un turno que espera la seña sale de ese estado cuando el personal la revisa: al confirmarlo la seña
  * pendiente queda aprobada, y al cancelarlo (rechazar la reserva) queda rechazada.
+ *
+ * Si el turno se dio desde una orden de trabajo, la orden se ajusta en la misma transacción.
  */
 export async function cambiarEstadoTurno(id: string, estado: EstadoTurno) {
   const turno = await db.turno.findUniqueOrThrow({
@@ -84,7 +88,10 @@ export async function cambiarEstadoTurno(id: string, estado: EstadoTurno) {
         data: { estado: estado === "CONFIRMADO" ? "APROBADO" : "RECHAZADO" },
       });
     }
-    return tx.turno.update({ where: { id }, data: { estado, ...(senaRevisada && { venceEn: null }) } });
+    const actualizado = await tx.turno.update({ where: { id }, data: { estado, ...(senaRevisada && { venceEn: null }) } });
+    // Si el turno se dio desde una orden de trabajo, la orden acompaña: completado → instalada, cancelado → pedido.
+    await sincronizarOrdenConTurno(tx, id, estado);
+    return actualizado;
   });
 }
 

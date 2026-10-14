@@ -1,0 +1,70 @@
+<%- volver(`/ordenes/${orden.id}`, `Orden #${orden.numero}`) %>
+<%- encabezado({ seccion: `Orden #${orden.numero}`, titulo: 'Dar turno',
+                 descripcion: [orden.cliente.nombre, orden.vehiculo, orden.patente].filter(Boolean).join(' · ') }) %>
+
+<section class="<%= ui.tarjeta %> space-y-4 p-5">
+  <%# Formulario GET: solo lleva el servicio; la tira de días y los horarios son enlaces. %>
+  <% if (servicios.length > 1) { %>
+    <form method="get" action="/ordenes/<%= orden.id %>/turno" class="flex flex-wrap items-end gap-3">
+      <%- campo({ nombre: 'servicio', etiqueta: 'Servicio', tipo: 'select', valor: servicio.id, opciones: servicios.map((s) => ({ valor: s.id, texto: s.nombre })),
+                  atributos: { 'data-enviar-al-cambiar': true } }) %>
+      <noscript><button type="submit" class="<%= ui.boton.secundario %>">Ver días</button></noscript>
+    </form>
+  <% } else { %>
+    <p class="font-semibold"><%= servicio.nombre %></p>
+  <% } %>
+
+  <div class="space-y-2">
+    <h2 class="text-sm font-medium">Día</h2>
+    <div class="grid grid-cols-4 gap-2 sm:grid-cols-7">
+      <% for (const dia of dias) {
+           const cantidad = libresPorDia.get(dia) ?? 0;
+           const actual = dia === fecha;
+           const contenido = `<span class="block text-xs">${DIAS_CORTOS[diaSemana(dia)]}</span>
+             <span class="block font-display text-lg font-bold">${Number(dia.slice(8))}</span>
+             <span class="block text-[11px]">${cantidad === 0 ? 'sin lugar' : plural(cantidad, 'libre', 'libres')}</span>`; %>
+        <% if (cantidad === 0 && !actual) { %>
+          <span class="rounded-xl border border-dashed border-borde px-1 py-2 text-center text-texto-suave opacity-50"><%- contenido %></span>
+        <% } else { %>
+          <a href="<%= urlDia(dia) %>"<% if (actual) { %> aria-current="date"<% } %>
+             class="rounded-xl border px-1 py-2 text-center transition-colors <%= actual ? 'border-amarillo-600/40 bg-marca text-sobre-marca' : 'border-borde bg-superficie hover:border-amarillo-500' %>"><%- contenido %></a>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="space-y-2">
+    <h2 class="text-sm font-medium"><%= mayuscula(formatearFecha(fecha)) %></h2>
+    <% if (libres.length === 0) { %>
+      <%- vacio(`No quedan horarios libres ese día para ${servicio.nombre}.`) %>
+    <% } else { %>
+      <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
+        <% for (const t of libres) { const iso = t.inicio.toISOString(); const actual = elegido && iso === elegido.inicio.toISOString(); %>
+          <a href="<%= urlHorario(iso) %>"
+             class="rounded-lg border py-2 text-center font-semibold tabular-nums transition-colors <%= actual ? 'border-marca bg-marca text-sobre-marca' : 'border-borde bg-superficie hover:border-marca' %>"><%= formatearHora(t.inicio) %></a>
+        <% } %>
+      </div>
+    <% } %>
+    <% if (inicioPedido && !elegido) { %><p class="text-sm text-peligro">Ese horario ya no está disponible. Elegí otro.</p><% } %>
+  </div>
+</section>
+
+<% if (elegido) { %>
+  <form method="post" action="/ordenes/<%= orden.id %>/turno" class="<%= ui.tarjeta %> space-y-4 p-5">
+    <input type="hidden" name="servicioId" value="<%= servicio.id %>">
+    <input type="hidden" name="inicio" value="<%= elegido.inicio.toISOString() %>">
+    <p>
+      <span class="font-semibold"><%= servicio.nombre %></span>, <%= formatearFecha(fecha) %> a las <span class="font-semibold"><%= formatearHora(elegido.inicio) %> hs</span>.
+    </p>
+    <p class="text-sm text-texto-suave">
+      El turno se carga en la agenda a nombre de <%= orden.cliente.nombre %><%= orden.vehiculo ? `, con el ${orden.vehiculo}` : '' %><%= orden.cristal ? ` y el cristal ${orden.cristal.codigo}` : '' %>.
+      <% if (servicio.requiereCristal && !orden.cristal) { %>La orden no tiene un cristal del stock vinculado: asignalo después en la agenda para que se descuente al completar.<% } %>
+    </p>
+    <div class="flex justify-end gap-2">
+      <%- enlaceBoton({ href: `/ordenes/${orden.id}`, texto: 'Cancelar' }) %>
+      <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %>"><%- icono('CalendarCheck') %> Dar turno</button>
+    </div>
+  </form>
+<% } else { %>
+  <%- vacio('Elegí un horario para dar el turno.') %>
+<% } %>

@@ -138,7 +138,7 @@ export function obtenerDisponibilidad(servicioId: string, fecha: string, excluir
 }
 
 /** Código de reserva que todavía no usa ningún turno. */
-async function codigoLibre(tx: Cliente): Promise<string> {
+export async function codigoLibre(tx: Cliente): Promise<string> {
   for (let i = 0; i < 10; i++) {
     const codigo = generarCodigo();
     if (!(await tx.turno.findUnique({ where: { codigo }, select: { id: true } }))) return codigo;

@@ -24,10 +24,13 @@ import {
   ListaError,
   moverUbicacion,
   obtenerListas,
+  obtenerListasOrdenes,
   renombrarItem,
   type ListaId,
 } from "@/modules/campos/lista.service";
 import { esModulo, MODULOS, type ModuloAdmin } from "@/modules/campos/modulos";
+import { ImportacionError } from "@/modules/ordenes/notion";
+import { hayOrdenes, importarDesdeNotion } from "@/modules/ordenes/orden.service";
 import { REGISTRO, SECCIONES } from "@/modules/campos/registro";
 import { ETIQUETA_TIPO, TIPOS_CAMPO, type TipoCampo } from "@/modules/campos/tipos";
 import { avisar } from "@/web/avisos";
@@ -43,9 +46,10 @@ rutasAdministracion.get("/", (_req, res) => mostrar(res, "administracion/inicio"
 // --- Listas de Stock (marcas, tipos, ubicaciones, vehículos) ---------------------------
 // Van antes que las rutas con `:modulo` para que "listas" no se tome como un campo.
 
-const LISTAS = ["marcas", "tipos", "ubicaciones", "marcasVehiculo", "modelos"] as const;
-const esLista = (v: string): v is ListaId => (LISTAS as readonly string[]).includes(v);
+const LISTAS_STOCK: readonly ListaId[] = ["marcas", "tipos", "ubicaciones", "marcasVehiculo", "modelos"];
+const LISTAS_ORDENES: readonly ListaId[] = ["aseguradoras", "proveedores"];
 const BASE_LISTAS = "/administracion/stock/listas";
+const BASE_ORDENES = "/administracion/ordenes";
 
 rutasAdministracion.get("/stock/listas", async (req, res) => {
   await mostrar(res, "administracion/listas", {
@@ -75,13 +79,18 @@ async function operarLista(req: Request, res: Response, lista: string, operacion
     if (mensaje === null) throw e;
     avisar(res, mensaje, { tono: "peligro", ancla });
   }
-  res.redirect(303, url(BASE_LISTAS, { abierta: marcaId }, ancla));
+  const base = LISTAS_ORDENES.includes(lista as ListaId) ? BASE_ORDENES : BASE_LISTAS;
+  res.redirect(303, url(base, { abierta: marcaId }, ancla));
 }
 
-function listaValida(req: Request, _res: Response, next: NextFunction) {
-  if (!esLista(req.params.lista as string)) return next("route");
-  next();
+/** Solo deja pasar las listas del módulo: una lista de Órdenes no se opera desde la ruta de Stock, ni al revés. */
+function listaDe(listas: readonly ListaId[]) {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    if (!listas.includes(req.params.lista as ListaId)) return next("route");
+    next();
+  };
 }
+const listaValida = listaDe(LISTAS_STOCK);
 
 rutasAdministracion.post("/stock/listas/:lista", listaValida, (req, res) =>
   operarLista(req, res, req.params.lista as string, () =>
@@ -114,6 +123,49 @@ rutasAdministracion.post("/stock/listas/ubicaciones/:id/mover", (req, res) => {
 
 rutasAdministracion.post("/stock/listas/ubicaciones/:id/lado", (req, res) => {
   return operarLista(req, res, "ubicaciones", () => cambiarTieneLado(req.params.id as string, casilla(req.body, "tieneLado")));
+});
+
+// --- Órdenes de trabajo: aseguradoras, proveedores e importación desde Notion --------------
+
+rutasAdministracion.get("/ordenes", async (_req, res) => {
+  await mostrar(res, "administracion/ordenes", {
+    titulo: "Administración · Órdenes de trabajo",
+    listas: await obtenerListasOrdenes(),
+    hayOrdenes: await hayOrdenes(),
+  });
+});
+
+const listaDeOrdenes = listaDe(LISTAS_ORDENES);
+
+rutasAdministracion.post("/ordenes/listas/:lista", listaDeOrdenes, (req, res) =>
+  operarLista(req, res, req.params.lista as string, () => crearItem(req.params.lista as ListaId, { nombre: crudo(req.body, "nombre") ?? "" })),
+);
+
+rutasAdministracion.post("/ordenes/listas/:lista/:id/nombre", listaDeOrdenes, (req, res) =>
+  operarLista(req, res, req.params.lista as string, () => renombrarItem(req.params.lista as ListaId, req.params.id as string, crudo(req.body, "nombre") ?? "")),
+);
+
+rutasAdministracion.post("/ordenes/listas/:lista/:id/activo", listaDeOrdenes, (req, res) =>
+  operarLista(req, res, req.params.lista as string, () => activarItem(req.params.lista as ListaId, req.params.id as string, texto(req.body, "activo") === "1")),
+);
+
+rutasAdministracion.post("/ordenes/listas/:lista/:id/eliminar", listaDeOrdenes, (req, res) =>
+  operarLista(req, res, req.params.lista as string, () => eliminarItem(req.params.lista as ListaId, req.params.id as string)),
+);
+
+rutasAdministracion.post("/ordenes/importar", async (req, res) => {
+  try {
+    const r = await importarDesdeNotion(crudo(req.body, "csv") ?? "");
+    const aseguradoras = r.aseguradoras > 0 ? ` y ${r.aseguradoras} ${r.aseguradoras === 1 ? "aseguradora nueva" : "aseguradoras nuevas"}` : "";
+    avisar(res, `Se importaron ${r.ordenes} órdenes${aseguradoras}. Revisá los nombres de las aseguradoras: en Notion no tenían título.`, {
+      ancla: "aseguradoras",
+    });
+  } catch (e) {
+    if (!(e instanceof ImportacionError)) throw e;
+    avisar(res, e.message, { tono: "peligro", ancla: "importar" });
+    return res.redirect(303, `${BASE_ORDENES}#importar`);
+  }
+  res.redirect(303, `${BASE_ORDENES}#aseguradoras`);
 });
 
 // --- Campos de cada módulo ---------------------------------------------------------

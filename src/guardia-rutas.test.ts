@@ -4,7 +4,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { firmarToken, NOMBRE_COOKIE, obtenerSecreto } from "@/lib/token";
 
 /**
- * Garantiza que el panel exige sesión y que Servicios, Usuarios y Administración exigen el rol Admin,
+ * Garantiza que el panel exige sesión y que Servicios, Usuarios, Administración y la plata de las órdenes de trabajo
+ * (cobranzas, facturación y cobros) exigen el rol Admin,
  * para cualquier ruta (también las que no existen todavía) y para GET y POST por igual.
  * Las guardias corren antes que los handlers: estos tests no tocan la base.
  */
@@ -49,6 +50,11 @@ const PANEL = [
   "/stock/nuevo",
   "/stock/abc/movimientos",
   "/pagos/abc/devuelto",
+  "/ordenes",
+  "/ordenes/nueva",
+  "/ordenes/abc",
+  "/ordenes/abc/estado",
+  "/ordenes/abc/turno",
   "/una-ruta-que-no-existe",
 ];
 const SOLO_ADMIN = [
@@ -62,6 +68,13 @@ const SOLO_ADMIN = [
   "/administracion/stock/campos/codigo/tipo",
   "/administracion/stock/listas/marcas/abc/eliminar",
   "/administracion/otra-cosa",
+  "/administracion/ordenes",
+  "/administracion/ordenes/importar",
+  "/administracion/ordenes/listas/aseguradoras/abc/eliminar",
+  "/ordenes/cobranzas",
+  "/ordenes/abc/facturacion",
+  "/ordenes/abc/cobros",
+  "/ordenes/abc/cobros/xyz/eliminar",
 ];
 
 describe("sin sesión", () => {

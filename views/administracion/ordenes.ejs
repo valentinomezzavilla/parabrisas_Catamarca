@@ -1,0 +1,51 @@
+<%
+  const { aseguradoras, proveedores } = listas;
+  const base = '/administracion/ordenes/listas';
+  const items = (lista) => lista.map((i) => ({ id: i.id, nombre: i.nombre, activo: i.activo, enUso: i._count.ordenes }));
+%>
+<%- volver('/administracion', 'Administración') %>
+<%- encabezado({ seccion: 'Administración', titulo: 'Órdenes de trabajo', descripcion: 'Aseguradoras, proveedores e importación de la planilla de Notion.' }) %>
+
+<div class="space-y-6">
+  <section id="aseguradoras" class="<%= ui.tarjeta %> scroll-mt-6 space-y-3 p-5">
+    <div>
+      <h2 class="font-display font-bold">Aseguradoras</h2>
+      <p class="text-sm text-texto-suave">Lo desactivado deja de ofrecerse al cargar una orden, pero se sigue viendo en las órdenes que ya la tienen.</p>
+    </div>
+    <%- include('../parciales/bloque-lista', { lista: 'aseguradoras', ancla: 'aseguradoras', marcaId: null, base, items: items(aseguradoras) }) %>
+  </section>
+
+  <section id="proveedores" class="<%= ui.tarjeta %> scroll-mt-6 space-y-3 p-5">
+    <div>
+      <h2 class="font-display font-bold">Proveedores</h2>
+      <p class="text-sm text-texto-suave">A quién se le pide el cristal.</p>
+    </div>
+    <%- include('../parciales/bloque-lista', { lista: 'proveedores', ancla: 'proveedores', marcaId: null, base, items: items(proveedores) }) %>
+  </section>
+
+  <section id="importar" class="<%= ui.tarjeta %> scroll-mt-6 space-y-3 p-5">
+    <div>
+      <h2 class="flex items-center gap-2 font-display font-bold"><%- icono('FileUp', 'size-5 text-acento') %> Importar desde Notion</h2>
+      <p class="text-sm text-texto-suave">Carga las órdenes de la base "Órdenes de Trabajo" de Notion. Se hace una sola vez, con el módulo vacío.</p>
+    </div>
+    <%- include('../parciales/aviso-en', { ancla: 'importar' }) %>
+    <% if (hayOrdenes) { %>
+      <p class="text-sm text-texto-suave">Ya hay órdenes cargadas, así que la importación no está disponible.</p>
+    <% } else { %>
+      <ol class="list-decimal space-y-1 pl-5 text-sm text-texto-suave">
+        <li>En Notion, abrí la base y elegí <span class="font-semibold text-texto">··· → Exportar</span>, formato <span class="font-semibold text-texto">Markdown y CSV</span>.</li>
+        <li>Descomprimí el archivo y elegí el <span class="font-semibold text-texto">.csv</span> (cualquiera de los dos sirve), o pegá su contenido abajo.</li>
+        <li>Después, renombrá las aseguradoras: en Notion no tenían título, así que quedan como "Aseguradora 1, 2…".</li>
+      </ol>
+      <form method="post" action="/administracion/ordenes/importar" class="space-y-3">
+        <input type="file" accept=".csv,text/csv" data-cargar-en="csv" aria-label="Archivo CSV de Notion"
+               class="block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-borde file:bg-superficie file:px-3 file:py-2 file:text-sm file:font-semibold">
+        <textarea id="csv" name="csv" rows="6" required placeholder="Fecha de recepción,Patente,Cliente,Teléfono,…" aria-label="Contenido del CSV"
+                  class="<%= ui.input %> font-mono text-xs"></textarea>
+        <div class="flex justify-end">
+          <button type="submit" data-enviando="Importando…" class="<%= ui.boton.primario %>"><%- icono('FileUp') %> Importar órdenes</button>
+        </div>
+      </form>
+    <% } %>
+  </section>
+</div>

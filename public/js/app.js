@@ -135,11 +135,20 @@
   });
 
   document.addEventListener("change", (e) => {
-    // Casillas que guardan apenas cambian (por ejemplo, "Tiene lado" en las listas).
-    if (e.target.matches("input[data-enviar-al-cambiar]")) e.target.form?.requestSubmit();
+    // Controles que envían su formulario apenas cambian (por ejemplo, "Tiene lado" en las listas o el servicio al dar turno).
+    if (e.target.matches("input[data-enviar-al-cambiar], select[data-enviar-al-cambiar]")) e.target.form?.requestSubmit();
     actualizarLado();
     actualizarCondicionales();
     actualizarAyudas();
+  });
+
+  // `<input type="file" data-cargar-en="id">` copia el contenido del archivo de texto elegido en el campo con ese id
+  // (importar el CSV de Notion sin subir archivos: viaja como texto en el formulario).
+  document.addEventListener("change", async (e) => {
+    const input = e.target.closest?.("input[type=file][data-cargar-en]");
+    const archivo = input?.files?.[0];
+    const destino = input && document.getElementById(input.dataset.cargarEn);
+    if (archivo && destino) destino.value = await archivo.text();
   });
 
   // Filtros del stock en celular: se pliegan detrás de un botón; desde `md` se ven siempre.

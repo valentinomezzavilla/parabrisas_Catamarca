@@ -90,6 +90,7 @@ model Cristal {
   compatibilidades  CompatibilidadVehiculo[]
   movimientos       MovimientoStock[]
   turnos            Turno[]
+  ordenes           OrdenTrabajo[]
 
   @@index([ubicacionId])
   @@index([marcaId])
@@ -227,6 +228,7 @@ model Cliente {
   notas     String?
   creadoEn  DateTime @default(now()) @map("creado_en")
   turnos    Turno[]
+  ordenes   OrdenTrabajo[]
 
   @@index([telefono])
   @@map("clientes")
@@ -272,6 +274,7 @@ model Turno {
   actualizadoEn   DateTime          @updatedAt @map("actualizado_en")
   movimientos     MovimientoStock[]
   pagos           Pago[]
+  orden           OrdenTrabajo? // la orden de trabajo desde la que se dio el turno, si la hay
 
   @@index([servicioId, inicio])
   @@index([inicio])
@@ -395,4 +398,110 @@ model ConfiguracionCampo {
 
   @@id([entidad, clave])
   @@map("configuracion_campos")
+}
+
+// =====================================================================
+//  MÓDULO ÓRDENES DE TRABAJO (SEGUROS Y PARTICULARES)
+// =====================================================================
+
+enum TipoOrden {
+  SEGURO
+  PARTICULAR
+}
+
+/// Recorrido de una orden. COBRADA la pone el sistema cuando lo cobrado alcanza el total (ver modules/ordenes/estados.ts).
+enum EstadoOrden {
+  FALTA_PEDIR
+  PEDIDO
+  TURNO_ASIGNADO
+  INSTALADA
+  FACTURADA
+  COBRADA
+  CANCELADA
+}
+
+enum PagadorCobro {
+  ASEGURADORA
+  CLIENTE
+}
+
+enum MedioCobro {
+  TRANSFERENCIA
+  EFECTIVO
+  TARJETA
+  CHEQUE
+  QR
+  OTRO
+}
+
+model Aseguradora {
+  id       String         @id @default(cuid())
+  nombre   String         @unique
+  activo   Boolean        @default(true)
+  creadoEn DateTime       @default(now()) @map("creado_en")
+  ordenes  OrdenTrabajo[]
+
+  @@map("aseguradoras")
+}
+
+/// A quién se le pide el cristal.
+model Proveedor {
+  id       String         @id @default(cuid())
+  nombre   String         @unique
+  activo   Boolean        @default(true)
+  creadoEn DateTime       @default(now()) @map("creado_en")
+  ordenes  OrdenTrabajo[]
+
+  @@map("proveedores")
+}
+
+/// Un trabajo de colocación, de una aseguradora o de un particular. Queda pendiente de cobro hasta el último pago.
+model OrdenTrabajo {
+  id             String       @id @default(cuid())
+  numero         Int          @unique @default(autoincrement()) // "Orden #12"
+  tipo           TipoOrden
+  estado         EstadoOrden  @default(FALTA_PEDIR)
+  recibidaEl     DateTime     @map("recibida_el") @db.Date
+  clienteId      String       @map("cliente_id")
+  cliente        Cliente      @relation(fields: [clienteId], references: [id])
+  vehiculo       String?
+  patente        String?
+  aseguradoraId  String?      @map("aseguradora_id")
+  aseguradora    Aseguradora? @relation(fields: [aseguradoraId], references: [id])
+  siniestro      String? // número de siniestro o link al sistema de la aseguradora
+  codigoCristal  String?      @map("codigo_cristal") // texto libre: el cristal puede no estar en stock
+  cristalId      String?      @map("cristal_id")
+  cristal        Cristal?     @relation(fields: [cristalId], references: [id])
+  proveedorId    String?      @map("proveedor_id")
+  proveedor      Proveedor?   @relation(fields: [proveedorId], references: [id])
+  turnoId        String?      @unique @map("turno_id")
+  turno          Turno?       @relation(fields: [turnoId], references: [id])
+  importeTotal   Decimal?     @map("importe_total") @db.Decimal(12, 2)
+  facturaNumero  String?      @map("factura_numero")
+  facturaFecha   DateTime?    @map("factura_fecha") @db.Date
+  facturaImporte Decimal?     @map("factura_importe") @db.Decimal(12, 2)
+  observaciones  String?
+  creadoEn       DateTime     @default(now()) @map("creado_en")
+  actualizadoEn  DateTime     @updatedAt @map("actualizado_en")
+  cobros         CobroOrden[]
+
+  @@index([estado])
+  @@index([aseguradoraId])
+  @@index([patente])
+  @@map("ordenes_trabajo")
+}
+
+model CobroOrden {
+  id       String       @id @default(cuid())
+  ordenId  String       @map("orden_id")
+  orden    OrdenTrabajo @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  fecha    DateTime     @db.Date
+  monto    Decimal      @db.Decimal(12, 2)
+  pagador  PagadorCobro
+  medio    MedioCobro
+  nota     String?
+  creadoEn DateTime     @default(now()) @map("creado_en")
+
+  @@index([ordenId])
+  @@map("cobros_orden")
 }

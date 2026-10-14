@@ -1,9 +1,10 @@
 <%#
-  Elementos de una lista de Administración (marcas, tipos, ubicaciones, marcas y modelos de vehículo).
+  Elementos de una lista de Administración (marcas, tipos, ubicaciones, marcas y modelos de vehículo, aseguradoras…).
   Parámetros: lista, ancla (id de la sección), marcaId (solo modelos), items: [{ id, nombre, activo, enUso, tieneLado? }]
+  y, opcional, base (ruta de las listas del módulo; por defecto, las de Stock).
 %>
 <%
-  const baseLista = `/administracion/stock/listas/${lista}`;
+  const baseLista = `${locals.base ?? '/administracion/stock/listas'}/${lista}`;
   const ocultos = marcaId ? { marcaId } : {};
   const chico = `${ui.boton.fantasma} ${ui.boton.chico}`;
 %>

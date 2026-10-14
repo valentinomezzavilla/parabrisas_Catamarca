@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
 import { z } from "@/lib/zod";
 
-export type ListaId = "marcas" | "tipos" | "ubicaciones" | "marcasVehiculo" | "modelos";
+/** Listas de Stock y, las dos últimas, de Órdenes de trabajo. */
+export type ListaId = "marcas" | "tipos" | "ubicaciones" | "marcasVehiculo" | "modelos" | "aseguradoras" | "proveedores";
 
 /** Una operación no permitida sobre un elemento de lista (en uso, inexistente…). */
 export class ListaError extends Error {
@@ -30,6 +31,15 @@ export async function obtenerListas() {
 }
 export type Listas = Awaited<ReturnType<typeof obtenerListas>>;
 
+/** Aseguradoras y proveedores de las órdenes de trabajo, con cuántas órdenes usa cada uno. */
+export async function obtenerListasOrdenes() {
+  const [aseguradoras, proveedores] = await Promise.all([
+    db.aseguradora.findMany({ orderBy: { nombre: "asc" }, include: { _count: { select: { ordenes: true } } } }),
+    db.proveedor.findMany({ orderBy: { nombre: "asc" }, include: { _count: { select: { ordenes: true } } } }),
+  ]);
+  return { aseguradoras, proveedores };
+}
+
 export async function crearItem(lista: ListaId, datos: { nombre: string; marcaId?: string; tieneLado?: boolean }) {
   const nombre = nombreSchema.parse(datos.nombre);
   switch (lista) {
@@ -47,6 +57,10 @@ export async function crearItem(lista: ListaId, datos: { nombre: string; marcaId
       if (!datos.marcaId) throw new ListaError("Elegí la marca del modelo.");
       return db.modeloVehiculo.create({ data: { nombre, marcaId: datos.marcaId } });
     }
+    case "aseguradoras":
+      return db.aseguradora.create({ data: { nombre } });
+    case "proveedores":
+      return db.proveedor.create({ data: { nombre } });
   }
 }
 
@@ -63,6 +77,10 @@ export async function renombrarItem(lista: ListaId, id: string, nombreNuevo: str
       return db.marcaVehiculo.update({ where: { id }, data: { nombre } });
     case "modelos":
       return db.modeloVehiculo.update({ where: { id }, data: { nombre } });
+    case "aseguradoras":
+      return db.aseguradora.update({ where: { id }, data: { nombre } });
+    case "proveedores":
+      return db.proveedor.update({ where: { id }, data: { nombre } });
   }
 }
 
@@ -78,6 +96,10 @@ export async function activarItem(lista: ListaId, id: string, activo: boolean) {
       return db.marcaVehiculo.update({ where: { id }, data: { activo } });
     case "modelos":
       return db.modeloVehiculo.update({ where: { id }, data: { activo } });
+    case "aseguradoras":
+      return db.aseguradora.update({ where: { id }, data: { activo } });
+    case "proveedores":
+      return db.proveedor.update({ where: { id }, data: { activo } });
   }
 }
 
@@ -93,6 +115,10 @@ async function contarUso(lista: ListaId, id: string): Promise<number> {
       return db.modeloVehiculo.count({ where: { marcaId: id } });
     case "modelos":
       return db.compatibilidadVehiculo.count({ where: { modeloId: id } });
+    case "aseguradoras":
+      return db.ordenTrabajo.count({ where: { aseguradoraId: id } });
+    case "proveedores":
+      return db.ordenTrabajo.count({ where: { proveedorId: id } });
   }
 }
 
@@ -121,6 +147,12 @@ export async function eliminarItem(lista: ListaId, id: string): Promise<void> {
       return;
     case "modelos":
       await db.modeloVehiculo.delete({ where: { id } });
+      return;
+    case "aseguradoras":
+      await db.aseguradora.delete({ where: { id } });
+      return;
+    case "proveedores":
+      await db.proveedor.delete({ where: { id } });
       return;
   }
 }

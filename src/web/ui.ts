@@ -1,4 +1,5 @@
-import type { EstadoTurno, OrigenTurno } from "@/generated/prisma/client";
+import type { EstadoOrden, EstadoTurno, OrigenTurno } from "@/generated/prisma/client";
+import type { SituacionCobro } from "@/modules/ordenes/estados";
 
 // Clases compartidas de la interfaz (Tailwind). Las vistas las usan como `ui.boton.primario`.
 // Áreas táctiles: 44 px de alto en celular y 40 px desde `sm`; `boton.chico` es el tamaño compacto.
@@ -92,6 +93,23 @@ export const ESTADOS_TURNO: Record<EstadoTurno, { etiqueta: string; tono: Tono }
   COMPLETADO: { etiqueta: "Completado", tono: "exito" },
   CANCELADO: { etiqueta: "Cancelado", tono: "peligro" },
   AUSENTE: { etiqueta: "No vino", tono: "neutro" },
+};
+
+export const ESTADOS_ORDEN: Record<EstadoOrden, { etiqueta: string; tono: Tono }> = {
+  FALTA_PEDIR: { etiqueta: "Falta pedir", tono: "alerta" },
+  PEDIDO: { etiqueta: "Pedido", tono: "neutro" },
+  TURNO_ASIGNADO: { etiqueta: "Turno asignado", tono: "marca" },
+  INSTALADA: { etiqueta: "Instalada", tono: "neutro" },
+  FACTURADA: { etiqueta: "Facturada", tono: "neutro" },
+  COBRADA: { etiqueta: "Cobrada", tono: "exito" },
+  CANCELADA: { etiqueta: "Cancelada", tono: "peligro" },
+};
+
+export const SITUACION_COBRO: Record<SituacionCobro, { etiqueta: string; tono: Tono }> = {
+  SIN_IMPORTE: { etiqueta: "Sin importe", tono: "neutro" },
+  PENDIENTE: { etiqueta: "Sin cobrar", tono: "alerta" },
+  PARCIAL: { etiqueta: "Cobro parcial", tono: "alerta" },
+  COBRADA: { etiqueta: "Cobrada", tono: "exito" },
 };
 
 export const ui = { boton, input, tarjeta, tarjetaEnlace, tarjetaTurno, casilla, insignia, chip, aviso, estadistica };

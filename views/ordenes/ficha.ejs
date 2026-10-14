@@ -1,0 +1,159 @@
+<%
+  const o = orden;
+  const dato = (etiquetaDato, html, clase = '') => `<div class="${clase}"><dt class="text-xs text-texto-suave">${esc(etiquetaDato)}</dt><dd class="font-medium break-words">${html}</dd></div>`;
+  const textoODash = (t) => t ? esc(t) : '<span class="text-texto-suave">—</span>';
+%>
+<%- volver('/ordenes', 'Órdenes') %>
+<%- encabezado({
+  seccion: `Orden #${o.numero} · ${TIPO_ORDEN[o.tipo]}`,
+  titulo: o.patente || o.vehiculo || o.cliente.nombre,
+  descripcion: [o.patente ? o.vehiculo : null, o.cliente.nombre].filter(Boolean).join(' · ') || null,
+  acciones: enlaceBoton({ href: `/ordenes/${o.id}/editar`, texto: 'Editar', icono: 'Pencil' }),
+}) %>
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+  <div class="min-w-0 space-y-6">
+    <section class="<%= ui.tarjeta %> p-5">
+      <dl class="grid grid-cols-2 gap-4 text-sm">
+        <%- dato('Recibida', esc(diaCorto(o.recibidaEl))) %>
+        <%- dato('Tipo', esc(TIPO_ORDEN[o.tipo])) %>
+        <%- dato('Cliente', `${esc(o.cliente.nombre)}${o.cliente.telefono
+              ? `<span class="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-normal"><a href="tel:${esc(o.cliente.telefono)}" class="flex items-center gap-1 text-acento hover:underline">${icono('Phone', 'size-3.5')}${esc(o.cliente.telefono)}</a>${whatsapp ? `<a href="${esc(whatsapp)}" target="_blank" rel="noopener" class="flex items-center gap-1 text-acento hover:underline">${icono('MessageCircle', 'size-3.5')}WhatsApp</a>` : ''}</span>`
+              : ''}`, 'col-span-2 sm:col-span-1') %>
+        <%- dato('Vehículo', `${textoODash(o.vehiculo)}${o.patente ? `<span class="block font-mono text-xs text-texto-suave">${esc(o.patente)}</span>` : ''}`) %>
+        <% if (o.tipo === 'SEGURO') { %>
+          <%- dato('Aseguradora', textoODash(o.aseguradora?.nombre)) %>
+          <%- dato('Siniestro', !o.siniestro ? textoODash(null) : siniestroEsLink
+                ? `<a href="${esc(o.siniestro)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-acento hover:underline">Abrir el siniestro ${icono('ExternalLink', 'size-3.5')}</a>`
+                : esc(o.siniestro)) %>
+        <% } %>
+        <%- dato('Cristal', `${o.codigoCristal ? `<span class="font-mono">${esc(o.codigoCristal)}</span>` : textoODash(null)}${o.cristal
+              ? `<a href="/stock/${esc(o.cristal.id)}" class="mt-0.5 block text-xs font-normal text-acento hover:underline">${esc(o.cristal.codigo)} · ${esc(o.cristal.descripcion)} (${o.cristal.cantidad} en stock)</a>`
+              : ''}`) %>
+        <%- dato('Se pide a', textoODash(o.proveedor?.nombre)) %>
+        <% if (o.observaciones) { %>
+          <%- dato('Observaciones', `<span class="whitespace-pre-line font-normal">${esc(o.observaciones)}</span>`, 'col-span-2') %>
+        <% } %>
+      </dl>
+    </section>
+
+    <% if (admin) { %>
+      <section id="plata" class="<%= ui.tarjeta %> scroll-mt-6 space-y-5 p-5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="flex items-center gap-2 font-display font-bold"><%- icono('Wallet', 'size-5 text-acento') %> Facturación y cobro</h2>
+          <%- insignia(SITUACION_COBRO[situacion].tono, SITUACION_COBRO[situacion].etiqueta) %>
+        </div>
+        <%- include('../parciales/aviso-en', { ancla: 'plata' }) %>
+
+        <dl class="grid grid-cols-3 gap-3 rounded-lg bg-grafito-500/5 p-4 text-center">
+          <div><dt class="text-xs text-texto-suave">Total</dt><dd class="font-display text-lg font-bold tabular-nums"><%= pesos(cuenta.total) %></dd></div>
+          <div><dt class="text-xs text-texto-suave">Cobrado</dt><dd class="font-display text-lg font-bold tabular-nums"><%= pesos(cuenta.cobrado) %></dd></div>
+          <div><dt class="text-xs text-texto-suave">Saldo</dt><dd class="font-display text-lg font-bold tabular-nums <%= cuenta.saldo > 0 ? 'text-alerta' : '' %>"><%= pesos(cuenta.saldo) %></dd></div>
+        </dl>
+
+        <form method="post" action="/ordenes/<%= o.id %>/facturacion" class="space-y-4" novalidate>
+          <% if (facturacion.mensaje) { %><%- aviso('peligro', facturacion.mensaje) %><% } %>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <%- campo({ nombre: 'importeTotal', etiqueta: 'Importe total del trabajo', tipo: 'number', valor: facturacion.valores.importeTotal, error: facturacion.errores.importeTotal,
+                        atributos: { min: 0, step: '0.01' }, ayuda: 'Lo que se cobra en total, sumando aseguradora y cliente.' }) %>
+            <%- campo({ nombre: 'facturaNumero', etiqueta: 'N.º de factura', valor: facturacion.valores.facturaNumero, error: facturacion.errores.facturaNumero,
+                        ayuda: 'Al cargarlo, una orden instalada pasa a Facturada.' }) %>
+            <%- campo({ nombre: 'facturaFecha', etiqueta: 'Fecha de la factura', tipo: 'date', valor: facturacion.valores.facturaFecha, error: facturacion.errores.facturaFecha }) %>
+            <%- campo({ nombre: 'facturaImporte', etiqueta: 'Importe facturado', tipo: 'number', valor: facturacion.valores.facturaImporte, error: facturacion.errores.facturaImporte,
+                        atributos: { min: 0, step: '0.01' } }) %>
+          </div>
+          <div class="flex justify-end">
+            <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.secundario %>"><%- icono('Receipt') %> Guardar importe y factura</button>
+          </div>
+        </form>
+
+        <div class="space-y-3 border-t border-borde pt-5">
+          <h3 class="font-semibold">Cobros</h3>
+          <% if (o.cobros.length === 0) { %>
+            <p class="text-sm text-texto-suave">Todavía no se registró ningún cobro.</p>
+          <% } else { %>
+            <ul class="divide-y divide-borde rounded-lg border border-borde">
+              <% for (const c of o.cobros) { %>
+                <li class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2 text-sm">
+                  <div class="min-w-0">
+                    <p><span class="font-semibold tabular-nums"><%= pesos(c.monto) %></span> · <%= PAGADOR_COBRO[c.pagador] %> · <%= MEDIO_COBRO[c.medio] %></p>
+                    <p class="text-xs text-texto-suave"><%= diaCorto(c.fecha) %><%= c.nota ? ` · ${c.nota}` : '' %></p>
+                  </div>
+                  <%- botonAccion({ accion: `/ordenes/${o.id}/cobros/${c.id}/eliminar`, texto: '', chico: true, pregunta: '¿Borrar este cobro?', confirmar: 'Borrar',
+                                    etiquetaAccesible: 'Borrar cobro', titulo: 'Borrar cobro', html: icono('Trash2', 'size-3.5') }) %>
+                </li>
+              <% } %>
+            </ul>
+          <% } %>
+
+          <% if (o.estado === 'CANCELADA') { %>
+            <p class="text-sm text-texto-suave">La orden está cancelada: reabrila para registrar cobros.</p>
+          <% } else if (cuenta.total === null) { %>
+            <%- aviso('alerta', 'Cargá el importe total del trabajo para registrar cobros y ver el saldo.') %>
+          <% } else if (cuenta.saldo > 0) { %>
+            <form method="post" action="/ordenes/<%= o.id %>/cobros" class="space-y-4 rounded-lg border border-dashed border-borde p-4" novalidate>
+              <p class="text-sm font-semibold">Registrar un cobro</p>
+              <% if (cobro.mensaje) { %><%- aviso('peligro', cobro.mensaje) %><% } %>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <%- campo({ nombre: 'monto', etiqueta: 'Monto', tipo: 'number', valor: cobro.valores.monto, error: cobro.errores.monto, atributos: { min: 0, step: '0.01' } }) %>
+                <%- campo({ nombre: 'fecha', etiqueta: 'Fecha', tipo: 'date', valor: cobro.valores.fecha, error: cobro.errores.fecha }) %>
+                <%- campo({ nombre: 'pagador', etiqueta: 'Pagó', tipo: 'select', valor: cobro.valores.pagador, error: cobro.errores.pagador,
+                            opciones: PAGADORES.map((p) => ({ valor: p, texto: PAGADOR_COBRO[p] })) }) %>
+                <%- campo({ nombre: 'medio', etiqueta: 'Medio', tipo: 'select', valor: cobro.valores.medio, error: cobro.errores.medio,
+                            opciones: MEDIOS.map((m) => ({ valor: m, texto: MEDIO_COBRO[m] })) }) %>
+                <%- campo({ nombre: 'nota', etiqueta: 'Nota (opcional)', valor: cobro.valores.nota, error: cobro.errores.nota, claseContenedor: 'sm:col-span-2',
+                            atributos: { placeholder: 'Seña, saldo, n.º de transferencia…' } }) %>
+              </div>
+              <div class="flex justify-end">
+                <button type="submit" data-enviando="Registrando…" class="<%= ui.boton.primario %>"><%- icono('HandCoins') %> Registrar cobro</button>
+              </div>
+            </form>
+          <% } %>
+        </div>
+      </section>
+    <% } %>
+  </div>
+
+  <%# En celular, Estado y Turno van arriba: son lo que más se usa. Desde lg, a la derecha. %>
+  <div class="order-first min-w-0 space-y-6 lg:order-none">
+    <section id="estado" class="<%= ui.tarjeta %> scroll-mt-6 space-y-3 p-5">
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="font-display font-bold">Estado</h2>
+        <%- insignia(ESTADOS_ORDEN[o.estado].tono, ESTADOS_ORDEN[o.estado].etiqueta) %>
+      </div>
+      <%- include('../parciales/aviso-en', { ancla: 'estado' }) %>
+      <% if (o.estado === 'COBRADA') { %>
+        <p class="text-sm text-texto-suave">Cobrada: el trabajo está terminado y pagado. Si un cobro estaba mal, borralo y la orden vuelve a quedar pendiente.</p>
+      <% } else { %>
+        <form method="post" action="/ordenes/<%= o.id %>/estado" class="flex gap-2">
+          <%- control({ nombre: 'estado', tipo: 'select', valor: '', atributos: { 'aria-label': 'Nuevo estado', required: true },
+                        opciones: [{ valor: '', texto: 'Pasar a…' }, ...estadosPosibles.map((e) => ({ valor: e, texto: ESTADOS_ORDEN[e].etiqueta }))] }) %>
+          <button type="submit" class="<%= ui.boton.secundario %> shrink-0">Cambiar</button>
+        </form>
+        <p class="text-xs text-texto-suave">Pasa a Cobrada sola cuando se registra el último cobro.</p>
+      <% } %>
+    </section>
+
+    <section id="turno" class="<%= ui.tarjeta %> scroll-mt-6 space-y-3 p-5">
+      <h2 class="font-display font-bold">Turno</h2>
+      <%- include('../parciales/aviso-en', { ancla: 'turno' }) %>
+      <% if (o.turno) { const t = o.turno; %>
+        <div class="space-y-1 text-sm">
+          <p class="flex items-center justify-between gap-2">
+            <span class="font-semibold"><%= mayuscula(formatearFecha(fechaLocal(t.inicio))) %>, <%= formatearHora(t.inicio) %> hs</span>
+            <%- insignia(ESTADOS_TURNO[t.estado].tono, ESTADOS_TURNO[t.estado].etiqueta) %>
+          </p>
+          <p class="text-texto-suave"><%= t.servicio.nombre %> · código <span class="font-mono"><%= t.codigo %></span></p>
+          <a href="/turnos?fecha=<%= fechaLocal(t.inicio) %>#t-<%= t.id %>" class="inline-flex items-center gap-1 font-semibold text-acento hover:underline"><%- icono('CalendarClock', 'size-4') %> Ver en la agenda</a>
+        </div>
+      <% } else if (!darTurno) { %>
+        <p class="text-sm text-texto-suave">Sin turno.</p>
+      <% } %>
+      <% if (darTurno) { %>
+        <%- enlaceBoton({ href: `/ordenes/${o.id}/turno`, texto: o.turno ? 'Dar otro turno' : 'Dar turno', variante: 'primario', icono: 'CalendarCheck', clase: 'w-full' }) %>
+        <p class="text-xs text-texto-suave">Se carga en la agenda con el cliente, el vehículo y el cristal de la orden. Al completarlo, la orden pasa a Instalada.</p>
+      <% } %>
+    </section>
+
+  </div>
+</div>

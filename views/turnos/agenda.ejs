@@ -83,10 +83,15 @@
             </div>
             <p class="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span><%= t.cliente.nombre %></span>
-              <a href="tel:<%= t.cliente.telefono %>" class="flex items-center gap-1 text-acento hover:underline"><%- icono('Phone', 'size-3.5') %><%= t.cliente.telefono %></a>
+              <% if (t.cliente.telefono) { %>
+                <a href="tel:<%= t.cliente.telefono %>" class="flex items-center gap-1 text-acento hover:underline"><%- icono('Phone', 'size-3.5') %><%= t.cliente.telefono %></a>
+              <% } %>
             </p>
             <% if (t.vehiculo || t.patente) { %>
               <p class="flex items-center gap-1.5 text-texto-suave"><%- icono('Car', 'size-3.5') %><%= [t.vehiculo, t.patente].filter(Boolean).join(' · ') %></p>
+            <% } %>
+            <% if (t.orden) { %>
+              <a href="/ordenes/<%= t.orden.id %>" class="flex w-fit items-center gap-1.5 font-semibold text-acento hover:underline"><%- icono('ClipboardList', 'size-3.5') %>Orden #<%= t.orden.numero %></a>
             <% } %>
             <% if (t.notas) { %>
               <p class="flex items-start gap-1.5 whitespace-pre-line text-texto-suave"><%- icono('StickyNote', 'mt-0.5 size-3.5 shrink-0') %><%= t.notas %></p>
