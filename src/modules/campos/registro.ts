@@ -70,7 +70,7 @@ export const REGISTRO: Record<EntidadCampo, CampoSistema[]> = {
     cristal("codigo", "Código interno", "TEXTO", "identificacion", { protegido: true, ayuda: "Ej. PB-HIL-16" }),
     cristal("codigoFabricante", "Código de fabricante", "TEXTO", "identificacion", { ayuda: "Eurocode o catálogo" }),
     cristal("descripcion", "Descripción", "TEXTO", "identificacion", { protegido: true }),
-    cristal("marcaId", "Marca", "LISTA", "principales", { protegido: true, lista: "marcas" }),
+    cristal("marcaId", "Fábrica", "LISTA", "principales", { protegido: true, lista: "marcas" }),
     cristal("tipoId", "Tipo de cristal", "LISTA", "principales", { protegido: true, lista: "tipos" }),
     cristal("ubicacionId", "Ubicación en el vehículo", "LISTA", "principales", { protegido: true, lista: "ubicaciones" }),
     cristal("lado", "Lado", "LISTA", "principales", { lista: "lado" }),

@@ -6,13 +6,13 @@
 
 <div class="space-y-6">
   <section id="marcas" class="<%= ui.tarjeta %> scroll-mt-6 space-y-3 p-5">
-    <%- seccion('Marcas de cristal', 'Pilkington, Fuyao, Vitro… Lo desactivado deja de ofrecerse al cargar un cristal.') %>
+    <%- seccion('Fábricas de cristal', 'Pilkington, Sekurit, Fuyao… Lo desactivado deja de ofrecerse al cargar un cristal.') %>
     <%- include('../parciales/bloque-lista', { lista: 'marcas', ancla: 'marcas', marcaId: null,
           items: marcas.map((m) => ({ id: m.id, nombre: m.nombre, activo: m.activo, enUso: m._count.cristales })) }) %>
   </section>
 
   <section id="tipos" class="<%= ui.tarjeta %> scroll-mt-6 space-y-3 p-5">
-    <%- seccion('Tipos de cristal', 'Laminado, templado, laminado acústico…') %>
+    <%- seccion('Tipos de cristal', 'Verde, verde con degradé… Lo desactivado deja de ofrecerse al cargar un cristal.') %>
     <%- include('../parciales/bloque-lista', { lista: 'tipos', ancla: 'tipos', marcaId: null,
           items: tipos.map((t) => ({ id: t.id, nombre: t.nombre, activo: t.activo, enUso: t._count.cristales })) }) %>
   </section>

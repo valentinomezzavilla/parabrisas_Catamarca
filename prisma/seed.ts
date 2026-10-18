@@ -13,6 +13,9 @@ import { VEHICULOS } from "./vehiculos";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
+const FABRICAS = ["Pilkington", "Sekurit", "Original y legítimo", "Temcem", "Favicur", "Polissurex", "Glass", "Cristem", "Fuyao", "Otros"];
+const TIPOS_CRISTAL = ["Verde", "Verde con degradé"];
+
 const LUN_A_VIE = [1, 2, 3, 4, 5];
 const franja = (dias: number[], desde: string, hasta: string) =>
   dias.map((diaSemana) => ({ diaSemana, horaInicio: horaAMinutos(desde), horaFin: horaAMinutos(hasta) }));
@@ -76,17 +79,14 @@ async function sembrarServicios() {
 async function sembrarCatalogos() {
   const porNombre = (nombre: string) => ({ where: { nombre }, update: {}, create: { nombre } });
 
-  for (const nombre of ["Pilkington", "Fuyao", "Vitro", "AGC", "Saint-Gobain Sekurit", "Genérico"]) {
+  // Fábricas del cristal (la tabla se llama marcas_cristal; en pantalla es "Fábrica"). Deben coincidir con la
+  // migración 20261018120000_fabricas_y_tipos_de_cristal.
+  for (const nombre of FABRICAS) {
     await db.marcaCristal.upsert(porNombre(nombre));
   }
 
-  const tipos = [
-    ["Laminado", "Dos láminas de vidrio con PVB. Uso obligatorio en parabrisas."],
-    ["Templado", "Vidrio de seguridad que se fragmenta en trozos pequeños. Laterales y lunetas."],
-    ["Laminado acústico", "Laminado con capa insonorizante."],
-  ] as const;
-  for (const [nombre, descripcion] of tipos) {
-    await db.tipoCristal.upsert({ where: { nombre }, update: {}, create: { nombre, descripcion } });
+  for (const nombre of TIPOS_CRISTAL) {
+    await db.tipoCristal.upsert(porNombre(nombre));
   }
 
   const ubicaciones: [string, boolean][] = [
