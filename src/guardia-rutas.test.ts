@@ -75,6 +75,8 @@ const SOLO_ADMIN = [
   "/ordenes/abc/facturacion",
   "/ordenes/abc/cobros",
   "/ordenes/abc/cobros/xyz/eliminar",
+  "/ordenes/abc/sena/confirmar",
+  "/ordenes/abc/sena/pendiente",
 ];
 
 describe("sin sesión", () => {

@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { ZodError } from "zod";
 import { EstadoOrden, MedioCobro, PagadorCobro, TipoOrden } from "@/generated/prisma/enums";
-import { erroresDeZod, numero, texto, type Cuerpo, type Errores } from "@/lib/formularios";
+import { casilla, erroresDeZod, numero, texto, type Cuerpo, type Errores } from "@/lib/formularios";
 import { pesos } from "@/lib/formato";
 import { requerirRol, usuarioDe } from "@/lib/sesion";
 import { diaAFecha, diaSemana, fechaLocal, formatearFecha, formatearHora, hoy, sumarDias } from "@/lib/tiempo";
@@ -17,6 +17,7 @@ import {
 import {
   cambiarEstadoOrden,
   catalogosOrden,
+  confirmarSena,
   contarPorEstado,
   crearOrden,
   cuentaDe,
@@ -26,10 +27,12 @@ import {
   guardarFacturacion,
   LIMITE_LISTADO,
   listarOrdenes,
+  marcarSenaPendiente,
   obtenerOrden,
   OrdenError,
   registrarCobro,
   resumenCobranzas,
+  senasPorConfirmar,
   type FiltrosOrden,
 } from "@/modules/ordenes/orden.service";
 import type { OrdenInput } from "@/modules/ordenes/schemas";
@@ -44,7 +47,7 @@ import { mostrar } from "@/web/vistas";
 export const rutasOrdenes = Router();
 
 // La plata (importes, factura y cobros) y la pantalla de cobranzas son solo para el Admin.
-rutasOrdenes.use(["/cobranzas", "/:id/facturacion", "/:id/cobros"], requerirRol("ADMIN"));
+rutasOrdenes.use(["/cobranzas", "/:id/facturacion", "/:id/cobros", "/:id/sena"], requerirRol("ADMIN"));
 
 const esAdmin = (res: Response) => usuarioDe(res).rol === "ADMIN";
 const fichaDe = (id: string, ancla?: string) => url(`/ordenes/${id}`, {}, ancla);
@@ -100,6 +103,8 @@ const CAMPOS = [
   "cristalId",
   "proveedorId",
   "observaciones",
+  "senaMonto",
+  "senaAbonada",
 ] as const;
 
 type Valores = Record<(typeof CAMPOS)[number], string>;
@@ -123,6 +128,8 @@ function leerOrden(cuerpo: Cuerpo): OrdenInput {
     cristalId: texto(cuerpo, "cristalId"),
     proveedorId: texto(cuerpo, "proveedorId"),
     observaciones: texto(cuerpo, "observaciones"),
+    senaMonto: numero(cuerpo, "senaMonto"),
+    senaAbonada: casilla(cuerpo, "senaAbonada"),
   };
 }
 
@@ -145,6 +152,8 @@ async function paginaFormulario(req: Request, res: Response, id: string | null, 
         cristalId: orden.cristalId ?? "",
         proveedorId: orden.proveedorId ?? "",
         observaciones: orden.observaciones ?? "",
+        senaMonto: aTexto(orden.senaMonto),
+        senaAbonada: orden.senaAbonada ? "on" : "",
       }
     : {
         ...(Object.fromEntries(CAMPOS.map((c) => [c, ""])) as Valores),
@@ -162,24 +171,30 @@ async function paginaFormulario(req: Request, res: Response, id: string | null, 
       valores: formulario.valores ?? guardados,
       errores: formulario.errores ?? {},
       mensaje: formulario.mensaje ?? null,
+      // Solo el Admin da por abonada la seña; una ya abonada tampoco la edita el resto.
+      puedeConfirmarSena: esAdmin(res),
+      senaBloqueada: !!orden?.senaAbonada && !esAdmin(res),
     },
     estado,
   );
 }
 
-const valoresEnviados = (cuerpo: Cuerpo) => Object.fromEntries(CAMPOS.map((c) => [c, texto(cuerpo, c) ?? ""])) as Valores;
+const valoresEnviados = (cuerpo: Cuerpo) =>
+  Object.fromEntries(CAMPOS.map((c) => [c, c === "senaAbonada" ? (casilla(cuerpo, c) ? "on" : "") : (texto(cuerpo, c) ?? "")])) as Valores;
 
 rutasOrdenes.get("/nueva", (req, res) => paginaFormulario(req, res, null));
 
 rutasOrdenes.post("/nueva", async (req, res) => {
   let destino: string;
   try {
-    const orden = await crearOrden(leerOrden(req.body));
+    const orden = await crearOrden(leerOrden(req.body), { admin: esAdmin(res) });
     avisar(res, `Orden #${orden.numero} creada.`);
     destino = fichaDe(orden.id);
   } catch (e) {
-    if (!(e instanceof ZodError)) throw e;
-    return paginaFormulario(req, res, null, { valores: valoresEnviados(req.body), errores: erroresDeZod(e), mensaje: "Revisá los datos marcados" }, 422);
+    const valores = valoresEnviados(req.body);
+    if (e instanceof ZodError) return paginaFormulario(req, res, null, { valores, errores: erroresDeZod(e), mensaje: "Revisá los datos marcados" }, 422);
+    if (e instanceof OrdenError) return paginaFormulario(req, res, null, { valores, mensaje: e.message }, 422);
+    throw e;
   }
   res.redirect(303, destino);
 });
@@ -187,11 +202,13 @@ rutasOrdenes.post("/nueva", async (req, res) => {
 // --- Cobranzas (solo Admin) ---------------------------------------------------------------
 
 rutasOrdenes.get("/cobranzas", async (_req, res) => {
-  const { grupos, sinImporte } = await resumenCobranzas(hoy());
+  const [{ grupos, sinImporte }, senas] = await Promise.all([resumenCobranzas(hoy()), senasPorConfirmar(hoy())]);
   await mostrar(res, "ordenes/cobranzas", {
     titulo: "Cobranzas",
     grupos,
     sinImporte,
+    senas,
+    totalSenas: senas.reduce((t, s) => t + s.monto, 0),
     total: grupos.reduce((t, g) => t + g.saldo, 0),
     diasAlerta: DIAS_ALERTA_COBRO,
   });
@@ -224,6 +241,7 @@ async function paginaFicha(req: Request, res: Response, ficha: EstadoFicha = {},
       // A mano se puede ir a cualquier estado salvo Cobrada; una orden Cobrada no cambia a mano.
       estadosPosibles: ESTADOS_MANUALES.filter((e) => e !== orden.estado && !motivoCambioNoPermitido(orden.estado, e)),
       darTurno: puedeDarTurno(orden.estado, orden.turno?.estado ?? null),
+      tieneSena: orden.tipo === "PARTICULAR" && orden.senaMonto !== null,
       siniestroEsLink: !!orden.siniestro && /^https?:\/\//i.test(orden.siniestro),
       whatsapp: telefono ? enlaceWhatsapp(telefono, `Hola ${orden.cliente.nombre}, te escribimos de Parabrisas Catamarca.`) : null,
       facturacion: ficha.facturacion ?? {
@@ -261,10 +279,12 @@ rutasOrdenes.get("/:id/editar", (req, res) => paginaFormulario(req, res, req.par
 rutasOrdenes.post("/:id/editar", async (req, res, next) => {
   if (!(await obtenerOrden(req.params.id))) return next();
   try {
-    await editarOrden(req.params.id, leerOrden(req.body));
+    await editarOrden(req.params.id, leerOrden(req.body), { admin: esAdmin(res) });
   } catch (e) {
-    if (!(e instanceof ZodError)) throw e;
-    return paginaFormulario(req, res, req.params.id, { valores: valoresEnviados(req.body), errores: erroresDeZod(e), mensaje: "Revisá los datos marcados" }, 422);
+    const valores = valoresEnviados(req.body);
+    if (e instanceof ZodError) return paginaFormulario(req, res, req.params.id, { valores, errores: erroresDeZod(e), mensaje: "Revisá los datos marcados" }, 422);
+    if (e instanceof OrdenError) return paginaFormulario(req, res, req.params.id, { valores, mensaje: e.message }, 422);
+    throw e;
   }
   avisar(res, "Cambios guardados.");
   res.redirect(303, fichaDe(req.params.id));
@@ -407,4 +427,33 @@ rutasOrdenes.post("/:id/cobros/:cobroId/eliminar", async (req, res, next) => {
   await eliminarCobro(req.params.id, req.params.cobroId);
   avisar(res, "Cobro borrado.", { ancla: "plata" });
   res.redirect(303, fichaDe(req.params.id, "plata"));
+});
+
+// --- Seña de un particular (solo Admin) ---------------------------------------------------
+
+/** Después de confirmar desde Cobranzas se vuelve ahí; desde la ficha, a la ficha. El destino no viaja en la URL. */
+function volverDeSena(req: Request, id: string) {
+  return texto(req.body, "desde") === "cobranzas" ? "/ordenes/cobranzas#senas" : fichaDe(id, "plata");
+}
+
+rutasOrdenes.post("/:id/sena/confirmar", async (req, res, next) => {
+  const orden = await obtenerOrden(req.params.id);
+  if (!orden) return next();
+  const ancla = texto(req.body, "desde") === "cobranzas" ? "senas" : "plata";
+  try {
+    await confirmarSena(orden.id);
+    avisar(res, `Seña de ${pesos(orden.senaMonto)} confirmada (orden #${orden.numero}).`, { ancla });
+  } catch (e) {
+    if (!(e instanceof OrdenError)) throw e;
+    avisar(res, e.message, { tono: "peligro", ancla });
+  }
+  res.redirect(303, volverDeSena(req, orden.id));
+});
+
+rutasOrdenes.post("/:id/sena/pendiente", async (req, res, next) => {
+  const orden = await obtenerOrden(req.params.id);
+  if (!orden) return next();
+  await marcarSenaPendiente(orden.id);
+  avisar(res, `La seña de la orden #${orden.numero} quedó pendiente.`, { ancla: "plata" });
+  res.redirect(303, fichaDe(orden.id, "plata"));
 });

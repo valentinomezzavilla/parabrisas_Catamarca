@@ -57,8 +57,8 @@ UbicacionVeh ─┘      │
 
 | Tabla | Campos clave | Notas |
 |---|---|---|
-| `marcas_cristal` | nombre | Pilkington, Fuyao, Vitro, AGC… |
-| `tipos_cristal` | nombre, descripcion | Laminado, templado, laminado acústico. Es un catálogo, no un enum: se amplía desde el panel. |
+| `marcas_cristal` | nombre | En pantalla es la **Fábrica** del cristal: Pilkington, Sekurit, Original y legítimo, Temcem, Favicur, Polissurex, Glass, Cristem, Fuyao, Otros. |
+| `tipos_cristal` | nombre, descripcion | Verde, Verde con degradé. Es un catálogo, no un enum: se amplía desde el panel. |
 | `ubicaciones_vehiculo` | nombre, tiene_lado, orden | Parabrisas, luneta, puertas, ventilete… |
 | `cristales` | codigo (SKU), codigo_fabricante, descripcion, marca/tipo/ubicacion, lado, ancho_mm, alto_mm, espesor_mm, **cantidad**, stock_minimo, ubicacion_deposito, costo, precio_venta, activo, extras | `cantidad` solo cambia junto con un movimiento. |
 | `campos_personalizados` | entidad, clave, etiqueta, ayuda, tipo (TEXTO/TEXTO_LARGO/NUMERO/SI_NO/LISTA/FECHA), requerido, unidad, opciones (JSON), orden, visible, archivado_en | Campos propios definidos desde Administración. Sus valores viven en `cristales.extras`, indexados por `clave` (que no cambia nunca). |
@@ -113,7 +113,9 @@ Cliente ─< OrdenTrabajo >── Aseguradora / Proveedor / Cristal (opcionales)
 |---|---|---|
 | `aseguradoras`, `proveedores` | nombre (único), activo | Listas en Administración → Órdenes de trabajo. |
 | `ordenes_trabajo` | numero (correlativo), tipo (`SEGURO`/`PARTICULAR`), estado, recibida_el (DATE), cliente_id, vehiculo, patente (normalizada: `AF722KI`), aseguradora_id, siniestro, codigo_cristal (texto libre), cristal_id, proveedor_id, turno_id (único), importe_total, factura_numero/fecha/importe, observaciones | |
-| `cobros_orden` | orden_id, fecha, monto, pagador (`ASEGURADORA`/`CLIENTE`), medio | Cobros parciales: el saldo es `importe_total − Σ cobros`. |
+| `cobros_orden` | orden_id, fecha, monto, pagador (`ASEGURADORA`/`CLIENTE`), medio | Cobros parciales: el saldo es `importe_total − Σ cobros − seña abonada`. |
+
+**Seña de un particular.** Las órdenes Particular llevan `sena_monto` y `sena_abonada` (en el formulario, "Seña abonada" con un check, al lado de la fecha de recepción). Cualquiera carga el monto; **solo el Admin** da por abonada la seña (Cobranzas → "Señas por confirmar", o la ficha), y una vez abonada el resto ya no puede cambiar ni el monto ni la casilla. La seña no es un cobro más: cuenta como cobrado únicamente mientras `sena_abonada` es verdadero (`cobradoDe`, `modules/ordenes/estados.ts`), así confirmarla y deshacerla es reversible y no deja filas sueltas. Confirmarla puede dejar la orden Cobrada, y deshacerla la devuelve a Facturada o Instalada. La seña no puede superar el importe total, y una orden con seña abonada no pasa a Seguro. En un Seguro la seña se descarta.
 
 **Estados** (`modules/ordenes/estados.ts`, puro): Falta pedir → Pedido → Turno asignado → Instalada → Facturada → Cobrada, más Cancelada. Todos se eligen a mano menos **Cobrada**, que la pone el sistema cuando lo cobrado alcanza el total y el trabajo está hecho (Instalada o Facturada); si después se borra un cobro o sube el total, vuelve atrás. Cargar el número de factura pasa una Instalada a Facturada. No se registra un cobro sin importe total ni uno que supere el saldo. Las operaciones de plata y estado de una orden se serializan con `pg_advisory_xact_lock` por orden.
 
@@ -146,7 +148,7 @@ La cookie `sesion` (httpOnly, sameSite=lax, 8 h) guarda un JWT firmado con `SESS
 
 Protección en `src/app.ts`, antes de montar las rutas:
 1. **Toda ruta que no es pública** (`esRutaPublica`, `src/lib/rutas.ts`) pasa por `verificarSesion`: valida la cookie, relee al usuario y, si no hay sesión, redirige a `/login`. Como va antes de las rutas, una ruta nueva queda protegida por defecto, sea GET o POST.
-2. `/servicios`, `/usuarios` y `/administracion` pasan además por `requerirRol("ADMIN")`. En Órdenes, `/ordenes/cobranzas`, `/ordenes/:id/facturacion` y `/ordenes/:id/cobros` también (guardia en `src/rutas/ordenes.ts`).
+2. `/servicios`, `/usuarios` y `/administracion` pasan además por `requerirRol("ADMIN")`. En Órdenes, `/ordenes/cobranzas`, `/ordenes/:id/facturacion`, `/ordenes/:id/cobros` y `/ordenes/:id/sena` también (guardia en `src/rutas/ordenes.ts`).
 3. **CSRF:** un POST cuyo `Origin` no es el propio sitio se rechaza con 403 (`src/web/seguridad.ts`); la cookie es `SameSite=Lax`. El webhook de Mercado Pago queda afuera: se valida por firma.
 
 `src/guardia-rutas.test.ts` levanta la app y comprueba las tres cosas para rutas del panel, de Admin y que no existen.
@@ -218,7 +220,7 @@ El menú se define una sola vez en `src/web/navegacion.ts` y lo usan `views/parc
 | `/ordenes` | Órdenes de trabajo: contadores por estado y filtros (estado, tipo, aseguradora, texto). Por defecto, las abiertas. El Admin ve el saldo y el total por cobrar. |
 | `/ordenes/nueva`, `/ordenes/[id]`, `/ordenes/[id]/editar` | Alta, ficha (datos, estado, turno; el Admin además factura y cobros) y edición de una orden. |
 | `/ordenes/[id]/turno` | Dar turno en la agenda desde la orden. |
-| `/ordenes/cobranzas` | Solo Admin. Lo que falta cobrar de trabajos instalados o facturados, por aseguradora, con días desde la factura. |
+| `/ordenes/cobranzas` | Solo Admin. Las señas por confirmar y lo que falta cobrar de trabajos instalados o facturados, por aseguradora, con días desde la factura. |
 | `/administracion/ordenes` | Solo Admin. Aseguradoras, proveedores e importación desde Notion. |
 | `/login` | **Pública.** Ingreso al panel. |
 | `/usuarios`, `/usuarios/nuevo` | Solo Admin: alta, rol, activar/desactivar y nueva contraseña. |

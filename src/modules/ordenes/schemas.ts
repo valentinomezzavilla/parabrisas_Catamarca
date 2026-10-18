@@ -12,6 +12,8 @@ export const fechaSchema = z
 
 const textoOpcional = (max: number) => z.string().trim().max(max).optional();
 
+const importe = z.number().min(0).max(1_000_000_000);
+
 export const ordenSchema = z
   .object({
     tipo: z.enum(TipoOrden),
@@ -28,16 +30,25 @@ export const ordenSchema = z
     cristalId: z.string().optional(),
     proveedorId: z.string().optional(),
     observaciones: textoOpcional(2000),
+    // Seña de un particular. Que esté abonada lo decide el Admin (el servicio ignora la casilla de cualquier otro).
+    senaMonto: z.number().positive().max(1_000_000_000).optional(),
+    senaAbonada: z.boolean().optional(),
   })
   .superRefine((o, ctx) => {
     if (o.tipo === "SEGURO" && !o.aseguradoraId) {
       ctx.addIssue({ code: "custom", path: ["aseguradoraId"], message: "Elegí la aseguradora" });
     }
+    if (o.tipo === "PARTICULAR" && o.senaAbonada && o.senaMonto === undefined) {
+      ctx.addIssue({ code: "custom", path: ["senaMonto"], message: "Cargá el monto de la seña" });
+    }
   })
-  // Aseguradora y siniestro son cosa de los seguros: en un particular no se guardan aunque el formulario los mande.
-  .transform((o) => (o.tipo === "PARTICULAR" ? { ...o, aseguradoraId: undefined, siniestro: undefined } : o));
-
-const importe = z.number().min(0).max(1_000_000_000);
+  // Aseguradora y siniestro son cosa de los seguros, y la seña de los particulares: lo que no corresponde al tipo
+  // no se guarda aunque el formulario lo mande.
+  .transform((o) =>
+    o.tipo === "PARTICULAR"
+      ? { ...o, aseguradoraId: undefined, siniestro: undefined, senaAbonada: o.senaAbonada ?? false }
+      : { ...o, senaMonto: undefined, senaAbonada: false },
+  );
 
 export const facturacionSchema = z.object({
   importeTotal: importe.optional(),

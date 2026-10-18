@@ -29,6 +29,25 @@
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <%- campo({ nombre: 'recibidaEl', etiqueta: 'Fecha de recepción', tipo: 'date', valor: valores.recibidaEl, error: errores.recibidaEl }) %>
+      <%# La seña es de los particulares: va en el lugar de la aseguradora, al lado de la fecha de recepción. %>
+      <div data-mostrar-si="tipo=PARTICULAR" class="space-y-1.5">
+        <label for="senaMonto" class="block text-sm font-medium">Seña abonada</label>
+        <div class="flex items-center gap-3">
+          <%- control({ nombre: 'senaMonto', tipo: 'number', valor: valores.senaMonto, error: errores.senaMonto, clase: `${ui.input} min-w-0`,
+                        atributos: { min: 0, step: '0.01', placeholder: 'Monto', disabled: senaBloqueada } }) %>
+          <label class="flex shrink-0 items-center gap-2 text-sm font-medium">
+            <input type="checkbox" name="senaAbonada" class="<%= ui.casilla %>"<% if (valores.senaAbonada) { %> checked<% } %><% if (!puedeConfirmarSena) { %> disabled<% } %>>
+            Abonada
+          </label>
+        </div>
+        <% if (errores.senaMonto) { %>
+          <p class="text-xs text-peligro"><%= errores.senaMonto %></p>
+        <% } else { %>
+          <p class="text-xs text-texto-suave">
+            <%= puedeConfirmarSena ? 'Tildá «Abonada» cuando la seña ya entró; si no, queda pendiente.' : senaBloqueada ? 'La seña ya está abonada: solo la modifica el administrador.' : 'Queda pendiente: la confirma el administrador desde Cobranzas.' %>
+          </p>
+        <% } %>
+      </div>
       <div data-mostrar-si="tipo=SEGURO">
         <%- campo({ nombre: 'aseguradoraId', etiqueta: 'Aseguradora', tipo: 'select', valor: valores.aseguradoraId, error: errores.aseguradoraId,
                     ayuda: catalogos.aseguradoras.length === 0 ? 'Todavía no hay aseguradoras: cargalas en Administración → Órdenes de trabajo.' : null,

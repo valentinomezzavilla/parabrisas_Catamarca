@@ -13,6 +13,8 @@
   const turnoTexto = (o) => o.turno && o.estado === 'TURNO_ASIGNADO'
     ? `${formatearFecha(fechaLocal(o.turno.inicio), { day: '2-digit', month: '2-digit' })} ${formatearHora(o.turno.inicio)} hs`
     : null;
+  /** "Seña $50.000 pendiente" de un particular, o null. Los empleados también la ven: ellos la cargan. */
+  const senaTexto = (o) => o.tipo === 'PARTICULAR' && o.senaMonto !== null ? `Seña ${pesos(o.senaMonto)} ${o.senaAbonada ? 'abonada' : 'pendiente'}` : null;
   const quien = (o) => o.tipo === 'SEGURO' ? (o.aseguradora?.nombre ?? 'Seguro sin aseguradora') : 'Particular';
   const filtrosActivos = [f.estado !== 'abiertas', f.tipo, f.aseguradoraId].filter(Boolean).length;
 %>
@@ -82,9 +84,9 @@
             </div>
             <span class="shrink-0"><%- insignia(ESTADOS_ORDEN[o.estado].tono, ESTADOS_ORDEN[o.estado].etiqueta) %></span>
           </div>
-          <% if (o.codigoCristal || turno || admin) { %>
+          <% if (o.codigoCristal || turno || admin || senaTexto(o)) { %>
             <div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-borde pt-3 text-xs text-texto-suave">
-              <span><%= o.codigoCristal ? `Cristal ${o.codigoCristal}` : '' %><%= turno ? `${o.codigoCristal ? ' · ' : ''}Turno ${turno}` : '' %></span>
+              <span><%= [o.codigoCristal ? `Cristal ${o.codigoCristal}` : null, turno ? `Turno ${turno}` : null, senaTexto(o)].filter(Boolean).join(' · ') %></span>
               <% if (admin) { %><span class="text-sm text-texto"><%- saldoHtml(o) %></span><% } %>
             </div>
           <% } %>
@@ -129,6 +131,7 @@
             <td class="px-4 py-3">
               <%- insignia(ESTADOS_ORDEN[o.estado].tono, ESTADOS_ORDEN[o.estado].etiqueta) %>
               <% if (turno) { %><p class="mt-1 text-xs text-texto-suave"><%= turno %></p><% } %>
+              <% if (senaTexto(o)) { %><p class="mt-1 text-xs <%= o.senaAbonada ? 'text-texto-suave' : 'text-alerta' %>"><%= senaTexto(o) %></p><% } %>
             </td>
             <% if (admin) { %><td class="px-4 py-3 text-right"><%- saldoHtml(o) %></td><% } %>
           </tr>

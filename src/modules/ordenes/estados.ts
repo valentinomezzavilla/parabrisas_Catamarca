@@ -48,6 +48,18 @@ export function situacionCobro(total: number | null, cobrado: number): Situacion
   return cobrado > 0 ? "PARCIAL" : "PENDIENTE";
 }
 
+type Numerico = { toString(): string };
+
+/** Lo que aporta la seña a lo cobrado: su monto si ya está abonada; pendiente, nada. */
+export function senaCobrada(monto: Numerico | null, abonada: boolean): number {
+  return abonada && monto !== null ? Number(monto) : 0;
+}
+
+/** Todo lo cobrado de una orden: los cobros registrados más la seña, si ya está abonada. */
+export function cobradoDe(orden: { cobros: { monto: Numerico }[]; senaMonto: Numerico | null; senaAbonada: boolean }): number {
+  return centavos(orden.cobros.reduce((total, c) => total + Number(c.monto), 0) + senaCobrada(orden.senaMonto, orden.senaAbonada));
+}
+
 export interface CuentaOrden {
   estado: EstadoOrden;
   total: number | null;

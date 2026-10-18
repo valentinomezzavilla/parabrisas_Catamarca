@@ -6,6 +6,8 @@ import type { EstadoOrden, Prisma, TipoOrden } from "@/generated/prisma/client";
 import { codigoLibre, disponibilidadDelDia, TurnoNoDisponibleError } from "@/modules/turnos/servicio.service";
 import {
   agruparCobranzas,
+  cobradoDe,
+  diasEntre,
   ESTADOS_A_COBRAR,
   ESTADOS_ABIERTOS,
   estadoAlDarTurno,
@@ -37,7 +39,6 @@ export class OrdenError extends Error {
 }
 
 const aNumero = (v: { toString(): string } | null) => (v === null ? null : Number(v));
-const sumaCobros = (cobros: { monto: { toString(): string } }[]) => cobros.reduce((total, c) => total + Number(c.monto), 0);
 
 /** Serializa las operaciones de plata y de estado de una misma orden. */
 const bloquearOrden = (tx: Tx, id: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`orden:${id}`}))`;
@@ -116,10 +117,15 @@ export function obtenerOrden(id: string) {
   });
 }
 
-/** Total, cobrado y saldo de una orden. */
-export function cuentaDe(orden: { importeTotal: { toString(): string } | null; cobros: { monto: { toString(): string } }[] }) {
+/** Total, cobrado (cobros más seña abonada) y saldo de una orden. */
+export function cuentaDe(orden: {
+  importeTotal: { toString(): string } | null;
+  senaMonto: { toString(): string } | null;
+  senaAbonada: boolean;
+  cobros: { monto: { toString(): string } }[];
+}) {
   const total = aNumero(orden.importeTotal);
-  const cobrado = sumaCobros(orden.cobros);
+  const cobrado = cobradoDe(orden);
   return { total, cobrado, saldo: saldo(total, cobrado) };
 }
 
@@ -153,6 +159,7 @@ async function clienteDe(tx: Tx, datos: { nombre: string; telefono?: string }) {
 }
 
 function datosDeOrden(r: z.output<typeof ordenSchema>) {
+  // La seña no se arma acá: según quién edita, su monto y su "abonada" tienen reglas propias.
   return {
     tipo: r.tipo,
     recibidaEl: fechaADia(r.recibidaEl),
@@ -167,11 +174,18 @@ function datosDeOrden(r: z.output<typeof ordenSchema>) {
   };
 }
 
-export async function crearOrden(input: OrdenInput) {
+/** Quién hace el cambio: solo el Admin puede dar por abonada una seña. */
+export interface Actor {
+  admin: boolean;
+}
+
+export async function crearOrden(input: OrdenInput, { admin }: Actor = { admin: false }) {
   const r = ordenSchema.parse(input);
   return db.$transaction(async (tx) => {
     const cliente = await clienteDe(tx, r.cliente);
-    return tx.ordenTrabajo.create({ data: { ...datosDeOrden(r), clienteId: cliente.id } });
+    return tx.ordenTrabajo.create({
+      data: { ...datosDeOrden(r), clienteId: cliente.id, senaMonto: r.senaMonto ?? null, senaAbonada: admin && !!r.senaAbonada },
+    });
   });
 }
 
@@ -179,17 +193,40 @@ export async function crearOrden(input: OrdenInput) {
  * Edita los datos de la orden (no la plata ni el estado). Si cambia el teléfono, la orden pasa al cliente de ese
  * teléfono (o a uno nuevo); si no, se corrige el nombre en la ficha actual. Si la orden tiene un turno por delante,
  * se le pasan cliente, vehículo, patente y cristal: así la agenda descuenta del stock el cristal correcto.
+ *
+ * La seña: cualquiera carga o corrige el monto mientras está pendiente; una vez abonada, el monto y la casilla solo los
+ * cambia el Admin (los demás no pueden alterar plata ya confirmada). No se pasa a Seguro una orden con seña abonada.
  */
-export async function editarOrden(id: string, input: OrdenInput) {
+export async function editarOrden(id: string, input: OrdenInput, { admin }: Actor = { admin: false }) {
   const r = ordenSchema.parse(input);
   return db.$transaction(async (tx) => {
-    const actual = await tx.ordenTrabajo.findUniqueOrThrow({ where: { id }, include: { cliente: true, turno: { select: { id: true, estado: true } } } });
+    await bloquearOrden(tx, id);
+    const actual = await tx.ordenTrabajo.findUniqueOrThrow({
+      where: { id },
+      include: { cliente: true, cobros: { select: { monto: true } }, turno: { select: { id: true, estado: true } } },
+    });
+
+    if (r.tipo === "SEGURO" && actual.senaAbonada) {
+      throw new OrdenError("La seña ya está abonada: marcala como pendiente antes de pasar la orden a Seguro.");
+    }
+    const bloqueada = actual.senaAbonada && !admin;
+    const senaMonto = bloqueada ? actual.senaMonto : (r.senaMonto ?? null);
+    const senaAbonada = bloqueada ? true : admin && !!r.senaAbonada;
+    const total = aNumero(actual.importeTotal);
+    if (total !== null && senaMonto !== null && Number(senaMonto) > total) {
+      throw new OrdenError(`La seña no puede superar el importe total de la orden (${pesos(total)}).`);
+    }
+    const cobrado = cobradoDe({ cobros: actual.cobros, senaMonto, senaAbonada });
+    if (total !== null && cobrado > total + 0.005) {
+      throw new OrdenError(`Con esta seña, lo cobrado superaría el importe total (${pesos(total)}).`);
+    }
 
     let clienteId = actual.clienteId;
     if ((r.cliente.telefono ?? "") !== actual.cliente.telefono) clienteId = (await clienteDe(tx, r.cliente)).id;
     else await tx.cliente.update({ where: { id: actual.clienteId }, data: { nombre: r.cliente.nombre } });
 
-    const orden = await tx.ordenTrabajo.update({ where: { id }, data: { ...datosDeOrden(r), clienteId } });
+    const estado = estadoSegunCobros({ estado: actual.estado, total, cobrado, facturada: !!actual.facturaNumero });
+    const orden = await tx.ordenTrabajo.update({ where: { id }, data: { ...datosDeOrden(r), clienteId, senaMonto, senaAbonada, estado } });
     if (actual.turno && ["PENDIENTE", "CONFIRMADO", "EN_CURSO", "ESPERANDO_PAGO"].includes(actual.turno.estado)) {
       await tx.turno.update({
         where: { id: actual.turno.id },
@@ -216,14 +253,17 @@ export async function cambiarEstadoOrden(id: string, nuevo: EstadoOrden) {
 
 // --- Plata (solo Admin) ------------------------------------------------------------------
 
-/** Importe total y datos de la factura. El total no puede quedar por debajo de lo cobrado. */
+/** Importe total y datos de la factura. El total no puede quedar por debajo de lo cobrado ni de la seña. */
 export async function guardarFacturacion(id: string, input: FacturacionInput) {
   const r = facturacionSchema.parse(input);
   return db.$transaction(async (tx) => {
     await bloquearOrden(tx, id);
     const actual = await tx.ordenTrabajo.findUniqueOrThrow({ where: { id }, include: { cobros: { select: { monto: true } } } });
-    const cobrado = sumaCobros(actual.cobros);
+    const cobrado = cobradoDe(actual);
     const total = r.importeTotal ?? null;
+    if (total !== null && actual.senaMonto !== null && Number(actual.senaMonto) > total) {
+      throw new OrdenError(`El importe total no puede ser menor a la seña (${pesos(actual.senaMonto)}).`);
+    }
     if (total === null && cobrado > 0) throw new OrdenError("La orden tiene cobros registrados: el importe total no puede quedar vacío.");
     if (total !== null && total < cobrado) throw new OrdenError(`El importe total no puede ser menor a lo ya cobrado (${pesos(cobrado)}).`);
 
@@ -271,6 +311,40 @@ export async function eliminarCobro(ordenId: string, cobroId: string) {
     const { total, cobrado } = cuentaDe(actual);
     const estado = estadoSegunCobros({ estado: actual.estado, total, cobrado, facturada: !!actual.facturaNumero });
     if (estado !== actual.estado) await tx.ordenTrabajo.update({ where: { id: ordenId }, data: { estado } });
+  });
+}
+
+/**
+ * Da por abonada la seña de un particular (solo Admin, desde Cobranzas o la ficha). Desde ese momento cuenta como
+ * cobrado: baja el saldo y, si completa el total de un trabajo instalado, la orden queda Cobrada.
+ */
+export async function confirmarSena(id: string) {
+  return db.$transaction(async (tx) => {
+    await bloquearOrden(tx, id);
+    const actual = await tx.ordenTrabajo.findUniqueOrThrow({ where: { id }, include: { cobros: { select: { monto: true } } } });
+    if (actual.tipo !== "PARTICULAR" || actual.senaMonto === null) throw new OrdenError("Esta orden no tiene una seña cargada.");
+    if (actual.estado === "CANCELADA") throw new OrdenError("La orden está cancelada: reabrila antes de confirmar la seña.");
+    if (actual.senaAbonada) return actual;
+
+    const total = aNumero(actual.importeTotal);
+    const cobrado = cobradoDe({ ...actual, senaAbonada: true });
+    if (total !== null && cobrado > total + 0.005) {
+      throw new OrdenError(`Con esta seña, lo cobrado superaría el importe total (${pesos(total)}). Revisá el importe de la orden.`);
+    }
+    const estado = estadoSegunCobros({ estado: actual.estado, total, cobrado, facturada: !!actual.facturaNumero });
+    return tx.ordenTrabajo.update({ where: { id }, data: { senaAbonada: true, estado } });
+  });
+}
+
+/** Deshace la confirmación de una seña (se confirmó por error). Si la orden estaba Cobrada, vuelve atrás. */
+export async function marcarSenaPendiente(id: string) {
+  return db.$transaction(async (tx) => {
+    await bloquearOrden(tx, id);
+    const actual = await tx.ordenTrabajo.findUniqueOrThrow({ where: { id }, include: { cobros: { select: { monto: true } } } });
+    if (!actual.senaAbonada) return actual;
+    const cobrado = cobradoDe({ ...actual, senaAbonada: false });
+    const estado = estadoSegunCobros({ estado: actual.estado, total: aNumero(actual.importeTotal), cobrado, facturada: !!actual.facturaNumero });
+    return tx.ordenTrabajo.update({ where: { id }, data: { senaAbonada: false, estado } });
   });
 }
 
@@ -333,13 +407,31 @@ export async function resumenCobranzas(hoy: string) {
       patente: o.patente,
       siniestro: o.siniestro,
       total: aNumero(o.importeTotal),
-      cobrado: sumaCobros(o.cobros),
+      cobrado: cobradoDe(o),
       facturaNumero: o.facturaNumero,
       facturaFecha: o.facturaFecha && diaAFecha(o.facturaFecha),
       recibidaEl: diaAFecha(o.recibidaEl),
     })),
     hoy,
   );
+}
+
+/** Particulares con una seña cargada que todavía no se confirmó, de la más vieja a la más nueva. */
+export async function senasPorConfirmar(hoy: string) {
+  const ordenes = await db.ordenTrabajo.findMany({
+    where: { tipo: "PARTICULAR", senaMonto: { not: null }, senaAbonada: false, estado: { notIn: ["CANCELADA", "COBRADA"] } },
+    include: { cliente: { select: { nombre: true, telefono: true } } },
+    orderBy: [{ recibidaEl: "asc" }, { numero: "asc" }],
+  });
+  return ordenes.map((o) => ({
+    id: o.id,
+    numero: o.numero,
+    patente: o.patente,
+    vehiculo: o.vehiculo,
+    cliente: o.cliente,
+    monto: Number(o.senaMonto),
+    dias: diasEntre(diaAFecha(o.recibidaEl), hoy),
+  }));
 }
 
 // --- Importar desde Notion (solo Admin) ---------------------------------------------------

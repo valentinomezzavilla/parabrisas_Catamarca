@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   agruparCobranzas,
+  cobradoDe,
   diasEntre,
   estadoAlDarTurno,
   estadoSegunCobros,
@@ -9,6 +10,7 @@ import {
   motivoCambioNoPermitido,
   puedeDarTurno,
   saldo,
+  senaCobrada,
   situacionCobro,
   type OrdenACobrar,
 } from "./estados";
@@ -29,6 +31,33 @@ describe("saldo y situación de cobro", () => {
     expect(situacionCobro(100000, 40000)).toBe("PARCIAL");
     expect(situacionCobro(100000, 100000)).toBe("COBRADA");
     expect(situacionCobro(0, 0)).toBe("COBRADA");
+  });
+});
+
+describe("seña de un particular", () => {
+  it("pendiente no cuenta, abonada sí", () => {
+    expect(senaCobrada(50000, false)).toBe(0);
+    expect(senaCobrada(50000, true)).toBe(50000);
+    expect(senaCobrada(null, true)).toBe(0);
+    expect(senaCobrada("65000.50", true)).toBe(65000.5);
+  });
+
+  it("lo cobrado suma los cobros y la seña abonada", () => {
+    const cobros = [{ monto: "20000" }, { monto: 10000.25 }];
+    expect(cobradoDe({ cobros, senaMonto: 50000, senaAbonada: false })).toBe(30000.25);
+    expect(cobradoDe({ cobros, senaMonto: 50000, senaAbonada: true })).toBe(80000.25);
+    expect(cobradoDe({ cobros: [], senaMonto: null, senaAbonada: false })).toBe(0);
+  });
+
+  it("con la seña abonada, el saldo baja y al completar el total la orden queda Cobrada", () => {
+    const cobrado = cobradoDe({ cobros: [{ monto: 60000 }], senaMonto: 40000, senaAbonada: true });
+    expect(saldo(100000, cobrado)).toBe(0);
+    expect(estadoSegunCobros({ estado: "INSTALADA", total: 100000, cobrado, facturada: false })).toBe("COBRADA");
+  });
+
+  it("si la seña vuelve a pendiente, una orden Cobrada vuelve atrás", () => {
+    const cobrado = cobradoDe({ cobros: [{ monto: 60000 }], senaMonto: 40000, senaAbonada: false });
+    expect(estadoSegunCobros({ estado: "COBRADA", total: 100000, cobrado, facturada: true })).toBe("FACTURADA");
   });
 });
 

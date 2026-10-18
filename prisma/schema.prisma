@@ -477,6 +477,8 @@ model OrdenTrabajo {
   turnoId        String?      @unique @map("turno_id")
   turno          Turno?       @relation(fields: [turnoId], references: [id])
   importeTotal   Decimal?     @map("importe_total") @db.Decimal(12, 2)
+  senaMonto      Decimal?     @map("sena_monto") @db.Decimal(12, 2) // seña de un particular; cuenta como cobrado solo cuando está abonada
+  senaAbonada    Boolean      @default(false) @map("sena_abonada") // la confirma el Admin (Cobranzas)
   facturaNumero  String?      @map("factura_numero")
   facturaFecha   DateTime?    @map("factura_fecha") @db.Date
   facturaImporte Decimal?     @map("factura_importe") @db.Decimal(12, 2)

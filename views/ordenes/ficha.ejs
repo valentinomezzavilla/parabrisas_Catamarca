@@ -17,6 +17,9 @@
       <dl class="grid grid-cols-2 gap-4 text-sm">
         <%- dato('Recibida', esc(diaCorto(o.recibidaEl))) %>
         <%- dato('Tipo', esc(TIPO_ORDEN[o.tipo])) %>
+        <% if (tieneSena) { %>
+          <%- dato('Seña', `<span class="tabular-nums">${esc(pesos(o.senaMonto))}</span> ${insignia(o.senaAbonada ? 'exito' : 'alerta', o.senaAbonada ? 'Abonada' : 'Pendiente')}`) %>
+        <% } %>
         <%- dato('Cliente', `${esc(o.cliente.nombre)}${o.cliente.telefono
               ? `<span class="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-normal"><a href="tel:${esc(o.cliente.telefono)}" class="flex items-center gap-1 text-acento hover:underline">${icono('Phone', 'size-3.5')}${esc(o.cliente.telefono)}</a>${whatsapp ? `<a href="${esc(whatsapp)}" target="_blank" rel="noopener" class="flex items-center gap-1 text-acento hover:underline">${icono('MessageCircle', 'size-3.5')}WhatsApp</a>` : ''}</span>`
               : ''}`, 'col-span-2 sm:col-span-1') %>
@@ -69,10 +72,24 @@
 
         <div class="space-y-3 border-t border-borde pt-5">
           <h3 class="font-semibold">Cobros</h3>
-          <% if (o.cobros.length === 0) { %>
+          <% if (o.cobros.length === 0 && !tieneSena) { %>
             <p class="text-sm text-texto-suave">Todavía no se registró ningún cobro.</p>
           <% } else { %>
             <ul class="divide-y divide-borde rounded-lg border border-borde">
+              <% if (tieneSena) { %>
+                <%# La seña no es un cobro más: cuenta como cobrado solo mientras esté abonada, y se confirma o se deshace acá. %>
+                <li class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 py-2 text-sm">
+                  <div class="min-w-0">
+                    <p><span class="font-semibold tabular-nums"><%= pesos(o.senaMonto) %></span> · Seña del cliente <%- insignia(o.senaAbonada ? 'exito' : 'alerta', o.senaAbonada ? 'Abonada' : 'Pendiente') %></p>
+                    <p class="text-xs text-texto-suave"><%= o.senaAbonada ? 'Cuenta como cobrado.' : 'Todavía no cuenta como cobrado.' %></p>
+                  </div>
+                  <% if (o.senaAbonada) { %>
+                    <%- botonAccion({ accion: `/ordenes/${o.id}/sena/pendiente`, texto: 'Marcar pendiente', chico: true, pregunta: '¿La seña todavía no entró?', confirmar: 'Sí, pendiente' }) %>
+                  <% } else if (o.estado !== 'CANCELADA') { %>
+                    <%- botonAccion({ accion: `/ordenes/${o.id}/sena/confirmar`, texto: 'Confirmar seña', variante: 'primario', chico: true, html: icono('CheckCircle2', 'size-3.5') }) %>
+                  <% } %>
+                </li>
+              <% } %>
               <% for (const c of o.cobros) { %>
                 <li class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2 text-sm">
                   <div class="min-w-0">

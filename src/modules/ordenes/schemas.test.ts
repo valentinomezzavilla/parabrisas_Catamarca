@@ -38,6 +38,32 @@ describe("ordenSchema", () => {
   });
 });
 
+describe("seña en ordenSchema", () => {
+  const particular = { ...valida, tipo: "PARTICULAR", aseguradoraId: undefined };
+
+  it("un particular puede llevar seña, abonada o pendiente", () => {
+    expect(ordenSchema.parse({ ...particular, senaMonto: 50000 })).toMatchObject({ senaMonto: 50000 });
+    expect(ordenSchema.parse({ ...particular, senaMonto: 50000, senaAbonada: true })).toMatchObject({ senaAbonada: true });
+  });
+
+  it("abonada exige el monto", () => {
+    const r = ordenSchema.safeParse({ ...particular, senaAbonada: true });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0].path).toEqual(["senaMonto"]);
+  });
+
+  it("el monto tiene que ser mayor a cero", () => {
+    expect(ordenSchema.safeParse({ ...particular, senaMonto: 0 }).success).toBe(false);
+    expect(ordenSchema.safeParse({ ...particular, senaMonto: Number.NaN }).success).toBe(false);
+  });
+
+  it("un seguro no lleva seña aunque el formulario la mande", () => {
+    const r = ordenSchema.parse({ ...valida, senaMonto: 50000, senaAbonada: true });
+    expect(r.senaMonto).toBeUndefined();
+    expect(r.senaAbonada).toBe(false);
+  });
+});
+
 describe("normalizarPatente", () => {
   it("deja solo letras y números en mayúsculas", () => {
     expect(normalizarPatente(" lwu-719 ")).toBe("LWU719");
