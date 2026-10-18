@@ -1,0 +1,138 @@
+<%
+  const c = cliente;
+  const dato = (etiquetaDato, html, clase = '') => `<div class="${clase}"><dt class="text-xs text-texto-suave">${esc(etiquetaDato)}</dt><dd class="font-medium break-words">${html}</dd></div>`;
+  const rayita = '<span class="text-texto-suave">—</span>';
+  const tonoBeneficio = { VIGENTE: 'exito', VENCIDO: 'alerta', USADO: 'neutro', ANULADO: 'peligro' };
+  const etiquetaBeneficio = { VIGENTE: 'Vigente', VENCIDO: 'Vencido', USADO: 'Usado', ANULADO: 'Anulado' };
+  // `nacimiento` ya viene como "YYYY-MM-DD"; los instantes (creación, turno, uso) se pasan al día local de Catamarca.
+  const fechaLarga = (f) => formatearFecha(f, { day: 'numeric', month: 'long', year: 'numeric' });
+  const diaDeInstante = (d) => formatearFecha(fechaLocal(d), { day: '2-digit', month: '2-digit', year: '2-digit' });
+  const cuandoCumple = !cumple ? null : cumple.diasFaltan === 0 ? 'cumple años hoy' : cumple.diasFaltan === 1 ? 'cumple años mañana' : `cumple años en ${cumple.diasFaltan} días`;
+%>
+<%- volver('/clientes', 'Clientes') %>
+<%- encabezado({
+  seccion: 'Cliente',
+  titulo: c.nombre,
+  descripcion: [c.telefono || null, c.email].filter(Boolean).join(' · ') || null,
+  acciones: enlaceBoton({ href: `/clientes/${c.id}/editar`, texto: 'Editar', icono: 'Pencil' }),
+}) %>
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+  <div class="min-w-0 space-y-6">
+    <section class="<%= ui.tarjeta %> p-5">
+      <dl class="grid grid-cols-2 gap-4 text-sm">
+        <%- dato('Teléfono', c.telefono
+              ? `<a href="tel:${esc(c.telefono)}" class="flex items-center gap-1 text-acento hover:underline">${icono('Phone', 'size-3.5')}${esc(c.telefono)}</a>${whatsapp ? `<a href="${esc(whatsapp)}" target="_blank" rel="noopener" class="mt-1 flex items-center gap-1 text-acento hover:underline">${icono('MessageCircle', 'size-3.5')}Escribir por WhatsApp</a>` : ''}`
+              : rayita) %>
+        <%- dato('Email', c.email ? `<a href="mailto:${esc(c.email)}" class="text-acento hover:underline">${esc(c.email)}</a>` : rayita) %>
+        <%- dato('Nacimiento', nacimiento
+              ? `${esc(fechaLarga(nacimiento))}<span class="block text-xs font-normal text-texto-suave">${edad} años${cuandoCumple ? ` · ${esc(cuandoCumple)}` : ''}</span>`
+              : rayita) %>
+        <%- dato('Cliente desde', esc(diaDeInstante(c.creadoEn))) %>
+        <%- dato('Observaciones', c.notas ? `<span class="whitespace-pre-line font-normal">${esc(c.notas)}</span>` : rayita, 'col-span-2') %>
+      </dl>
+    </section>
+
+    <section id="beneficios" class="<%= ui.tarjeta %> scroll-mt-6 space-y-4 p-5">
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="flex items-center gap-2 font-display font-bold"><%- icono('Gift', 'size-5 text-acento') %> Beneficios</h2>
+        <% if (vigentes > 0) { %><%- insignia('marca', plural(vigentes, 'vigente', 'vigentes')) %><% } %>
+      </div>
+      <%- include('../parciales/aviso-en', { ancla: 'beneficios' }) %>
+
+      <% if (beneficios.length === 0) { %>
+        <p class="text-sm text-texto-suave">Todavía no tiene beneficios.<%= admin ? '' : ' Los carga el administrador.' %></p>
+      <% } else { %>
+        <ul class="divide-y divide-borde rounded-lg border border-borde">
+          <% for (const b of beneficios) { %>
+            <li class="space-y-2 px-3 py-3 text-sm <%= b.vista === 'VIGENTE' ? '' : 'opacity-70' %>">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <p class="min-w-0 font-semibold"><%= b.oferta %></p>
+                <%- insignia(tonoBeneficio[b.vista], etiquetaBeneficio[b.vista]) %>
+              </div>
+              <% if (b.descripcion) { %><p class="text-texto-suave"><%= b.descripcion %></p><% } %>
+              <p class="text-xs text-texto-suave">
+                <%= b.hasta ? `Vigente hasta el ${diaCorto(b.vigenteHasta)}` : 'Sin vencimiento' %>
+                <%= b.usadoEl ? ` · usado el ${diaDeInstante(b.usadoEl)}` : '' %>
+              </p>
+              <% if (admin && b.vista === 'VIGENTE') { %>
+                <div class="flex flex-wrap gap-2">
+                  <%- botonAccion({ accion: `/clientes/${c.id}/beneficios/${b.id}/usado`, texto: 'Marcar usado', chico: true, html: icono('CheckCircle2', 'size-3.5') }) %>
+                  <%- botonAccion({ accion: `/clientes/${c.id}/beneficios/${b.id}/anulado`, texto: 'Anular', chico: true, pregunta: '¿Anular este beneficio?', confirmar: 'Sí, anular' }) %>
+                </div>
+              <% } %>
+            </li>
+          <% } %>
+        </ul>
+      <% } %>
+
+      <% if (admin) { %>
+        <form method="post" action="/clientes/<%= c.id %>/beneficios" class="space-y-4 rounded-lg border border-dashed border-borde p-4" novalidate>
+          <p class="text-sm font-semibold">Dar un beneficio</p>
+          <% if (beneficio.mensaje) { %><%- aviso('peligro', beneficio.mensaje) %><% } %>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <%- campo({ nombre: 'titulo', etiqueta: 'Qué se le da', valor: beneficio.valores.titulo, error: beneficio.errores.titulo, claseContenedor: 'sm:col-span-2',
+                        atributos: { placeholder: 'Polarizado, lavado, cliente frecuente…' } }) %>
+            <%- campo({ nombre: 'tipo', etiqueta: 'Tipo', tipo: 'select', valor: beneficio.valores.tipo, error: beneficio.errores.tipo,
+                        opciones: [{ valor: 'PORCENTAJE', texto: 'Descuento en %' }, { valor: 'MONTO', texto: 'Descuento en $' }, { valor: 'OTRO', texto: 'Otro (solo texto)' }] }) %>
+            <div data-mostrar-si="tipo!=OTRO">
+              <%- campo({ nombre: 'valor', etiqueta: 'Valor', tipo: 'number', valor: beneficio.valores.valor, error: beneficio.errores.valor, atributos: { min: 0, step: '0.01' },
+                          ayuda: 'El porcentaje (10) o el monto en pesos.' }) %>
+            </div>
+            <%- campo({ nombre: 'vigenteHasta', etiqueta: 'Vigente hasta (opcional)', tipo: 'date', valor: beneficio.valores.vigenteHasta, error: beneficio.errores.vigenteHasta, atributos: { min: hoy } }) %>
+            <%- campo({ nombre: 'descripcion', etiqueta: 'Detalle (opcional)', valor: beneficio.valores.descripcion, error: beneficio.errores.descripcion, claseContenedor: 'sm:col-span-2' }) %>
+          </div>
+          <div class="flex justify-end">
+            <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %>"><%- icono('Gift') %> Dar beneficio</button>
+          </div>
+        </form>
+      <% } %>
+    </section>
+  </div>
+
+  <section class="<%= ui.tarjeta %> min-w-0 space-y-4 p-5">
+    <h2 class="font-display font-bold">Historial</h2>
+    <% if (historial.length === 0) { %>
+      <%- vacio('Todavía no tiene turnos ni órdenes.', 'CalendarClock') %>
+    <% } else { %>
+      <ul class="divide-y divide-borde rounded-lg border border-borde">
+        <% for (const i of historial) { %>
+          <li>
+            <% if (i.tipo === 'TURNO') { const t = i.turno; %>
+              <a href="/turnos?fecha=<%= fechaLocal(t.inicio) %>#t-<%= t.id %>" class="flex items-start gap-3 px-3 py-3 text-sm transition-colors hover:bg-marca/5">
+                <%- chipIcono('CalendarClock', 'neutro') %>
+                <span class="min-w-0 flex-1">
+                  <span class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="font-semibold">Turno · <%= t.servicio %></span>
+                    <%- insignia(ESTADOS_TURNO[t.estado].tono, ESTADOS_TURNO[t.estado].etiqueta) %>
+                  </span>
+                  <span class="block text-xs text-texto-suave"><%= mayuscula(formatearFecha(fechaLocal(t.inicio), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })) %>, <%= formatearHora(t.inicio) %> hs<%= [t.vehiculo, t.patente].filter(Boolean).length ? ` · ${[t.vehiculo, t.patente].filter(Boolean).join(' · ')}` : '' %></span>
+                </span>
+              </a>
+            <% } else { const o = i.orden; %>
+              <a href="/ordenes/<%= o.id %>" class="flex items-start gap-3 px-3 py-3 text-sm transition-colors hover:bg-marca/5">
+                <%- chipIcono('ClipboardList', 'marca') %>
+                <span class="min-w-0 flex-1">
+                  <span class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="font-semibold">Orden #<%= o.numero %> · <%= TIPO_ORDEN[o.tipo] %><%= o.aseguradora ? ` · ${o.aseguradora}` : '' %></span>
+                    <%- insignia(ESTADOS_ORDEN[o.estado].tono, ESTADOS_ORDEN[o.estado].etiqueta) %>
+                  </span>
+                  <span class="block text-xs text-texto-suave">
+                    Recibida el <%= diaCorto(o.recibidaEl) %><%= [o.vehiculo, o.patente].filter(Boolean).length ? ` · ${[o.vehiculo, o.patente].filter(Boolean).join(' · ')}` : '' %>
+                    <%= o.turno ? ` · turno ${diaDeInstante(o.turno.inicio)}` : '' %>
+                  </span>
+                  <% if (admin && o.cuenta.total !== null) { %>
+                    <span class="mt-0.5 block text-xs">
+                      Total <span class="font-semibold tabular-nums"><%= pesos(o.cuenta.total) %></span>
+                      · <%= o.cuenta.saldo > 0 ? `debe ${pesos(o.cuenta.saldo)}` : 'saldado' %>
+                    </span>
+                  <% } %>
+                </span>
+              </a>
+            <% } %>
+          </li>
+        <% } %>
+      </ul>
+    <% } %>
+  </section>
+</div>

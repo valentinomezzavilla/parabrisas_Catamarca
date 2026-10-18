@@ -26,6 +26,10 @@ export const GRUPOS: GrupoNav[] = [
     ],
   },
   {
+    titulo: "Postventa",
+    items: [{ href: "/clientes", etiqueta: "Clientes", icono: "Users" }],
+  },
+  {
     titulo: "Gestión",
     items: [
       { href: "/servicios", etiqueta: "Servicios", icono: "Wrench", soloAdmin: true },

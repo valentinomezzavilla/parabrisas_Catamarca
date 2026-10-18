@@ -225,10 +225,13 @@ model Cliente {
   nombre    String
   telefono  String
   email     String?
-  notas     String?
+  notas     String? // observaciones del cliente
+  fechaNacimiento DateTime? @map("fecha_nacimiento") @db.Date // para avisar el cumpleaños
   creadoEn  DateTime @default(now()) @map("creado_en")
   turnos    Turno[]
   ordenes   OrdenTrabajo[]
+  beneficios BeneficioCliente[]
+  saludos   SaludoCumple[]
 
   @@index([telefono])
   @@map("clientes")
@@ -506,4 +509,52 @@ model CobroOrden {
 
   @@index([ordenId])
   @@map("cobros_orden")
+}
+
+// =====================================================================
+//  MÓDULO CLIENTES (POSTVENTA)
+// =====================================================================
+
+enum TipoBeneficio {
+  PORCENTAJE
+  MONTO
+  OTRO
+}
+
+/// VENCIDO no se guarda: se calcula cuando pasa `vigente_hasta` (ver modules/clientes/beneficio.ts).
+enum EstadoBeneficio {
+  VIGENTE
+  USADO
+  ANULADO
+}
+
+/// Un descuento o ventaja exclusiva de un cliente. Lo carga el Admin; el personal lo aplica a mano.
+model BeneficioCliente {
+  id           String          @id @default(cuid())
+  clienteId    String          @map("cliente_id")
+  cliente      Cliente         @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  titulo       String
+  tipo         TipoBeneficio
+  valor        Decimal?        @db.Decimal(12, 2) // % si es PORCENTAJE, pesos si es MONTO
+  descripcion  String?
+  vigenteHasta DateTime?       @map("vigente_hasta") @db.Date
+  estado       EstadoBeneficio @default(VIGENTE)
+  usadoEl      DateTime?       @map("usado_el")
+  creadoEn     DateTime        @default(now()) @map("creado_en")
+
+  @@index([clienteId])
+  @@map("beneficios_cliente")
+}
+
+/// El saludo de cumpleaños de un año. Con una fila, el cliente deja de figurar como pendiente de saludar ese año.
+model SaludoCumple {
+  id         String   @id @default(cuid())
+  clienteId  String   @map("cliente_id")
+  cliente    Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  anio       Int
+  oferta     String? // el beneficio que se ofreció, tal como se escribió en el mensaje
+  saludadoEn DateTime @default(now()) @map("saludado_en")
+
+  @@unique([clienteId, anio])
+  @@map("saludos_cumple")
 }

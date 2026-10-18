@@ -36,6 +36,12 @@ describe("ordenSchema", () => {
   it("rechaza una fecha que no existe", () => {
     expect(ordenSchema.safeParse({ ...valida, recibidaEl: "2026-02-30" }).success).toBe(false);
   });
+
+  it("un mes inexistente da un error de validación, no una excepción", () => {
+    const r = ordenSchema.safeParse({ ...valida, recibidaEl: "2026-13-01" });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0].message).toBe("Fecha inválida");
+  });
 });
 
 describe("seña en ordenSchema", () => {
