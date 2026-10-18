@@ -35,6 +35,7 @@ src/
     inventario/          ← schemas.ts (Zod) + cristal.service.ts
     campos/              ← campos configurables: registro del sistema, combinación, valores propios, servicios
     turnos/              ← schemas.ts + servicio.service.ts + disponibilidad.ts (pura, con tests)
+    clientes/            ← postventa: reglas.ts, cumpleanos.ts, beneficio.ts, historial.ts (puros, con tests), schemas.ts, cliente.service.ts
     ordenes/             ← órdenes de trabajo: estados.ts y notion.ts (puras, con tests), schemas.ts, orden.service.ts, sincronizar.ts
 views/                   ← plantillas EJS: layouts/ (panel, publico, auth), parciales/ y una carpeta por sección
 public/                  ← logo, iconos, js/app.js y css/app.css (generado por Tailwind)
@@ -123,6 +124,16 @@ Cliente ─< OrdenTrabajo >── Aseguradora / Proveedor / Cristal (opcionales)
 
 **Importar desde Notion** (`modules/ordenes/notion.ts`, puro): lee el CSV de la exportación por nombre de columna. Las relaciones sin título ("Sin título (link)") se identifican por el link: cada aseguradora y proveedor distinto queda como "Aseguradora N" / "Proveedor N" para renombrar. El código del principio de "Observaciones" va a `codigo_cristal`; en particulares, la columna "Siniestro" son notas de pago y van a observaciones. Corre una sola vez, con el módulo vacío, en una transacción. El formulario manda el CSV como texto (límite de 2 MB solo en esa ruta).
 
+### Clientes y postventa
+
+Diseño completo en `docs/superpowers/specs/2026-10-18-clientes-design.md`. `clientes` suma `fecha_nacimiento`; las tablas nuevas son `beneficios_cliente` (título, tipo porcentaje/monto/otro, valor, vigencia y estado vigente/usado/anulado; "vencido" se calcula) y `saludos_cumple` (un saludo por cliente y año).
+
+- **Lista** `/clientes`: alfabética A→Z sin distinguir mayúsculas ni tildes, agrupada por inicial; los "Sin nombre" de la importación van al final. La búsqueda por nombre se hace en la aplicación porque la base distingue tildes; teléfono, mail y patente se buscan en la base.
+- **Ficha** `/clientes/[id]`: datos, beneficios e **historial** que mezcla turnos y órdenes (un turno dado desde una orden se cuenta dentro de la orden, no aparte). El Admin ve además total y saldo de cada orden.
+- **Beneficios:** solo el Admin los da, marca como usados o anula (guardia en `/clientes/:id/beneficios`). No se aplican solos a las órdenes.
+- **Cumpleaños:** la tarjeta del Panel muestra los de hoy y los próximos 7 días (cruza el fin de año; el 29/02 se festeja el 28/02 en años no bisiestos). "Saludar por WhatsApp" (`POST /clientes/:id/cumple`) asienta el saludo del año con la oferta elegida y redirige a `wa.me` con el mensaje armado (`mensajeCumple`); el formulario abre otra pestaña para que el Panel quede abierto.
+- No hay borrado ni unión de clientes duplicados; el teléfono repetido se avisa al crear o editar.
+
 ### Zona horaria
 Las fechas se guardan en UTC. Las franjas se guardan como minutos locales. Catamarca es UTC-3 fijo (Argentina no usa horario de verano). Toda la conversión está en `src/lib/tiempo.ts`.
 
@@ -153,7 +164,7 @@ Protección en `src/app.ts`, antes de montar las rutas:
 
 `src/guardia-rutas.test.ts` levanta la app y comprueba las tres cosas para rutas del panel, de Admin y que no existen.
 
-El Empleado solo accede a Panel, Turnos, Stock y Órdenes (sin importes, facturas ni cobros). Reglas: nadie puede desactivarse ni cambiarse el rol a sí mismo, y siempre queda al menos un Admin activo.
+El Empleado solo accede a Panel, Turnos, Stock, Órdenes (sin importes, facturas ni cobros) y Clientes (sin dar beneficios ni ver importes). Reglas: nadie puede desactivarse ni cambiarse el rol a sí mismo, y siempre queda al menos un Admin activo.
 
 **Límite de intentos de login.** Tras 5 fallos seguidos, ese nombre de usuario queda bloqueado 15 minutos y se destraba solo (constantes `MAX_FALLOS` y `BLOQUEO_MINUTOS` en `src/modules/usuarios/limite.ts`). Con el bloqueo vigente ni se mira la contraseña: aunque sea correcta hay que esperar. Los fallos se cuentan en la tabla `intentos_login` por nombre de usuario, **exista o no**, así el bloqueo no revela qué cuentas existen. Sin fallos durante 15 minutos el contador vuelve a cero, y un login correcto lo borra. El conteo corre dentro de una transacción con `pg_advisory_xact_lock` por usuario, para que intentos en paralelo no se salten el límite. Cada fallo borra además las filas con más de un día. Límite aceptado: quien conozca un nombre de usuario puede bloquearlo 15 minutos a propósito; no se limita por IP.
 
@@ -208,7 +219,7 @@ El menú se define una sola vez en `src/web/navegacion.ts` y lo usan `views/parc
 
 | Ruta | Qué hace |
 |---|---|
-| `/` | Panel: turnos de hoy, pendientes de confirmar y stock para reponer. |
+| `/` | Panel: turnos de hoy, pendientes de confirmar, stock para reponer y cumpleaños de hoy y de la semana. |
 | `/turnos?fecha=` | Agenda diaria con tira semanal, horarios libres por servicio, cambio de estado y asignación de cristal. |
 | `/stock` | Listado con búsqueda por código o texto, vehículo y año, ubicación y tipo. |
 | `/stock/nuevo`, `/stock/[id]`, `/stock/[id]/editar` | Alta, ficha (movimientos e historial) y edición de cristales. |
@@ -222,6 +233,7 @@ El menú se define una sola vez en `src/web/navegacion.ts` y lo usan `views/parc
 | `/ordenes/[id]/turno` | Dar turno en la agenda desde la orden. |
 | `/ordenes/cobranzas` | Solo Admin. Las señas por confirmar y lo que falta cobrar de trabajos instalados o facturados, por aseguradora, con días desde la factura. |
 | `/administracion/ordenes` | Solo Admin. Aseguradoras, proveedores e importación desde Notion. |
+| `/clientes`, `/clientes/nuevo`, `/clientes/[id]`, `/clientes/[id]/editar` | Postventa: lista alfabética, alta, ficha con historial y beneficios, y edición. Los beneficios (`/clientes/[id]/beneficios`) son solo del Admin. |
 | `/login` | **Pública.** Ingreso al panel. |
 | `/usuarios`, `/usuarios/nuevo` | Solo Admin: alta, rol, activar/desactivar y nueva contraseña. |
 | `/reservar` | **Pública.** El cliente elige servicio, día y horario, carga sus datos y, si el servicio tiene precio, paga la seña por Mercado Pago. Incluye "Buscar tu reserva" para ver y cancelar una reserva. |

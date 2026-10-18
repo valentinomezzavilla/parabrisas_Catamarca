@@ -8,7 +8,11 @@ export const normalizarPatente = (texto: string) => texto.toUpperCase().replace(
 export const fechaSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida")
-  .refine((f) => new Date(`${f}T00:00:00Z`).toISOString().startsWith(f), "Fecha inválida");
+  // Un mes o día que no existe ("2026-13-01") da una fecha inválida: se compara sin lanzar excepciones.
+  .refine((f) => {
+    const fecha = new Date(`${f}T00:00:00Z`);
+    return !Number.isNaN(fecha.getTime()) && fecha.toISOString().startsWith(f);
+  }, "Fecha inválida");
 
 const textoOpcional = (max: number) => z.string().trim().max(max).optional();
 

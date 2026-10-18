@@ -18,6 +18,44 @@
   </section>
 <% } %>
 
+<% if (cumpleanos.length > 0) { %>
+  <%# Cumpleaños de hoy y de la próxima semana. El botón deja asentado el saludo y abre WhatsApp con el mensaje armado. %>
+  <section id="cumpleanos" class="space-y-3">
+    <h2 class="flex items-center gap-2 font-display text-lg font-bold"><%- icono('Cake', 'size-5 text-acento') %> Cumpleaños</h2>
+    <ul class="<%= ui.tarjeta %> divide-y divide-borde overflow-hidden">
+      <% for (const c of cumpleanos) {
+           const cuando = c.diasFaltan === 0 ? 'hoy' : c.diasFaltan === 1 ? 'mañana' : `el ${formatearFecha(c.fecha, { weekday: 'long', day: 'numeric', month: 'long' })} (en ${c.diasFaltan} días)`; %>
+        <li class="space-y-2 px-4 py-3 text-sm <%= c.diasFaltan === 0 && !c.saludado ? 'bg-marca/10' : '' %>">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="min-w-0">
+              <a href="/clientes/<%= c.id %>" class="font-semibold hover:underline"><%= c.nombre %></a>
+              <span class="block text-xs text-texto-suave">Cumple <%= c.edad %> años <%= cuando %></span>
+            </span>
+            <% if (c.saludado) { %><%- insignia('exito', 'Saludado') %><% } else if (c.diasFaltan === 0) { %><%- insignia('marca', 'Es hoy') %><% } %>
+          </div>
+          <% if (!c.tieneWhatsapp) { %>
+            <p class="text-xs text-texto-suave">Sin un teléfono válido para escribirle por WhatsApp.</p>
+          <% } else { %>
+            <details class="group">
+              <summary class="<%= ui.boton.secundario %> <%= ui.boton.chico %> cursor-pointer list-none group-open:hidden [&::-webkit-details-marker]:hidden"><%- icono('MessageCircle', 'size-3.5') %> <%= c.saludado ? 'Saludar de nuevo' : 'Saludar por WhatsApp' %></summary>
+              <%# Se abre en otra pestaña: este panel queda como está y, al recargarlo, el cliente figura como saludado. %>
+              <form method="post" action="/clientes/<%= c.id %>/cumple" target="_blank" class="space-y-3 rounded-lg border border-borde p-3">
+                <%- campo({ nombre: 'beneficio', id: `beneficio-${c.id}`, etiqueta: 'Beneficio para ofrecerle', tipo: 'select', valor: '',
+                            opciones: [{ valor: '', texto: c.beneficios.length > 0 ? 'Sin beneficio' : 'No tiene beneficios vigentes' }, ...c.beneficios.map((b) => ({ valor: b.id, texto: b.oferta }))], }) %>
+                <%- campo({ nombre: 'otro', id: `otro-${c.id}`, etiqueta: '…o escribí otra oferta', atributos: { placeholder: 'Por ejemplo: 15% en tu próximo servicio', maxlength: 200 } }) %>
+                <div class="flex justify-end gap-2">
+                  <button type="button" data-cerrar class="<%= ui.boton.fantasma %> <%= ui.boton.chico %>">Cancelar</button>
+                  <button type="submit" class="<%= ui.boton.primario %> <%= ui.boton.chico %>"><%- icono('MessageCircle', 'size-3.5') %> Abrir WhatsApp</button>
+                </div>
+              </form>
+            </details>
+          <% } %>
+        </li>
+      <% } %>
+    </ul>
+  </section>
+<% } %>
+
 <%# En celular las tres tarjetas van en una fila compacta en lugar de apilarse. %>
 <div class="grid grid-cols-3 gap-2.5 sm:gap-4">
   <%- estadistica('Turnos hoy', activos.length, 'CalendarCheck', 'marca') %>

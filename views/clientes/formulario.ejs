@@ -1,0 +1,26 @@
+<%- cliente ? volver(`/clientes/${cliente.id}`, cliente.nombre) : volver('/clientes', 'Clientes') %>
+<%- encabezado({ seccion: 'Postventa', titulo: cliente ? 'Editar cliente' : 'Nuevo cliente',
+                 descripcion: cliente ? null : 'Los clientes también se crean solos al reservar un turno o cargar una orden.' }) %>
+
+<form method="post" action="<%= cliente ? `/clientes/${cliente.id}/editar` : '/clientes/nuevo' %>" class="<%= ui.tarjeta %> space-y-5 p-5" novalidate>
+  <% if (mensaje) { %><%- aviso('peligro', mensaje) %><% } %>
+  <% if (repetido) { %>
+    <p class="text-sm">Es el mismo teléfono de <%- enlaceBoton({ href: `/clientes/${repetido.id}`, texto: repetido.nombre, chico: true, icono: 'ArrowRight' }) %></p>
+  <% } %>
+
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <%- campo({ nombre: 'nombre', etiqueta: 'Nombre y apellido', valor: valores.nombre, error: errores.nombre, atributos: { autocomplete: 'off' } }) %>
+    <%- campo({ nombre: 'telefono', etiqueta: 'Teléfono / WhatsApp', tipo: 'tel', valor: valores.telefono, error: errores.telefono,
+                ayuda: 'Con código de área, así sirve para escribirle por WhatsApp.' }) %>
+    <%- campo({ nombre: 'email', etiqueta: 'Email (opcional)', tipo: 'email', valor: valores.email, error: errores.email }) %>
+    <%- campo({ nombre: 'fechaNacimiento', etiqueta: 'Fecha de nacimiento (opcional)', tipo: 'date', valor: valores.fechaNacimiento, error: errores.fechaNacimiento,
+                atributos: { max: hoy }, ayuda: 'El día del cumpleaños el panel avisa para saludarlo por WhatsApp.' }) %>
+    <%- campo({ nombre: 'notas', etiqueta: 'Observaciones', tipo: 'textarea', valor: valores.notas, error: errores.notas, claseContenedor: 'sm:col-span-2',
+                atributos: { rows: 4, placeholder: 'Preferencias, cómo prefiere que lo contacten, datos a tener en cuenta…' } }) %>
+  </div>
+
+  <div class="flex justify-end gap-2">
+    <%- enlaceBoton({ href: cliente ? `/clientes/${cliente.id}` : '/clientes', texto: 'Cancelar' }) %>
+    <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %>"><%= cliente ? 'Guardar cambios' : 'Crear cliente' %></button>
+  </div>
+</form>

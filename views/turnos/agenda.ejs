@@ -82,7 +82,7 @@
               <% if (t.estado === 'ESPERANDO_PAGO' && t.venceEn) { %><span class="text-xs text-texto-suave">vence a las <%= formatearHora(t.venceEn) %></span><% } %>
             </div>
             <p class="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span><%= t.cliente.nombre %></span>
+              <a href="/clientes/<%= t.cliente.id %>" class="hover:text-acento hover:underline"><%= t.cliente.nombre %></a>
               <% if (t.cliente.telefono) { %>
                 <a href="tel:<%= t.cliente.telefono %>" class="flex items-center gap-1 text-acento hover:underline"><%- icono('Phone', 'size-3.5') %><%= t.cliente.telefono %></a>
               <% } %>

@@ -1,0 +1,62 @@
+<%
+  const hayBusqueda = busqueda !== '';
+  const letras = grupos.map((g) => g.letra);
+  const nacimientoTexto = (d) => formatearFecha(diaAFecha(d), { day: 'numeric', month: 'long' });
+%>
+<%- encabezado({
+  seccion: 'Postventa',
+  titulo: 'Clientes',
+  descripcion: hayBusqueda ? `${plural(cantidad, 'resultado', 'resultados')} de ${total}` : `${plural(total, 'cliente', 'clientes')}, de la A a la Z`,
+  acciones: enlaceBoton({ href: '/clientes/nuevo', texto: 'Nuevo cliente', variante: 'primario', icono: 'Plus' }),
+}) %>
+
+<form method="get" action="/clientes" class="<%= ui.tarjeta %> p-3 sm:p-4">
+  <div class="flex gap-2">
+    <input name="texto" value="<%= busqueda %>" placeholder="Nombre, teléfono, mail o patente…" aria-label="Buscar cliente" class="<%= ui.input %>">
+    <button class="<%= ui.boton.primario %> shrink-0" aria-label="Buscar"><%- icono('Search') %> <span class="hidden sm:inline">Buscar</span></button>
+    <% if (hayBusqueda) { %><%- enlaceBoton({ href: '/clientes', texto: 'Limpiar', variante: 'fantasma' }) %><% } %>
+  </div>
+</form>
+
+<% if (cantidad >= limite) { %>
+  <p class="text-sm text-texto-suave">Se muestran los primeros <%= limite %>. Usá el buscador para encontrar a otros.</p>
+<% } %>
+
+<% if (grupos.length === 0) { %>
+  <%- vacio(hayBusqueda ? 'No hay clientes que coincidan con la búsqueda.' : 'Todavía no hay clientes. Se crean solos al reservar un turno o cargar una orden, o con "Nuevo cliente".', 'Users') %>
+<% } else { %>
+  <%# Índice de letras: salta al grupo. En celular se desplaza de costado dentro de su propia franja. %>
+  <nav aria-label="Ir a la letra" class="flex gap-1 overflow-x-auto pb-1">
+    <% for (const l of letras) { %>
+      <a href="#letra-<%= l === '#' ? 'otros' : l.replace(/\s/g, '-') %>" class="flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-lg border border-borde bg-superficie px-2 text-sm font-semibold hover:border-amarillo-500"><%= l === 'Sin nombre' ? 'Sin nombre' : l %></a>
+    <% } %>
+  </nav>
+
+  <% for (const g of grupos) { %>
+    <section id="letra-<%= g.letra === '#' ? 'otros' : g.letra.replace(/\s/g, '-') %>" class="scroll-mt-4 space-y-2">
+      <h2 class="flex items-center gap-2 font-display text-lg font-extrabold">
+        <span class="flex size-8 items-center justify-center rounded-lg <%= ui.chip.marca %>"><%= g.letra === 'Sin nombre' ? '?' : g.letra %></span>
+        <% if (g.letra === 'Sin nombre') { %><span class="text-sm font-normal text-texto-suave">Sin nombre · completalos desde la ficha (<%= g.clientes.length %>)</span><% } %>
+      </h2>
+      <ul class="<%= ui.tarjeta %> divide-y divide-borde overflow-hidden">
+        <% for (const c of g.clientes) { %>
+          <li>
+            <a href="/clientes/<%= c.id %>" class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-marca/5">
+              <span class="min-w-0">
+                <span class="block font-semibold"><%= c.nombre %></span>
+                <span class="flex flex-wrap items-center gap-x-2 text-xs text-texto-suave">
+                  <span><%= [c.telefono || null, c.email].filter(Boolean).join(' · ') || (c.fechaNacimiento ? '' : 'Sin datos de contacto') %></span>
+                  <% if (c.fechaNacimiento) { %><span class="inline-flex items-center gap-1"><%- icono('Cake', 'size-3.5') %><%= nacimientoTexto(c.fechaNacimiento) %></span><% } %>
+                </span>
+              </span>
+              <span class="flex flex-wrap items-center gap-2 text-xs text-texto-suave">
+                <% if (c.beneficiosVigentes > 0) { %><%- insignia('marca', plural(c.beneficiosVigentes, 'beneficio', 'beneficios')) %><% } %>
+                <span><%= plural(c._count.turnos, 'turno', 'turnos') %> · <%= plural(c._count.ordenes, 'orden', 'órdenes') %></span>
+              </span>
+            </a>
+          </li>
+        <% } %>
+      </ul>
+    </section>
+  <% } %>
+<% } %>

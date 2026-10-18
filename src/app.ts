@@ -5,6 +5,7 @@ import { esRutaPublica } from "@/lib/rutas";
 import { verificarSesion } from "@/lib/sesion";
 import { rutasAdministracion } from "@/rutas/administracion";
 import { rutasAuth } from "@/rutas/auth";
+import { rutasClientes } from "@/rutas/clientes";
 import { rutasInicio } from "@/rutas/inicio";
 import { rutasMercadoPago } from "@/rutas/mercadopago";
 import { rutasOrdenes } from "@/rutas/ordenes";
@@ -56,6 +57,7 @@ export function crearApp() {
   app.use("/turnos", rutasTurnos);
   app.use("/stock", rutasStock);
   app.use("/ordenes", rutasOrdenes);
+  app.use("/clientes", rutasClientes);
   app.use("/servicios", rutasServicios);
   app.use("/usuarios", rutasUsuarios);
   app.use("/administracion", rutasAdministracion);

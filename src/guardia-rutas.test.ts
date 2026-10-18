@@ -55,6 +55,11 @@ const PANEL = [
   "/ordenes/abc",
   "/ordenes/abc/estado",
   "/ordenes/abc/turno",
+  "/clientes",
+  "/clientes/nuevo",
+  "/clientes/abc",
+  "/clientes/abc/editar",
+  "/clientes/abc/cumple",
   "/una-ruta-que-no-existe",
 ];
 const SOLO_ADMIN = [
@@ -77,6 +82,9 @@ const SOLO_ADMIN = [
   "/ordenes/abc/cobros/xyz/eliminar",
   "/ordenes/abc/sena/confirmar",
   "/ordenes/abc/sena/pendiente",
+  "/clientes/abc/beneficios",
+  "/clientes/abc/beneficios/xyz/usado",
+  "/clientes/abc/beneficios/xyz/anulado",
 ];
 
 describe("sin sesión", () => {

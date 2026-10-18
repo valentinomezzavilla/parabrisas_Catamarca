@@ -20,7 +20,7 @@
         <% if (tieneSena) { %>
           <%- dato('Seña', `<span class="tabular-nums">${esc(pesos(o.senaMonto))}</span> ${insignia(o.senaAbonada ? 'exito' : 'alerta', o.senaAbonada ? 'Abonada' : 'Pendiente')}`) %>
         <% } %>
-        <%- dato('Cliente', `${esc(o.cliente.nombre)}${o.cliente.telefono
+        <%- dato('Cliente', `<a href="/clientes/${esc(o.cliente.id)}" class="hover:text-acento hover:underline">${esc(o.cliente.nombre)}</a>${o.cliente.telefono
               ? `<span class="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-normal"><a href="tel:${esc(o.cliente.telefono)}" class="flex items-center gap-1 text-acento hover:underline">${icono('Phone', 'size-3.5')}${esc(o.cliente.telefono)}</a>${whatsapp ? `<a href="${esc(whatsapp)}" target="_blank" rel="noopener" class="flex items-center gap-1 text-acento hover:underline">${icono('MessageCircle', 'size-3.5')}WhatsApp</a>` : ''}</span>`
               : ''}`, 'col-span-2 sm:col-span-1') %>
         <%- dato('Vehículo', `${textoODash(o.vehiculo)}${o.patente ? `<span class="block font-mono text-xs text-texto-suave">${esc(o.patente)}</span>` : ''}`) %>
