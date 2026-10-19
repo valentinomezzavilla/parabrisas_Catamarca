@@ -15,6 +15,7 @@ import { rutasStock } from "@/rutas/stock";
 import { rutasTurnos } from "@/rutas/turnos";
 import { rutasUsuarios } from "@/rutas/usuarios";
 import { leerAviso } from "@/web/avisos";
+import { crearUrlRecurso } from "@/web/recursos";
 import { encabezadosSeguros, mismoOrigen } from "@/web/seguridad";
 import { ayudas, mostrar } from "@/web/vistas";
 import { requerirRol } from "@/lib/sesion";
@@ -29,6 +30,8 @@ export function crearApp() {
   app.set("view engine", "ejs");
   app.set("views", `${RAIZ}views`);
   Object.assign(app.locals, ayudas);
+  // `recurso('/css/app.css')` → URL con huella: al publicar cambios, nadie se queda con el CSS viejo del caché.
+  app.locals.recurso = crearUrlRecurso(`${RAIZ}public`, PRODUCCION);
 
   app.use(encabezadosSeguros);
   app.use(express.static(`${RAIZ}public`, { index: false, maxAge: PRODUCCION ? "1d" : 0 }));
