@@ -2,7 +2,7 @@
   <h1 class="font-display text-2xl font-extrabold">Ingresar</h1>
 
   <% if (mensaje) { %>
-    <p role="alert" class="rounded-lg border border-peligro/40 bg-peligro/10 px-3 py-2 text-sm text-peligro"><%= mensaje %></p>
+    <%- aviso('peligro', mensaje) %>
   <% } %>
 
   <%- campo({ nombre: 'usuario', etiqueta: 'Usuario', valor: usuarioIngresado, error: errores.usuario,

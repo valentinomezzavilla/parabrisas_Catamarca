@@ -18,7 +18,7 @@
       <legend class="text-sm font-medium">Tipo</legend>
       <div class="inline-flex rounded-lg border border-borde bg-superficie p-1">
         <% for (const t of ['SEGURO', 'PARTICULAR']) { %>
-          <label class="flex min-h-9 cursor-pointer items-center gap-2 rounded-md px-4 text-sm font-semibold text-texto-suave transition-colors has-checked:bg-marca has-checked:text-sobre-marca has-focus-visible:ring-2 has-focus-visible:ring-amarillo-500/40">
+          <label class="flex min-h-10 cursor-pointer items-center gap-2 rounded-md px-4 text-sm font-semibold text-texto-suave transition-colors hover:text-texto has-checked:bg-marca has-checked:text-sobre-marca has-focus-visible:ring-2 has-focus-visible:ring-acento">
             <input type="radio" name="tipo" value="<%= t %>" class="sr-only"<% if (valores.tipo === t) { %> checked<% } %>>
             <%- icono(t === 'SEGURO' ? 'ShieldCheck' : 'Users', 'size-4') %><%= TIPO_ORDEN[t] %>
           </label>

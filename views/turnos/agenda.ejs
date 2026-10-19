@@ -55,7 +55,7 @@
 <% } %>
 
 <% if (turnos.length === 0) { %>
-  <%- vacio('No hay turnos para este día.') %>
+  <%- vacio('No hay turnos para este día.', 'CalendarClock') %>
 <% } else { %>
   <ol class="space-y-3">
     <% for (const t of turnos) {

@@ -53,6 +53,18 @@ export const tarjetaEnlace = `${tarjeta} transition-all duration-300 ease-out ho
 
 export const casilla = "size-5 accent-amarillo-500";
 
+/**
+ * Casilleros de día y de horario para elegir un turno: turnero público, "Dar turno" de una orden y editar un turno.
+ * Las vistas suman el relleno y la tipografía; el horario además lleva `min-h-11`.
+ */
+const baseCasillero = "rounded-xl border text-center transition-[background-color,border-color,box-shadow,transform] duration-200";
+
+export const casillero = {
+  elegido: `${baseCasillero} border-amarillo-600/40 bg-linear-to-b from-amarillo-300 to-marca text-sobre-marca shadow-marca`,
+  libre: `${baseCasillero} border-borde bg-superficie shadow-tarjeta hover:-translate-y-0.5 hover:border-amarillo-500 hover:shadow-elevada`,
+  sinLugar: `${baseCasillero} border-dashed border-borde text-texto-suave opacity-50`,
+};
+
 export type Tono = "neutro" | "marca" | "exito" | "alerta" | "peligro";
 
 /** Insignias: etiquetas cortas de estado. Tinte al 12 % para que el texto pase 4.5:1 en los dos modos. */
@@ -112,4 +124,4 @@ export const SITUACION_COBRO: Record<SituacionCobro, { etiqueta: string; tono: T
   COBRADA: { etiqueta: "Cobrada", tono: "exito" },
 };
 
-export const ui = { boton, input, tarjeta, tarjetaEnlace, tarjetaTurno, casilla, insignia, chip, aviso, estadistica };
+export const ui = { boton, input, tarjeta, tarjetaEnlace, tarjetaTurno, casilla, casillero, insignia, chip, aviso, estadistica };

@@ -17,10 +17,10 @@
            <span class="block font-display text-lg font-bold">${Number(dia.slice(8))}</span>
            <span class="block text-[11px]">${esc(formatearFecha(dia, { month: 'short' }))}</span>`; %>
       <% if (libres === 0) { %>
-        <span class="rounded-xl border border-dashed border-borde px-1 py-2.5 text-center text-texto-suave opacity-50" title="Sin horarios disponibles"><%- contenido %><span class="sr-only">Sin horarios disponibles</span></span>
+        <span class="<%= ui.casillero.sinLugar %> px-1 py-2.5" title="Sin horarios disponibles"><%- contenido %><span class="sr-only">Sin horarios disponibles</span></span>
       <% } else { %>
         <a href="<%= urlPaso({ fecha: dia }) %>"<% if (actual) { %> aria-current="date"<% } %>
-           class="rounded-xl border px-1 py-2.5 text-center transition-all duration-200 <%= actual ? 'border-amarillo-600/40 bg-linear-to-b from-amarillo-300 to-marca text-sobre-marca shadow-marca' : 'border-borde bg-superficie shadow-tarjeta hover:-translate-y-0.5 hover:border-amarillo-500 hover:shadow-elevada' %>"><%- contenido %></a>
+           class="<%= actual ? ui.casillero.elegido : ui.casillero.libre %> px-1 py-2.5"><%- contenido %></a>
       <% } %>
     <% } %>
   </div>
@@ -30,17 +30,17 @@
   <section class="space-y-3">
     <%- include('../parciales/titulo-paso', { numero: 3, texto: `Horarios del ${formatearFecha(fecha)}` }) %>
     <% if (turnos.length === 0) { %>
-      <%- vacio('No quedan horarios para este día. Probá con otro.') %>
+      <%- vacio('No quedan horarios para este día. Probá con otro.', 'CalendarClock') %>
     <% } else { %>
       <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
         <% for (const t of turnos) { const iso = t.inicio.toISOString(); const actual = elegido && elegido.inicio.getTime() === t.inicio.getTime(); %>
-          <a href="<%= urlPaso({ fecha, inicio: iso }) %>#datos"
-             class="min-h-11 rounded-xl border py-2.5 text-center font-display font-bold tabular-nums transition-all duration-200 <%= actual ? 'border-amarillo-600/40 bg-linear-to-b from-amarillo-300 to-marca text-sobre-marca shadow-marca' : 'border-borde bg-superficie shadow-tarjeta hover:-translate-y-0.5 hover:border-amarillo-500 hover:shadow-elevada' %>"><%= formatearHora(t.inicio) %></a>
+          <a href="<%= urlPaso({ fecha, inicio: iso }) %>#datos"<% if (actual) { %> aria-current="true"<% } %>
+             class="<%= actual ? ui.casillero.elegido : ui.casillero.libre %> min-h-11 py-2.5 font-display font-bold tabular-nums"><%= formatearHora(t.inicio) %></a>
         <% } %>
       </div>
     <% } %>
     <% if (inicioPedido && !elegido) { %>
-      <p class="text-sm text-peligro">El horario que elegiste ya no está disponible. Elegí otro, por favor.</p>
+      <p role="alert" class="text-sm text-peligro">El horario que elegiste ya no está disponible. Elegí otro, por favor.</p>
     <% } %>
   </section>
 <% } %>

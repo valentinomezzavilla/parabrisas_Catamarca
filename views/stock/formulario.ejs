@@ -42,6 +42,7 @@
   const adicionales = deSeccion('adicionales');
   const accion = cristal ? `/stock/${cristal.id}/editar` : '/stock/nuevo';
 %>
+<%- cristal ? volver(`/stock/${cristal.id}`, cristal.codigo) : volver('/stock', 'Stock') %>
 <%- encabezado(cristal
   ? { seccion: 'Stock', titulo: `Editar ${cristal.codigo}`, descripcion: cristal.descripcion }
   : { seccion: 'Stock', titulo: 'Nuevo cristal' }) %>
@@ -61,7 +62,7 @@
         </div>
         <button type="button" data-agregar="compat" class="<%= ui.boton.secundario %> <%= ui.boton.chico %>"><%- icono('Plus', 'size-3.5') %> Agregar vehículo</button>
       </div>
-      <% if (errores.compatibilidades) { %><p class="text-sm text-peligro"><%= errores.compatibilidades %></p><% } %>
+      <% if (errores.compatibilidades) { %><p role="alert" class="text-sm text-peligro"><%= errores.compatibilidades %></p><% } %>
       <div class="space-y-3" data-filas="compat">
         <% valores.compatibilidades.forEach((fila, i) => { %>
           <%- include('../parciales/fila-compat', { fila, falla: errores[`compatibilidades.${i}.anioHasta`] ?? errores[`compatibilidades.${i}.anioDesde`] ?? errores[`compatibilidades.${i}.modeloId`] }) %>

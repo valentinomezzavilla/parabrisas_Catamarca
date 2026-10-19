@@ -9,7 +9,7 @@
 <section class="space-y-3">
   <%- include('../parciales/titulo-paso', { numero: 1, texto: '¿Qué necesitás?' }) %>
   <% if (servicios.length === 0) { %>
-    <%- vacio('En este momento no hay servicios disponibles para reservar online.') %>
+    <%- vacio('En este momento no hay servicios disponibles para reservar online.', 'Wrench') %>
   <% } else { %>
     <ul class="grid gap-3 sm:grid-cols-2">
       <% for (const s of servicios) { %>

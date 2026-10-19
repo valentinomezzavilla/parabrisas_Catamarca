@@ -24,10 +24,10 @@
              <span class="block font-display text-lg font-bold">${Number(dia.slice(8))}</span>
              <span class="block text-[11px]">${cantidad === 0 ? 'sin lugar' : plural(cantidad, 'libre', 'libres')}</span>`; %>
         <% if (cantidad === 0 && !actual) { %>
-          <span class="rounded-xl border border-dashed border-borde px-1 py-2 text-center text-texto-suave opacity-50"><%- contenido %></span>
+          <span class="<%= ui.casillero.sinLugar %> px-1 py-2.5"><%- contenido %></span>
         <% } else { %>
           <a href="<%= urlDia(dia) %>"<% if (actual) { %> aria-current="date"<% } %>
-             class="rounded-xl border px-1 py-2 text-center transition-colors <%= actual ? 'border-amarillo-600/40 bg-marca text-sobre-marca' : 'border-borde bg-superficie hover:border-amarillo-500' %>"><%- contenido %></a>
+             class="<%= actual ? ui.casillero.elegido : ui.casillero.libre %> px-1 py-2.5"><%- contenido %></a>
         <% } %>
       <% } %>
     </div>
@@ -36,16 +36,16 @@
   <div class="space-y-2">
     <h2 class="text-sm font-medium"><%= mayuscula(formatearFecha(fecha)) %></h2>
     <% if (libres.length === 0) { %>
-      <%- vacio(`No quedan horarios libres ese día para ${servicio.nombre}.`) %>
+      <%- vacio(`No quedan horarios libres ese día para ${servicio.nombre}.`, 'CalendarClock') %>
     <% } else { %>
       <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
         <% for (const t of libres) { const iso = t.inicio.toISOString(); const actual = elegido && iso === elegido.inicio.toISOString(); %>
-          <a href="<%= urlHorario(iso) %>"
-             class="rounded-lg border py-2 text-center font-semibold tabular-nums transition-colors <%= actual ? 'border-marca bg-marca text-sobre-marca' : 'border-borde bg-superficie hover:border-marca' %>"><%= formatearHora(t.inicio) %></a>
+          <a href="<%= urlHorario(iso) %>"<% if (actual) { %> aria-current="true"<% } %>
+             class="<%= actual ? ui.casillero.elegido : ui.casillero.libre %> min-h-11 py-2.5 font-display font-bold tabular-nums"><%= formatearHora(t.inicio) %></a>
         <% } %>
       </div>
     <% } %>
-    <% if (inicioPedido && !elegido) { %><p class="text-sm text-peligro">Ese horario ya no está disponible. Elegí otro.</p><% } %>
+    <% if (inicioPedido && !elegido) { %><p role="alert" class="text-sm text-peligro">Ese horario ya no está disponible. Elegí otro.</p><% } %>
   </div>
 </section>
 
@@ -66,5 +66,5 @@
     </div>
   </form>
 <% } else { %>
-  <%- vacio('Elegí un horario para dar el turno.') %>
+  <%- vacio('Elegí un horario para dar el turno.', 'Clock') %>
 <% } %>

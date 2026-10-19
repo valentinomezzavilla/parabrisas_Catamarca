@@ -17,7 +17,7 @@
          <h2 class="mt-4 font-display text-xl font-extrabold">${esc(m.titulo)}</h2>
          <p class="mt-1 text-sm text-texto-suave">${esc(m.descripcion)}</p>`; %>
     <% if (m.disponible) { %>
-      <a href="<%= m.href %>" class="<%= ui.tarjeta %> block p-5 transition-colors hover:border-amarillo-500"><%- contenido %></a>
+      <a href="<%= m.href %>" class="<%= ui.tarjetaEnlace %> block p-5"><%- contenido %></a>
     <% } else { %>
       <div aria-disabled="true" class="<%= ui.tarjeta %> p-5 opacity-60"><%- contenido %></div>
     <% } %>

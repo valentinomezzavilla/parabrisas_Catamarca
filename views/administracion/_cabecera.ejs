@@ -10,7 +10,7 @@
   <nav aria-label="Secciones de Stock" class="flex gap-1 border-b border-borde">
     <% for (const p of pestanas) { %>
       <a href="<%= p.href %>"<% if (p.activa) { %> aria-current="page"<% } %>
-         class="-mb-px border-b-2 px-4 py-2 text-sm font-semibold <%= p.activa ? 'border-amarillo-500 text-texto' : 'border-transparent text-texto-suave hover:text-texto' %>"><%= p.etiqueta %></a>
+         class="-mb-px flex min-h-11 items-center border-b-2 px-4 text-sm font-semibold transition-colors <%= p.activa ? 'border-acento text-texto' : 'border-transparent text-texto-suave hover:border-borde hover:text-texto' %>"><%= p.etiqueta %></a>
     <% } %>
   </nav>
 <% } %>

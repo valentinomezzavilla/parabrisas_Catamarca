@@ -18,7 +18,7 @@
   </div>
 
   <form method="post" action="<%= urlCampo %>" novalidate class="<%= ui.tarjeta %> space-y-4 p-5">
-    <% if (errorGeneral) { %><p role="alert" class="rounded-lg border border-peligro/40 bg-peligro/10 px-3 py-2 text-sm text-peligro"><%= errorGeneral %></p><% } %>
+    <% if (errorGeneral) { %><%- aviso('peligro', errorGeneral) %><% } %>
 
     <% if (campoActual.origen === 'SISTEMA') { %>
       <%- campo({ nombre: 'etiqueta', etiqueta: 'Nombre que se muestra', valor: f.etiqueta, error: formulario.errores.etiqueta,
@@ -39,9 +39,9 @@
       <%- casilla({ nombre: 'visible', etiqueta: 'Mostrar este campo en el formulario y en la ficha', marcada: f.visible }) %>
     <% } %>
 
-    <div class="flex gap-2">
-      <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %>">Guardar</button>
+    <div class="flex justify-end gap-2">
       <%- enlaceBoton({ href: base, texto: 'Cancelar' }) %>
+      <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %>">Guardar</button>
     </div>
   </form>
 
