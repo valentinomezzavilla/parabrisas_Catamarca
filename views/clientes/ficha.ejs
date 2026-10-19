@@ -14,7 +14,8 @@
   seccion: 'Cliente',
   titulo: c.nombre,
   descripcion: [c.telefono || null, c.email].filter(Boolean).join(' · ') || null,
-  acciones: enlaceBoton({ href: `/clientes/${c.id}/editar`, texto: 'Editar', icono: 'Pencil' }),
+  acciones: enlaceBoton({ href: `/clientes/${c.id}/editar`, texto: 'Editar', icono: 'Pencil' })
+    + (admin ? enlaceBoton({ href: `/clientes/${c.id}/eliminar`, texto: 'Eliminar', variante: 'fantasma', icono: 'Trash2', clase: 'text-peligro! hover:bg-peligro/10' }) : ''),
 }) %>
 
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">

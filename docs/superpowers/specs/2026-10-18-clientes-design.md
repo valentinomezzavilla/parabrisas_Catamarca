@@ -14,7 +14,9 @@ WhatsApp y ofrecerle un beneficio a elección del usuario.
 | Cumpleaños | Tarjeta en el Panel con los de hoy y los próximos 7 días. Cada uno tiene "Saludar por WhatsApp": se elige un beneficio vigente del cliente o se escribe otra oferta, queda asentado el saludo del año y se abre el chat con el mensaje armado. |
 | Permisos | Todos ven y editan clientes y ven el aviso de cumpleaños. Los beneficios los da, marca como usados y anula **solo el Admin**. Los importes del historial, solo el Admin. |
 | Orden | Alfabético A→Z sin distinguir mayúsculas ni tildes (la Ñ después de la N), agrupado por inicial. Los "Sin nombre" (vienen de la importación de Notion) van al final, en su propio grupo. |
-| Borrado y unión | Fuera de alcance: no hay botón de borrar clientes ni de unir duplicados. |
+| Eliminar | **Solo Admin**, y se puede borrar un cliente **con historial**: se llevan sus turnos (con las señas), sus órdenes (con los cobros) y sus beneficios, sin vuelta atrás. Protecciones: una pantalla de confirmación que muestra exactamente qué se pierde (y avisa si hay plata por cobrar) y hay que escribir ELIMINAR. Los movimientos de stock se conservan sin turno, así el stock no cambia. Una orden de otro cliente que tenía turno con él vuelve a "Pedido". |
+| Atajos | Cada fila de la lista tiene Editar (todos) y Eliminar (solo Admin); la ficha también tiene Eliminar para el Admin. |
+| Unión de duplicados | Fuera de alcance. |
 
 ## Datos
 
