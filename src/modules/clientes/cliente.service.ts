@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { diaAFecha, fechaADia } from "@/lib/tiempo";
-import { cobradoDe, saldo } from "@/modules/ordenes/estados";
+import { cobradoDe, ESTADOS_A_COBRAR, saldo } from "@/modules/ordenes/estados";
 import type { Prisma } from "@/generated/prisma/client";
 import { normalizarPatente } from "@/modules/ordenes/schemas";
 import { estaVigente, textoOferta } from "./beneficio";
@@ -170,6 +170,56 @@ export async function editarCliente(id: string, input: ClienteInput) {
   const repetido = await conTelefonoRepetido(r.telefono, id);
   if (repetido) throw new TelefonoRepetidoError(repetido);
   return db.cliente.update({ where: { id }, data: datosDeCliente(r) });
+}
+
+// --- Eliminar (solo Admin) -------------------------------------------------------------------
+
+/**
+ * Lo que se pierde al borrar a un cliente, para mostrarlo antes de confirmar: borrar un cliente borra también sus
+ * turnos (con las señas de cada uno), sus órdenes de trabajo (con sus cobros) y sus beneficios.
+ */
+export async function resumenParaEliminar(id: string) {
+  const [turnos, pagos, ordenes, beneficios, movimientos] = await Promise.all([
+    db.turno.count({ where: { clienteId: id } }),
+    db.pago.aggregate({ where: { turno: { clienteId: id } }, _count: { _all: true }, _sum: { monto: true } }),
+    db.ordenTrabajo.findMany({
+      where: { clienteId: id },
+      select: { estado: true, importeTotal: true, senaMonto: true, senaAbonada: true, cobros: { select: { monto: true } } },
+    }),
+    db.beneficioCliente.count({ where: { clienteId: id } }),
+    db.movimientoStock.count({ where: { turno: { clienteId: id } } }),
+  ]);
+  const cuentas = ordenes.map((o) => {
+    const total = o.importeTotal === null ? null : Number(o.importeTotal);
+    return { estado: o.estado, total, cobrado: cobradoDe(o), cobros: o.cobros.length };
+  });
+  return {
+    turnos,
+    pagos: { cantidad: pagos._count._all, monto: Number(pagos._sum.monto ?? 0) },
+    ordenes: ordenes.length,
+    cobros: cuentas.reduce((n, c) => n + c.cobros, 0),
+    cobrado: cuentas.reduce((t, c) => t + c.cobrado, 0),
+    // Trabajos ya hechos de los que todavía se le debe plata al local: se pierde el registro de esa deuda.
+    aCobrar: cuentas.reduce((t, c) => t + (ESTADOS_A_COBRAR.includes(c.estado) ? Math.max(saldo(c.total, c.cobrado) ?? 0, 0) : 0), 0),
+    beneficios,
+    movimientos,
+  };
+}
+
+/**
+ * Borra al cliente con todo su historial. Es irreversible. Las señas de sus turnos se borran antes (las protege la
+ * base), los movimientos de stock se conservan sin turno (así el stock no cambia) y una orden de otro cliente que
+ * tenía turno con él vuelve a "Pedido".
+ */
+export async function eliminarCliente(id: string) {
+  return db.$transaction(async (tx) => {
+    const turnos = (await tx.turno.findMany({ where: { clienteId: id }, select: { id: true } })).map((t) => t.id);
+    await tx.pago.deleteMany({ where: { turnoId: { in: turnos } } });
+    await tx.ordenTrabajo.updateMany({ where: { turnoId: { in: turnos }, clienteId: { not: id }, estado: "TURNO_ASIGNADO" }, data: { estado: "PEDIDO" } });
+    await tx.turno.deleteMany({ where: { id: { in: turnos } } });
+    await tx.ordenTrabajo.deleteMany({ where: { clienteId: id } });
+    await tx.cliente.delete({ where: { id } });
+  });
 }
 
 // --- Beneficios (solo Admin) --------------------------------------------------------------

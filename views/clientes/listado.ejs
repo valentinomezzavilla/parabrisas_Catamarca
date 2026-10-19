@@ -40,8 +40,8 @@
       </h2>
       <ul class="<%= ui.tarjeta %> divide-y divide-borde overflow-hidden">
         <% for (const c of g.clientes) { %>
-          <li>
-            <a href="/clientes/<%= c.id %>" class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-marca/5">
+          <li class="flex items-stretch transition-colors hover:bg-marca/5">
+            <a href="/clientes/<%= c.id %>" class="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3 pr-2 pl-4">
               <span class="min-w-0">
                 <span class="block font-semibold"><%= c.nombre %></span>
                 <span class="flex flex-wrap items-center gap-x-2 text-xs text-texto-suave">
@@ -54,6 +54,13 @@
                 <span><%= plural(c._count.turnos, 'turno', 'turnos') %> · <%= plural(c._count.ordenes, 'orden', 'órdenes') %></span>
               </span>
             </a>
+            <%# Atajos de la fila: editar (todos) y eliminar (solo Admin, pide confirmación en otra pantalla). %>
+            <div class="flex shrink-0 items-center gap-1 pr-3">
+              <a href="/clientes/<%= c.id %>/editar" class="<%= ui.boton.fantasma %> <%= ui.boton.chico %>" aria-label="Editar a <%= c.nombre %>" title="Editar"><%- icono('Pencil', 'size-3.5') %><span class="hidden sm:inline">Editar</span></a>
+              <% if (admin) { %>
+                <a href="/clientes/<%= c.id %>/eliminar" class="<%= ui.boton.fantasma %> <%= ui.boton.chico %> text-peligro! hover:bg-peligro/10" aria-label="Eliminar a <%= c.nombre %>" title="Eliminar"><%- icono('Trash2', 'size-3.5') %><span class="hidden sm:inline">Eliminar</span></a>
+              <% } %>
+            </div>
           </li>
         <% } %>
       </ul>

@@ -12,11 +12,13 @@ import {
   crearBeneficio,
   crearCliente,
   editarCliente,
+  eliminarCliente,
   historialDe,
   LIMITE_CLIENTES,
   listarClientes,
   obtenerCliente,
   registrarSaludo,
+  resumenParaEliminar,
   TelefonoRepetidoError,
 } from "@/modules/clientes/cliente.service";
 import { cumpleEnVentana, edadEn } from "@/modules/clientes/cumpleanos";
@@ -29,9 +31,10 @@ import { mostrar } from "@/web/vistas";
 
 export const rutasClientes = Router();
 
-// Ven y editan todos; los beneficios (descuentos) los carga y cierra solo el Admin.
-rutasClientes.use("/:id/beneficios", requerirRol("ADMIN"));
+// Ven y editan todos; los beneficios (descuentos) y el borrado (que se lleva turnos, órdenes y cobros) son solo del Admin.
+rutasClientes.use(["/:id/beneficios", "/:id/eliminar"], requerirRol("ADMIN"));
 
+const plural = (n: number, singular: string, plural: string) => `${n} ${n === 1 ? singular : plural}`;
 const esAdmin = (res: Response) => usuarioDe(res).rol === "ADMIN";
 const fichaDe = (id: string, ancla?: string) => `/clientes/${id}${ancla ? `#${ancla}` : ""}`;
 
@@ -43,6 +46,7 @@ rutasClientes.get("/", async (req, res) => {
   await mostrar(res, "clientes/listado", {
     titulo: "Clientes",
     busqueda: busqueda ?? "",
+    admin: esAdmin(res),
     grupos: agruparAlfabetico(clientes),
     cantidad: clientes.length,
     total,
@@ -136,6 +140,37 @@ rutasClientes.post("/:id/editar", async (req, res, next) => {
   }
   avisar(res, "Cambios guardados.");
   res.redirect(303, fichaDe(req.params.id));
+});
+
+// --- Eliminar (solo Admin) -------------------------------------------------------------------
+
+/** La palabra que hay que escribir para confirmar: un clic suelto no alcanza para borrar plata y turnos. */
+const PALABRA_CONFIRMACION = "ELIMINAR";
+
+async function paginaEliminar(req: Request, res: Response, error: string | null = null, estado = 200) {
+  const cliente = await obtenerCliente(req.params.id as string);
+  if (!cliente) return mostrar(res, "errores/404", { titulo: "No encontrado" }, 404);
+  await mostrar(
+    res,
+    "clientes/eliminar",
+    { titulo: `Eliminar ${cliente.nombre}`, cliente, resumen: await resumenParaEliminar(cliente.id), palabra: PALABRA_CONFIRMACION, error },
+    estado,
+  );
+}
+
+rutasClientes.get("/:id/eliminar", (req, res) => paginaEliminar(req, res));
+
+rutasClientes.post("/:id/eliminar", async (req, res, next) => {
+  const cliente = await obtenerCliente(req.params.id);
+  if (!cliente) return next();
+  if ((texto(req.body, "confirmacion") ?? "").toUpperCase() !== PALABRA_CONFIRMACION) {
+    return paginaEliminar(req, res, `Para confirmar escribí ${PALABRA_CONFIRMACION}.`, 422);
+  }
+  const resumen = await resumenParaEliminar(cliente.id);
+  await eliminarCliente(cliente.id);
+  const partes = [plural(resumen.turnos, "turno", "turnos"), plural(resumen.ordenes, "orden", "órdenes")];
+  avisar(res, `Se eliminó a ${cliente.nombre}, con ${partes.join(" y ")}.`);
+  res.redirect(303, "/clientes");
 });
 
 // --- Ficha ---------------------------------------------------------------------------------------

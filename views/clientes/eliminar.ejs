@@ -1,0 +1,39 @@
+<%
+  const r = resumen;
+  const hayHistorial = r.turnos > 0 || r.ordenes > 0;
+  const linea = (n, singular, plural_, extra = '') => n > 0 ? `<li class="flex items-start gap-2">${icono('Trash2', 'mt-0.5 size-4 shrink-0 text-peligro')}<span>${esc(plural(n, singular, plural_))}${extra}</span></li>` : '';
+%>
+<%- volver(`/clientes/${cliente.id}`, cliente.nombre) %>
+<%- encabezado({ seccion: 'Postventa', titulo: 'Eliminar cliente', descripcion: cliente.nombre }) %>
+
+<section class="<%= ui.tarjeta %> space-y-5 p-5">
+  <%- aviso('peligro', hayHistorial ? 'Esto borra a este cliente y todo su historial. No se puede deshacer.' : 'Esto borra a este cliente. No se puede deshacer.') %>
+
+  <% if (hayHistorial || r.beneficios > 0) { %>
+    <div class="space-y-2">
+      <h2 class="font-display font-bold">Se va a borrar</h2>
+      <ul class="space-y-1.5 text-sm">
+        <li class="flex items-start gap-2"><%- icono('Trash2', 'mt-0.5 size-4 shrink-0 text-peligro') %><span>La ficha de <strong><%= cliente.nombre %></strong></span></li>
+        <%- linea(r.turnos, 'turno', 'turnos', r.pagos.cantidad > 0 ? ` (con ${plural(r.pagos.cantidad, 'seña', 'señas')} por ${pesos(r.pagos.monto)})` : '') %>
+        <%- linea(r.ordenes, 'orden de trabajo', 'órdenes de trabajo', r.cobros > 0 ? ` (con ${plural(r.cobros, 'cobro registrado', 'cobros registrados')}, ${pesos(r.cobrado)} en total)` : '') %>
+        <%- linea(r.beneficios, 'beneficio', 'beneficios') %>
+      </ul>
+    </div>
+  <% } %>
+
+  <% if (r.aCobrar > 0) { %>
+    <%- aviso('alerta', `Tiene ${pesos(r.aCobrar)} por cobrar de trabajos ya hechos. Al borrarlo se pierde el registro de esa deuda.`) %>
+  <% } %>
+  <% if (r.movimientos > 0) { %>
+    <p class="text-sm text-texto-suave">Los <%= plural(r.movimientos, 'movimiento de stock', 'movimientos de stock') %> de sus turnos se conservan, sin el turno: el stock no cambia.</p>
+  <% } %>
+  <p class="text-sm text-texto-suave">Si solo querés corregir datos, usá <a href="/clientes/<%= cliente.id %>/editar" class="font-semibold text-acento hover:underline">Editar</a>.</p>
+
+  <form method="post" action="/clientes/<%= cliente.id %>/eliminar" class="space-y-4 border-t border-borde pt-5" novalidate>
+    <%- campo({ nombre: 'confirmacion', etiqueta: `Para confirmar, escribí ${palabra}`, error: error, atributos: { autocomplete: 'off', autocapitalize: 'characters', placeholder: palabra } }) %>
+    <div class="flex flex-wrap justify-end gap-2">
+      <%- enlaceBoton({ href: `/clientes/${cliente.id}`, texto: 'Cancelar' }) %>
+      <button type="submit" data-enviando="Eliminando…" class="<%= ui.boton.peligro %>"><%- icono('Trash2') %> Eliminar definitivamente</button>
+    </div>
+  </form>
+</section>

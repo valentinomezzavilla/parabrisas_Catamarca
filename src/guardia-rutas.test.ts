@@ -82,6 +82,7 @@ const SOLO_ADMIN = [
   "/ordenes/abc/cobros/xyz/eliminar",
   "/ordenes/abc/sena/confirmar",
   "/ordenes/abc/sena/pendiente",
+  "/clientes/abc/eliminar",
   "/clientes/abc/beneficios",
   "/clientes/abc/beneficios/xyz/usado",
   "/clientes/abc/beneficios/xyz/anulado",
