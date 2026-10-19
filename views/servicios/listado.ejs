@@ -6,7 +6,7 @@
 }) %>
 
 <% if (servicios.length === 0) { %>
-  <%- vacio('Todavía no hay servicios. Creá el primero para empezar a dar turnos.') %>
+  <%- vacio('Todavía no hay servicios. Creá el primero para empezar a dar turnos.', 'Wrench') %>
 <% } else { %>
   <ul class="grid gap-4 lg:grid-cols-2">
     <% for (const s of servicios) { %>
@@ -24,7 +24,7 @@
           <div class="flex flex-wrap gap-x-5 gap-y-1 text-sm">
             <span class="flex items-center gap-1.5"><%- icono('Clock', 'size-4 text-acento') %><%= s.duracionMinutos %> min</span>
             <span class="flex items-center gap-1.5"><%- icono('Users', 'size-4 text-acento') %><%= s.capacidad %> a la vez</span>
-            <% if (s.precioBase) { %><span class="font-semibold">$<%= Number(s.precioBase).toLocaleString('es-AR') %></span><% } %>
+            <% if (s.precioBase) { %><span class="font-semibold tabular-nums"><%= pesos(s.precioBase) %></span><% } %>
           </div>
 
           <% if (s.sena === null) { %>

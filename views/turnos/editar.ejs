@@ -12,16 +12,16 @@
   </form>
 
   <% if (libres.length === 0) { %>
-    <%- vacio(`No quedan horarios libres ese día para ${servicio.nombre}.`) %>
+    <%- vacio(`No quedan horarios libres ese día para ${servicio.nombre}.`, 'CalendarClock') %>
   <% } else { %>
     <div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
       <% for (const t of libres) { const iso = t.inicio.toISOString(); const actual = iso === inicio; %>
-        <a href="<%= urlHorario(iso) %>"
-           class="rounded-lg border py-2 text-center font-semibold tabular-nums transition-colors <%= actual ? 'border-marca bg-marca text-sobre-marca' : 'border-borde bg-superficie hover:border-marca' %>"><%= formatearHora(t.inicio) %></a>
+        <a href="<%= urlHorario(iso) %>"<% if (actual) { %> aria-current="true"<% } %>
+           class="<%= actual ? ui.casillero.elegido : ui.casillero.libre %> min-h-11 py-2.5 font-display font-bold tabular-nums"><%= formatearHora(t.inicio) %></a>
       <% } %>
     </div>
   <% } %>
-  <% if (inicioPedido && !inicio) { %><p class="text-sm text-peligro">Ese horario ya no está disponible. Elegí otro.</p><% } %>
+  <% if (inicioPedido && !inicio) { %><p role="alert" class="text-sm text-peligro">Ese horario ya no está disponible. Elegí otro.</p><% } %>
 </section>
 
 <% if (inicio) { %>
@@ -52,5 +52,5 @@
     </div>
   </form>
 <% } else { %>
-  <%- vacio('Elegí un horario para poder guardar los cambios.') %>
+  <%- vacio('Elegí un horario para poder guardar los cambios.', 'Clock') %>
 <% } %>

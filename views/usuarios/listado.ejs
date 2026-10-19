@@ -26,10 +26,12 @@
             <%- botonAccion({ accion: `/usuarios/${u.id}/activo`, campos: { activo: u.activo ? '0' : '1' }, texto: u.activo ? 'Desactivar' : 'Activar', variante: 'fantasma', chico: true }) %>
           <% } %>
           <details class="group">
-            <summary class="<%= ui.boton.fantasma %> <%= ui.boton.chico %> cursor-pointer list-none [&::-webkit-details-marker]:hidden">Nueva contraseña</summary>
-            <form method="post" action="/usuarios/<%= u.id %>/password" class="mt-2 flex flex-wrap items-start gap-2" novalidate>
-              <input name="password" type="password" autocomplete="new-password" placeholder="Mínimo 5 caracteres" aria-label="Nueva contraseña" class="<%= ui.input %> max-w-56">
+            <summary class="<%= ui.boton.fantasma %> <%= ui.boton.chico %> cursor-pointer list-none group-open:hidden [&::-webkit-details-marker]:hidden">Nueva contraseña</summary>
+            <form method="post" action="/usuarios/<%= u.id %>/password" class="flex flex-wrap items-center gap-2" novalidate>
+              <input name="password" type="password" autocomplete="new-password" aria-label="Nueva contraseña para <%= u.nombre %>" aria-describedby="pw-<%= u.id %>" class="<%= ui.input %> max-w-56">
               <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %> <%= ui.boton.chico %>">Guardar</button>
+              <button type="button" data-cerrar class="<%= ui.boton.fantasma %> <%= ui.boton.chico %>">Cancelar</button>
+              <p id="pw-<%= u.id %>" class="basis-full text-xs text-texto-suave">Mínimo 5 caracteres.</p>
             </form>
           </details>
         </div>

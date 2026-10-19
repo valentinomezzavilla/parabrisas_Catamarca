@@ -8,6 +8,7 @@
   // Cada franja conserva su posición en el formulario: los errores llegan como "horarios.<posición>.hasta".
   const franjas = valores.franjas.map((f, i) => ({ ...f, i }));
 %>
+<%- volver('/servicios', 'Servicios') %>
 <%- encabezado(servicio
   ? { seccion: 'Servicios', titulo: servicio.nombre, descripcion: 'Los cambios se aplican a los turnos nuevos; los ya reservados mantienen su horario.' }
   : { seccion: 'Servicios', titulo: 'Nuevo servicio' }) %>
@@ -53,7 +54,7 @@
       </div>
       <button type="button" data-copiar-lunes class="<%= ui.boton.secundario %> <%= ui.boton.chico %>"><%- icono('Copy', 'size-3.5') %> Copiar lunes a días hábiles</button>
     </div>
-    <% if (errores.horarios) { %><p class="text-sm text-peligro"><%= errores.horarios %></p><% } %>
+    <% if (errores.horarios) { %><p role="alert" class="text-sm text-peligro"><%= errores.horarios %></p><% } %>
 
     <div class="divide-y divide-borde">
       <% for (const dia of SEMANA) { const delDia = franjas.filter((f) => f.diaSemana === dia); %>

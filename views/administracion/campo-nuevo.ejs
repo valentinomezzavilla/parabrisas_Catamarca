@@ -1,9 +1,7 @@
 <%- include('_cabecera') %>
 
 <form method="post" action="<%= MODULOS[modulo].base %>/campos/nuevo" novalidate class="<%= ui.tarjeta %> max-w-xl space-y-4 p-6">
-  <% if (mensaje && Object.keys(errores).length === 0) { %>
-    <p role="alert" class="rounded-lg border border-peligro/40 bg-peligro/10 px-3 py-2 text-sm text-peligro"><%= mensaje %></p>
-  <% } %>
+  <% if (mensaje && Object.keys(errores).length === 0) { %><%- aviso('peligro', mensaje) %><% } %>
 
   <%- campo({ nombre: 'etiqueta', etiqueta: 'Nombre del campo', valor: valores.etiqueta, error: errores.etiqueta,
               ayuda: 'Como se va a ver en el formulario y en la ficha.', atributos: { autocomplete: 'off' } }) %>
@@ -21,8 +19,8 @@
     <%- casilla({ nombre: 'requerido', etiqueta: `Obligatorio al cargar ${MODULOS[modulo].objeto}`, marcada: valores.requerido === 'on' }) %>
   </div>
 
-  <div class="flex gap-2">
-    <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %>">Crear campo</button>
+  <div class="flex justify-end gap-2">
     <%- enlaceBoton({ href: MODULOS[modulo].base, texto: 'Cancelar' }) %>
+    <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %>">Crear campo</button>
   </div>
 </form>

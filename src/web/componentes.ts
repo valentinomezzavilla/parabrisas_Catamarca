@@ -69,15 +69,17 @@ export interface Campo extends Control {
   claseContenedor?: string;
 }
 
-/** Etiqueta + control + error (o ayuda). */
+/** Etiqueta + control + error (o ayuda). El control apunta al pie con `aria-describedby`: el lector de pantalla lo lee al enfocarlo. */
 export function campo(c: Campo): string {
   const id = c.id ?? c.nombre;
+  const idPie = c.error || c.ayuda ? `${id}-pie` : undefined;
   const pie = c.error
-    ? `<p class="text-xs text-peligro">${esc(c.error)}</p>`
+    ? `<p id="${esc(idPie)}" class="text-xs text-peligro">${esc(c.error)}</p>`
     : c.ayuda
-      ? `<p class="text-xs text-texto-suave">${esc(c.ayuda)}</p>`
+      ? `<p id="${esc(idPie)}" class="text-xs text-texto-suave">${esc(c.ayuda)}</p>`
       : "";
-  return `<div class="space-y-1.5 ${esc(c.claseContenedor ?? "")}"><label for="${esc(id)}" class="block text-sm font-medium">${esc(c.etiqueta)}</label>${control({ ...c, id })}${pie}</div>`;
+  const atributos = idPie ? { "aria-describedby": idPie, ...c.atributos } : c.atributos;
+  return `<div class="space-y-1.5 ${esc(c.claseContenedor ?? "")}"><label for="${esc(id)}" class="block text-sm font-medium">${esc(c.etiqueta)}</label>${control({ ...c, id, atributos })}${pie}</div>`;
 }
 
 /** Casilla con su texto al lado. */

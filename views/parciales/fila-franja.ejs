@@ -4,7 +4,7 @@
     <input type="time" name="franja_desde" value="<%= desde %>" aria-label="<%= DIAS_LARGOS[dia] %> desde" class="bg-transparent text-sm" data-campo="desde">
     <span class="text-texto-suave">–</span>
     <input type="time" name="franja_hasta" value="<%= hasta %>" aria-label="<%= DIAS_LARGOS[dia] %> hasta" class="bg-transparent text-sm" data-campo="hasta">
-    <button type="button" data-quitar aria-label="Quitar franja" class="rounded p-1 text-texto-suave hover:text-peligro"><%- icono('X', 'size-3.5') %></button>
+    <button type="button" data-quitar aria-label="Quitar franja" class="-my-1 flex size-9 items-center justify-center rounded-md text-texto-suave transition-colors hover:bg-peligro/10 hover:text-peligro"><%- icono('X', 'size-3.5') %></button>
   </div>
-  <% if (falla) { %><span class="text-xs text-peligro"><%= falla %></span><% } %>
+  <% if (falla) { %><span role="alert" class="text-xs text-peligro"><%= falla %></span><% } %>
 </div>
