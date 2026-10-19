@@ -58,9 +58,9 @@
 
 <%# En celular las tres tarjetas van en una fila compacta en lugar de apilarse. %>
 <div class="grid grid-cols-3 gap-2.5 sm:gap-4">
-  <%- estadistica('Turnos hoy', activos.length, 'CalendarCheck', 'marca') %>
-  <%- estadistica('Sin confirmar', pendientes, 'Hourglass', pendientes ? 'alerta' : 'exito') %>
-  <%- estadistica('Para reponer', stockBajo.length, 'PackageMinus', stockBajo.length ? 'alerta' : 'exito') %>
+  <%- estadistica('Turnos hoy', activos.length, 'CalendarCheck', 'marca', '/turnos') %>
+  <%- estadistica('Sin confirmar', pendientes, 'Hourglass', pendientes ? 'alerta' : 'exito', '/turnos') %>
+  <%- estadistica('Para reponer', stockBajo.length, 'PackageMinus', stockBajo.length ? 'alerta' : 'exito', '#reponer') %>
 </div>
 
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
@@ -85,7 +85,7 @@
     <% } %>
   </section>
 
-  <section class="min-w-0 space-y-3">
+  <section id="reponer" class="min-w-0 scroll-mt-20 space-y-3">
     <div class="flex items-center justify-between gap-2">
       <h2 class="font-display text-lg font-bold">Stock para reponer</h2>
       <a href="/stock" class="flex min-h-9 items-center gap-1 text-sm font-semibold text-acento hover:underline">Ver stock <%- icono('ArrowRight', 'size-3.5') %></a>

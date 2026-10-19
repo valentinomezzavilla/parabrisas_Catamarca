@@ -163,6 +163,16 @@
     boton.querySelector("[data-flecha]")?.classList.toggle("rotate-180", !abierto);
   });
 
+  // "Mostrar contraseña": `<input type="checkbox" data-mostrar-clave="id">` alterna el tipo del campo con ese id.
+  document.addEventListener("change", (e) => {
+    const casilla = e.target.closest?.("input[data-mostrar-clave]");
+    const campo = casilla && document.getElementById(casilla.dataset.mostrarClave);
+    if (campo) campo.type = casilla.checked ? "text" : "password";
+  });
+
+  // Controles que solo tienen sentido con JavaScript: arrancan con `hidden` y acá se muestran.
+  for (const el of document.querySelectorAll("[data-requiere-js]")) el.hidden = false;
+
   actualizarLado();
   actualizarCondicionales();
   actualizarAyudas();
