@@ -5,12 +5,12 @@ import type { SituacionCobro } from "@/modules/ordenes/estados";
 // Áreas táctiles: 44 px de alto en celular y 40 px desde `sm`; `boton.chico` es el tamaño compacto.
 
 const baseBoton =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 ease-out active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-10";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-200 ease-out active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-10";
 
 export const boton = {
   primario: `${baseBoton} bg-linear-to-b from-amarillo-300 to-marca text-sobre-marca shadow-marca hover:-translate-y-px hover:from-amarillo-200 hover:to-amarillo-300 hover:shadow-[inset_0_1px_0_rgb(255_255_255/0.5),0_1px_0_rgb(0_0_0/0.14),0_10px_22px_-6px_rgb(253_221_61/0.75)]`,
   secundario: `${baseBoton} border border-borde bg-superficie shadow-tarjeta hover:-translate-y-px hover:border-grafito-400 hover:shadow-elevada`,
-  peligro: `${baseBoton} bg-peligro text-white shadow-tarjeta hover:bg-peligro/90 hover:shadow-[0_8px_18px_-6px_rgb(214_69_69/0.6)]`,
+  peligro: `${baseBoton} bg-peligro-solido text-white shadow-tarjeta hover:bg-peligro-solido/90 hover:shadow-[0_8px_18px_-6px_rgb(184_48_44/0.6)]`,
   fantasma: `${baseBoton} text-texto-suave hover:bg-grafito-500/10 hover:text-texto`,
   chico: "px-2.5 py-1 text-xs min-h-9! sm:min-h-0!",
 };
@@ -18,7 +18,7 @@ export const boton = {
 export type VarianteBoton = Exclude<keyof typeof boton, "chico">;
 
 export const input =
-  "w-full min-h-11 rounded-lg border border-borde bg-superficie px-3 py-2 text-base shadow-tarjeta transition-[border-color,box-shadow] duration-200 placeholder:text-grafito-400 hover:border-grafito-400 focus:border-amarillo-500 focus:outline-none focus:ring-2 focus:ring-amarillo-500/30 aria-invalid:border-peligro sm:min-h-10 sm:text-sm";
+  "w-full min-h-11 rounded-lg border border-borde bg-superficie px-3 py-2 text-base shadow-tarjeta transition-[border-color,box-shadow] duration-200 placeholder:text-grafito-400 hover:border-grafito-400 focus:border-acento focus:outline-none focus:ring-2 focus:ring-acento/25 aria-invalid:border-peligro sm:min-h-10 sm:text-sm";
 
 const baseTarjeta = "rounded-tarjeta border shadow-tarjeta dark:shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]";
 
@@ -51,26 +51,26 @@ export function tarjetaTurno(t: { origen: OrigenTurno; estado: EstadoTurno }): s
 /** Tarjeta que es un enlace: se eleva y se tiñe de amarillo al pasar el mouse o enfocarla. */
 export const tarjetaEnlace = `${tarjeta} transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-amarillo-500/70 hover:shadow-elevada focus-visible:-translate-y-0.5 focus-visible:shadow-elevada`;
 
-export const casilla = "size-4 accent-amarillo-500";
+export const casilla = "size-5 accent-amarillo-500";
 
 export type Tono = "neutro" | "marca" | "exito" | "alerta" | "peligro";
 
-/** Insignias: etiquetas cortas de estado. */
+/** Insignias: etiquetas cortas de estado. Tinte al 12 % para que el texto pase 4.5:1 en los dos modos. */
 export const insignia: Record<Tono, string> = {
-  neutro: "bg-grafito-500/15 text-texto-suave ring-1 ring-inset ring-grafito-500/20",
+  neutro: "bg-grafito-500/12 text-grafito-600 ring-1 ring-inset ring-grafito-500/20 dark:text-grafito-300",
   marca: "bg-marca text-sobre-marca ring-1 ring-inset ring-amarillo-600/30",
-  exito: "bg-exito/15 text-exito ring-1 ring-inset ring-exito/25",
-  alerta: "bg-alerta/15 text-alerta ring-1 ring-inset ring-alerta/25",
-  peligro: "bg-peligro/15 text-peligro ring-1 ring-inset ring-peligro/25",
+  exito: "bg-exito/12 text-exito ring-1 ring-inset ring-exito/25",
+  alerta: "bg-alerta/12 text-alerta ring-1 ring-inset ring-alerta/25",
+  peligro: "bg-peligro/12 text-peligro ring-1 ring-inset ring-peligro/25",
 };
 
 /** Cuadrito tintado detrás de un icono: firma visual de tarjetas y estados vacíos. */
 export const chip: Record<Tono, string> = {
   marca: "bg-marca/20 text-acento ring-1 ring-inset ring-marca/40",
-  alerta: "bg-alerta/15 text-alerta ring-1 ring-inset ring-alerta/25",
-  peligro: "bg-peligro/15 text-peligro ring-1 ring-inset ring-peligro/25",
-  exito: "bg-exito/15 text-exito ring-1 ring-inset ring-exito/25",
-  neutro: "bg-grafito-500/15 text-texto-suave ring-1 ring-inset ring-grafito-500/20",
+  alerta: "bg-alerta/12 text-alerta ring-1 ring-inset ring-alerta/25",
+  peligro: "bg-peligro/12 text-peligro ring-1 ring-inset ring-peligro/25",
+  exito: "bg-exito/12 text-exito ring-1 ring-inset ring-exito/25",
+  neutro: "bg-grafito-500/12 text-grafito-600 ring-1 ring-inset ring-grafito-500/20 dark:text-grafito-300",
 };
 
 export const aviso: Record<"exito" | "alerta" | "peligro", string> = {

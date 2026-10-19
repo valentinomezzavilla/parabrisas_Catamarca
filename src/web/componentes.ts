@@ -138,9 +138,19 @@ export function vacio(mensaje: string, nombreIcono?: NombreIcono): string {
   }<div>${esc(mensaje)}</div></div>`;
 }
 
-/** Tarjeta de resumen: franja de color arriba, icono, número grande y etiqueta corta. */
-export function estadistica(etiqueta: string, valor: number | string, nombreIcono: NombreIcono, tono: "marca" | "alerta" | "peligro" | "exito" = "marca"): string {
-  return `<div class="${ui.tarjeta} relative overflow-hidden p-3 transition-shadow duration-300 hover:shadow-elevada sm:p-5">
+/**
+ * Tarjeta de resumen: franja de color arriba, icono, número grande y etiqueta corta.
+ * Con `href` es un enlace y se eleva al pasar el mouse; sin él queda quieta (no sugiere un clic que no hace nada).
+ */
+export function estadistica(
+  etiqueta: string,
+  valor: number | string,
+  nombreIcono: NombreIcono,
+  tono: "marca" | "alerta" | "peligro" | "exito" = "marca",
+  href?: string,
+): string {
+  const etiquetaHtml = href ? "a" : "div";
+  return `<${etiquetaHtml}${attrs({ href, class: `${href ? ui.tarjetaEnlace : ui.tarjeta} relative block overflow-hidden p-3 sm:p-5` })}>
   <span aria-hidden="true" class="absolute inset-x-0 top-0 h-1 ${ui.estadistica.franja[tono]}"></span>
   <span aria-hidden="true" class="pointer-events-none absolute -top-10 -right-10 size-28 rounded-full opacity-[0.14] blur-2xl ${ui.estadistica.franja[tono]}"></span>
   <div class="flex items-start justify-between gap-2">
@@ -148,7 +158,7 @@ export function estadistica(etiqueta: string, valor: number | string, nombreIcon
     ${chipIcono(nombreIcono, tono, "hidden sm:flex")}
   </div>
   <p class="mt-1 font-display text-3xl font-extrabold tabular-nums sm:mt-3 sm:text-4xl ${ui.estadistica.numero[tono]}">${esc(valor)}</p>
-</div>`;
+</${etiquetaHtml}>`;
 }
 
 export interface EnlaceBoton {

@@ -1,4 +1,5 @@
 <div class="<%= ui.tarjeta %> space-y-4 p-8 text-center">
+  <span class="mx-auto flex size-14 items-center justify-center rounded-2xl <%= ui.chip.alerta %>"><%- icono('AlertTriangle', 'size-7') %></span>
   <h1 class="font-display text-xl font-bold">Algo salió mal</h1>
   <p class="text-sm text-texto-suave">Ocurrió un error inesperado. Probá de nuevo en unos minutos.</p>
   <%- enlaceBoton({ href: locals.usuario ? '/' : '/reservar', texto: 'Ir al inicio' }) %>

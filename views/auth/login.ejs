@@ -9,6 +9,10 @@
               atributos: { autocapitalize: 'none', spellcheck: 'false', autocomplete: 'username', autofocus: true, required: true } }) %>
   <%- campo({ nombre: 'password', etiqueta: 'Contraseña', tipo: 'password', error: errores.password,
               atributos: { autocomplete: 'current-password', required: true } }) %>
+  <%# Sin JavaScript no hace nada, así que arranca oculta y app.js la muestra. %>
+  <label hidden data-requiere-js class="-mt-2 flex min-h-9 items-center gap-2 text-sm text-texto-suave">
+    <input type="checkbox" data-mostrar-clave="password" class="<%= ui.casilla %>"> Mostrar contraseña
+  </label>
 
   <button type="submit" data-enviando="Ingresando…" class="<%= ui.boton.primario %> w-full py-3 text-base">Ingresar</button>
 </form>
