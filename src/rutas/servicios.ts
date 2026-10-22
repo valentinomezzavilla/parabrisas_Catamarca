@@ -20,11 +20,11 @@ import { mostrar } from "@/web/vistas";
 
 export const rutasServicios = Router();
 
-/** Resume las franjas: "Lun a Vie 08:30–12:30 y 16:30–20:00 · Sáb 09:00–13:00". */
+/** Resume las franjas: "Lun a Vie 08:30–12:30 y 16:30–20:00 · Sáb 09:00–13:00". Un horario fijo se muestra solo con su hora: "09:00 y 14:00". */
 export function resumenHorario(horarios: { diaSemana: number; horaInicio: number; horaFin: number }[]): string[] {
   const porDia = new Map<number, string>();
   for (const d of SEMANA) {
-    const franjas = horarios.filter((h) => h.diaSemana === d).map((h) => `${minutosAHora(h.horaInicio)}–${minutosAHora(h.horaFin)}`);
+    const franjas = horarios.filter((h) => h.diaSemana === d).map((h) => (h.horaInicio === h.horaFin ? minutosAHora(h.horaInicio) : `${minutosAHora(h.horaInicio)}–${minutosAHora(h.horaFin)}`));
     if (franjas.length) porDia.set(d, franjas.join(" y "));
   }
   const grupos: { dias: number[]; franjas: string }[] = [];
@@ -66,11 +66,20 @@ interface Franja {
   hasta: string;
 }
 
+interface HoraFija {
+  diaSemana: number;
+  hora: string;
+}
+
 interface ValoresServicio {
   campos: Record<string, string>;
   activo: boolean;
   requiereCristal: boolean;
+  sinLimite: boolean;
+  horariosFijos: boolean;
+  // Se dibujan las dos listas y se muestra la del modo elegido; al guardar se lee solo esa.
   franjas: Franja[];
+  horas: HoraFija[];
   extras: Record<string, ValorExtra | undefined>;
 }
 
@@ -93,6 +102,14 @@ function franjasDe(cuerpo: Cuerpo): Franja[] {
   return lista(cuerpo, "franja_dia").map((dia, i) => ({ diaSemana: Number(dia), desde: desde[i] ?? "", hasta: hasta[i] ?? "" }));
 }
 
+/** Horarios fijos del formulario: controles `hora_dia` y `hora_inicio` repetidos, en orden. */
+function horasDe(cuerpo: Cuerpo): HoraFija[] {
+  const horas = lista(cuerpo, "hora_inicio");
+  return lista(cuerpo, "hora_dia").map((dia, i) => ({ diaSemana: Number(dia), hora: horas[i] ?? "" }));
+}
+
+const modoFijos = (cuerpo: Cuerpo) => texto(cuerpo, "modoHorario") === "fijos";
+
 interface EstadoFormulario {
   valores?: ValoresServicio;
   errores?: Errores;
@@ -114,12 +131,18 @@ async function paginaFormulario(res: Response, id: string | null, formulario: Es
           duracionMinutos: String(servicio.duracionMinutos),
           intervaloMinutos: String(servicio.intervaloMinutos),
           margenMinutos: String(servicio.margenMinutos),
-          capacidad: String(servicio.capacidad),
+          capacidad: servicio.capacidad === null ? "" : String(servicio.capacidad),
           anticipacionMinutos: String(servicio.anticipacionMinutos),
         },
         activo: servicio.activo,
         requiereCristal: servicio.requiereCristal,
-        franjas: servicio.horarios.map((h) => ({ diaSemana: h.diaSemana, desde: minutosAHora(h.horaInicio), hasta: minutosAHora(h.horaFin) })),
+        sinLimite: servicio.capacidad === null,
+        horariosFijos: servicio.horariosFijos,
+        // Al cambiar de modo, la otra lista arranca con los mismos días abiertos.
+        franjas: servicio.horariosFijos
+          ? [...new Set(servicio.horarios.map((h) => h.diaSemana))].map((diaSemana) => ({ diaSemana, desde: "08:30", hasta: "12:30" }))
+          : servicio.horarios.map((h) => ({ diaSemana: h.diaSemana, desde: minutosAHora(h.horaInicio), hasta: minutosAHora(h.horaFin) })),
+        horas: servicio.horarios.map((h) => ({ diaSemana: h.diaSemana, hora: minutosAHora(h.horaInicio) })),
         extras: servicio.extras as Extras,
       }
     : {
@@ -136,7 +159,10 @@ async function paginaFormulario(res: Response, id: string | null, formulario: Es
         },
         activo: true,
         requiereCristal: false,
+        sinLimite: false,
+        horariosFijos: false,
         franjas: [1, 2, 3, 4, 5].map((diaSemana) => ({ diaSemana, desde: "08:30", hasta: "12:30" })),
+        horas: [1, 2, 3, 4, 5].map((diaSemana) => ({ diaSemana, hora: "09:00" })),
         extras: {},
       };
 
@@ -166,14 +192,16 @@ async function guardarServicio(req: Request, res: Response, id: string | null) {
     duracionMinutos: numero(cuerpo, "duracionMinutos"),
     intervaloMinutos: numero(cuerpo, "intervaloMinutos"),
     margenMinutos: numero(cuerpo, "margenMinutos") ?? 0,
-    capacidad: numero(cuerpo, "capacidad"),
+    capacidad: casilla(cuerpo, "sinLimite") ? null : numero(cuerpo, "capacidad"),
     anticipacionMinutos: numero(cuerpo, "anticipacionMinutos"),
     precioBase: numero(cuerpo, "precioBase"),
     color: texto(cuerpo, "color"),
     requiereCristal: casilla(cuerpo, "requiereCristal"),
     activo: casilla(cuerpo, "activo"),
     orden: numero(cuerpo, "orden"),
-    horarios: franjasDe(cuerpo),
+    horariosFijos: modoFijos(cuerpo),
+    horarios: modoFijos(cuerpo) ? undefined : franjasDe(cuerpo),
+    horasFijas: modoFijos(cuerpo) ? horasDe(cuerpo) : undefined,
     extrasEntrada: leerExtras(cuerpo),
     extrasDibujados: "dibujados" in cuerpo ? lista(cuerpo, "dibujado") : undefined,
   } as ServicioInput;
@@ -185,7 +213,10 @@ async function guardarServicio(req: Request, res: Response, id: string | null) {
       campos: Object.fromEntries(CAMPOS_SERVICIO.map((c) => [c, texto(cuerpo, c) ?? ""])),
       activo: casilla(cuerpo, "activo"),
       requiereCristal: casilla(cuerpo, "requiereCristal"),
+      sinLimite: casilla(cuerpo, "sinLimite"),
+      horariosFijos: modoFijos(cuerpo),
       franjas: franjasDe(cuerpo),
+      horas: horasDe(cuerpo),
       extras,
     };
     return paginaFormulario(res, id, { valores, errores, mensaje: "Revisá los datos marcados" }, 422);
