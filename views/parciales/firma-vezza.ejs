@@ -1,0 +1,15 @@
+<%#
+  Firma "Desarrollado por VEZZA". `fondo: 'oscuro'` (login y página pública) usa siempre el logo claro;
+  `fondo: 'tema'` (panel) sigue el modo claro u oscuro del sistema, igual que la paleta.
+%>
+<p class="flex flex-col items-center gap-1.5 text-xs font-medium <%= fondo === 'oscuro' ? 'text-grafito-400' : 'text-texto-suave' %>">
+  Desarrollado por
+  <% if (fondo === 'oscuro') { %>
+    <img src="<%= recurso('/brand/vezza-claro.png') %>" alt="VEZZA" width="201" height="194" class="h-12 w-auto">
+  <% } else { %>
+    <picture>
+      <source srcset="<%= recurso('/brand/vezza-claro.png') %>" media="(prefers-color-scheme: dark)">
+      <img src="<%= recurso('/brand/vezza-oscuro.png') %>" alt="VEZZA" width="201" height="194" class="h-12 w-auto">
+    </picture>
+  <% } %>
+</p>
