@@ -87,3 +87,53 @@ describe("calcularDisponibilidad", () => {
     expect(horas(slots)).toEqual(["16:30", "17:30", "18:30"]);
   });
 });
+
+describe("calcularDisponibilidad con horarios fijos", () => {
+  // Colocación: solo se ofrecen las 09:00 y las 14:00; cada horario es una hora de inicio.
+  const colocacion: ConfigAgenda = {
+    ...lavado,
+    duracionMinutos: 120,
+    horariosFijos: true,
+    horarios: [
+      { diaSemana: 1, horaInicio: 840, horaFin: 840 }, // 14:00
+      { diaSemana: 1, horaInicio: 540, horaFin: 540 }, // 09:00
+    ],
+  };
+
+  it("ofrece solo las horas cargadas, ordenadas, con el fin según la duración", () => {
+    const slots = calcularDisponibilidad({ fecha: LUNES, servicio: colocacion, ahora: ANTES });
+    expect(horas(slots)).toEqual(["09:00", "14:00"]);
+    expect(slots[0].fin.getTime() - slots[0].inicio.getTime()).toBe(120 * 60_000);
+  });
+
+  it("respeta la capacidad: un horario lleno deja de ofrecerse", () => {
+    const slots = calcularDisponibilidad({
+      fecha: LUNES,
+      servicio: colocacion,
+      turnos: [{ inicio: local("09:00"), fin: local("11:00") }],
+      ahora: ANTES,
+    });
+    expect(horas(slots)).toEqual(["14:00"]);
+  });
+
+  it("aplica la anticipación y los bloqueos igual que con franjas", () => {
+    const conAnticipacion = calcularDisponibilidad({ fecha: LUNES, servicio: { ...colocacion, anticipacionMinutos: 60 }, ahora: local("08:30") });
+    expect(horas(conAnticipacion)).toEqual(["14:00"]);
+    const bloqueado = calcularDisponibilidad({
+      fecha: LUNES,
+      servicio: colocacion,
+      bloqueos: [{ inicio: local("13:00"), fin: local("18:00") }],
+      ahora: ANTES,
+    });
+    expect(horas(bloqueado)).toEqual(["09:00"]);
+  });
+});
+
+describe("calcularDisponibilidad sin límite de vehículos", () => {
+  it("un horario sigue ofreciéndose por más turnos que tenga", () => {
+    const turnos = Array.from({ length: 30 }, () => ({ inicio: local("08:30"), fin: local("09:30") }));
+    const slots = calcularDisponibilidad({ fecha: LUNES, servicio: { ...lavado, capacidad: null }, turnos, ahora: ANTES });
+    expect(horas(slots)[0]).toBe("08:30");
+    expect(slots[0].cuposLibres).toBeNull();
+  });
+});

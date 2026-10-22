@@ -45,11 +45,12 @@
       const destino = document.getElementById(agregar.dataset.destino) ?? document.querySelector(`[data-filas="${nombre}"]`);
       if (!plantilla || !destino) return;
       const fila = plantilla.content.firstElementChild.cloneNode(true);
-      // Segunda franja del día: lo habitual es el turno tarde.
+      // Segunda franja (u horario fijo) del día: lo habitual es el turno tarde.
       if (nombre.startsWith("franja-") && destino.querySelector("[data-fila]")) {
         fila.querySelector('[data-campo="desde"]').value = "16:30";
         fila.querySelector('[data-campo="hasta"]').value = "20:00";
       }
+      if (nombre.startsWith("hora-") && destino.querySelector("[data-fila]")) fila.querySelector('[data-campo="hora"]').value = "14:00";
       destino.append(fila);
       actualizarFranjas();
       fila.querySelector("input:not([type=hidden]), select")?.focus();
@@ -62,37 +63,51 @@
     }
   });
 
-  // Horarios de un servicio: "Cerrado" cuando un día no tiene franjas y el texto del botón ("Abrir" / "Franja").
+  // Horarios de un servicio: "Cerrado" cuando un día no tiene franjas y el texto del botón ("Abrir" / "Franja" u "Horario").
   function actualizarFranjas() {
     for (const dia of document.querySelectorAll("[data-dia-horario]")) {
       const hay = dia.querySelector("[data-fila]") !== null;
       dia.querySelector("[data-cerrado]")?.classList.toggle("hidden", hay);
-      const etiqueta = dia.querySelector("[data-agregar] [data-texto]");
-      if (etiqueta) etiqueta.textContent = hay ? "Franja" : "Abrir";
+      const boton = dia.querySelector("[data-agregar]");
+      const etiqueta = boton?.querySelector("[data-texto]");
+      if (etiqueta) etiqueta.textContent = hay ? (boton.dataset.textoMas ?? "Franja") : "Abrir";
     }
   }
 
-  // "Copiar lunes a días hábiles": reemplaza las franjas de martes a viernes por las del lunes.
+  // "Copiar lunes a días hábiles": reemplaza las franjas y los horarios fijos de martes a viernes por los del lunes.
+  const LISTAS_HORARIO = [
+    { contenedor: "franjas", plantilla: "franja", campos: ["desde", "hasta"] },
+    { contenedor: "horas", plantilla: "hora", campos: ["hora"] },
+  ];
   document.addEventListener("click", (e) => {
     if (!e.target.closest("[data-copiar-lunes]")) return;
-    const lunes = document.getElementById("franjas-1");
-    if (!lunes) return;
-    for (const dia of [2, 3, 4, 5]) {
-      const destino = document.getElementById(`franjas-${dia}`);
-      const plantilla = document.querySelector(`template[data-plantilla="franja-${dia}"]`);
-      if (!destino || !plantilla) continue;
-      destino.replaceChildren(
-        ...[...lunes.querySelectorAll("[data-fila]")].map((fila) => {
-          // Se parte de la plantilla del día (etiquetas y día correctos) y se copian los horarios del lunes.
-          const copia = plantilla.content.firstElementChild.cloneNode(true);
-          for (const campo of ["desde", "hasta"]) {
-            copia.querySelector(`[data-campo="${campo}"]`).value = fila.querySelector(`[data-campo="${campo}"]`).value;
-          }
-          return copia;
-        }),
-      );
+    for (const { contenedor, plantilla: nombre, campos } of LISTAS_HORARIO) {
+      const lunes = document.getElementById(`${contenedor}-1`);
+      if (!lunes) continue;
+      for (const dia of [2, 3, 4, 5]) {
+        const destino = document.getElementById(`${contenedor}-${dia}`);
+        const plantilla = document.querySelector(`template[data-plantilla="${nombre}-${dia}"]`);
+        if (!destino || !plantilla) continue;
+        destino.replaceChildren(
+          ...[...lunes.querySelectorAll("[data-fila]")].map((fila) => {
+            // Se parte de la plantilla del día (etiquetas y día correctos) y se copian los horarios del lunes.
+            const copia = plantilla.content.firstElementChild.cloneNode(true);
+            for (const campo of campos) {
+              copia.querySelector(`[data-campo="${campo}"]`).value = fila.querySelector(`[data-campo="${campo}"]`).value;
+            }
+            return copia;
+          }),
+        );
+      }
     }
     actualizarFranjas();
+  });
+
+  // Una casilla que desactiva otro control mientras está tildada: `data-desactiva="id"` ("Sin límite" de vehículos).
+  document.addEventListener("change", (e) => {
+    const casilla = e.target.closest("input[data-desactiva]");
+    const destino = casilla && document.getElementById(casilla.dataset.desactiva);
+    if (destino) destino.disabled = casilla.checked;
   });
 
   // Cristal: el lado (izq./der.) solo se elige si la ubicación lo tiene.

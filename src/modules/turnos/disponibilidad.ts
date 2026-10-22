@@ -9,15 +9,16 @@ import { diaSemana, instanteLocal, sumarMinutos } from "@/lib/tiempo";
 export interface Franja {
   diaSemana: number; // 0 = domingo
   horaInicio: number; // minutos desde 00:00
-  horaFin: number;
+  horaFin: number; // con horarios fijos es igual a horaInicio: solo cuenta la hora de inicio
 }
 
 export interface ConfigAgenda {
   duracionMinutos: number;
   intervaloMinutos: number;
   margenMinutos: number;
-  capacidad: number;
+  capacidad: number | null; // null = sin límite de vehículos a la vez
   anticipacionMinutos: number;
+  horariosFijos?: boolean; // true: cada horario es una hora de inicio (09:00, 14:00) en vez de una franja
   horarios: Franja[];
 }
 
@@ -27,7 +28,7 @@ export interface Intervalo {
 }
 
 export interface TurnoDisponible extends Intervalo {
-  cuposLibres: number;
+  cuposLibres: number | null; // null = sin límite
 }
 
 export interface ParametrosDisponibilidad {
@@ -79,17 +80,27 @@ export function calcularDisponibilidad({
     .filter((f) => f.diaSemana === dia)
     .sort((a, b) => a.horaInicio - b.horaInicio);
 
-  for (const franja of franjas) {
-    for (let m = franja.horaInicio; m + duracionMinutos <= franja.horaFin; m += intervaloMinutos) {
-      const inicio = instanteLocal(fecha, m);
-      const fin = sumarMinutos(inicio, duracionMinutos);
-      if (inicio < inicioMinimo) continue;
-      if (bloqueos.some((b) => seSuperponen(b, { inicio, fin }))) continue;
+  // Con horarios fijos cada horario ofrece un único inicio; con franjas, uno cada `intervaloMinutos` hasta el cierre.
+  const inicios = franjas.flatMap((franja) => {
+    if (servicio.horariosFijos) return [franja.horaInicio];
+    const minutos: number[] = [];
+    for (let m = franja.horaInicio; m + duracionMinutos <= franja.horaFin; m += intervaloMinutos) minutos.push(m);
+    return minutos;
+  });
 
-      const ventana = { inicio, fin: sumarMinutos(fin, margenMinutos) };
-      const cuposLibres = capacidad - maximoSimultaneo(ocupados, ventana);
-      if (cuposLibres > 0) resultado.push({ inicio, fin, cuposLibres });
+  for (const m of inicios) {
+    const inicio = instanteLocal(fecha, m);
+    const fin = sumarMinutos(inicio, duracionMinutos);
+    if (inicio < inicioMinimo) continue;
+    if (bloqueos.some((b) => seSuperponen(b, { inicio, fin }))) continue;
+
+    if (capacidad === null) {
+      resultado.push({ inicio, fin, cuposLibres: null });
+      continue;
     }
+    const ventana = { inicio, fin: sumarMinutos(fin, margenMinutos) };
+    const cuposLibres = capacidad - maximoSimultaneo(ocupados, ventana);
+    if (cuposLibres > 0) resultado.push({ inicio, fin, cuposLibres });
   }
   return resultado;
 }

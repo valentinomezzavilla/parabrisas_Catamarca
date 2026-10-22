@@ -1,0 +1,8 @@
+<div class="flex flex-col" data-fila>
+  <div class="flex items-center gap-1 rounded-lg border px-2 py-1 <%= falla ? 'border-peligro' : 'border-borde' %>">
+    <input type="hidden" name="hora_dia" value="<%= dia %>" data-campo="dia">
+    <input type="time" name="hora_inicio" value="<%= hora %>" aria-label="<%= DIAS_LARGOS[dia] %> a las" class="bg-transparent text-sm" data-campo="hora">
+    <button type="button" data-quitar aria-label="Quitar horario" class="-my-1 flex size-9 items-center justify-center rounded-md text-texto-suave transition-colors hover:bg-peligro/10 hover:text-peligro"><%- icono('X', 'size-3.5') %></button>
+  </div>
+  <% if (falla) { %><span role="alert" class="text-xs text-peligro"><%= falla %></span><% } %>
+</div>

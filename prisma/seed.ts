@@ -47,12 +47,13 @@ const SERVICIOS = [
     duracionMinutos: 120,
     intervaloMinutos: 60,
     margenMinutos: 15,
-    capacidad: 1,
+    capacidad: null, // sin límite: todos los vehículos del día entran a las 09:00 o a las 14:00
     anticipacionMinutos: 24 * 60, // se reserva con un día de anticipación para preparar el cristal
     requiereCristal: true,
     color: "#E0A800",
     orden: 2,
-    horarios: [...franja(LUN_A_VIE, "08:30", "12:30"), ...franja(LUN_A_VIE, "16:30", "20:00")],
+    horariosFijos: true,
+    horarios: [...franja(LUN_A_VIE, "09:00", "09:00"), ...franja(LUN_A_VIE, "14:00", "14:00")],
   },
   {
     nombre: "Polarizados",

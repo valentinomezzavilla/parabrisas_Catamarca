@@ -174,8 +174,9 @@ model Servicio {
   duracionMinutos     Int               @map("duracion_minutos") // duración estimada del trabajo
   intervaloMinutos    Int               @default(30) @map("intervalo_minutos") // cada cuánto se ofrece un inicio de turno
   margenMinutos       Int               @default(0) @map("margen_minutos") // limpieza/preparación entre turnos
-  capacidad           Int               @default(1) // trabajos simultáneos (boxes/operarios)
+  capacidad           Int?              @default(1) // trabajos simultáneos (boxes/operarios); null = sin límite
   anticipacionMinutos Int               @default(60) @map("anticipacion_minutos") // mínimo de antelación para reservar
+  horariosFijos       Boolean           @default(false) @map("horarios_fijos") // true: cada HorarioServicio es una hora de inicio (09:00, 14:00)
   precioBase          Decimal?          @map("precio_base") @db.Decimal(12, 2)
   color               String            @default("#FDDD3D") // color en la agenda
   requiereCristal     Boolean           @default(false) @map("requiere_cristal") // p. ej. colocación
@@ -201,7 +202,7 @@ model HorarioServicio {
   servicio    Servicio @relation(fields: [servicioId], references: [id], onDelete: Cascade)
   diaSemana   Int      @map("dia_semana") // 0 = domingo … 6 = sábado
   horaInicio  Int      @map("hora_inicio") // minutos desde 00:00 (510 = 08:30)
-  horaFin     Int      @map("hora_fin")
+  horaFin     Int      @map("hora_fin") // con horarios fijos, igual a horaInicio
 
   @@index([servicioId, diaSemana])
   @@map("horarios_servicio")

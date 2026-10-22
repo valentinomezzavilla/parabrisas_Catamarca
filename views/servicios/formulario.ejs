@@ -5,8 +5,11 @@
     [240, '4 horas'], [720, '12 horas'], [1440, '1 día'], [2880, '2 días'],
   ];
   const accion = servicio ? `/servicios/${servicio.id}` : '/servicios/nuevo';
-  // Cada franja conserva su posición en el formulario: los errores llegan como "horarios.<posición>.hasta".
+  // Cada franja (y cada horario fijo) conserva su posición en el formulario: los errores llegan como "horarios.<posición>.hasta".
   const franjas = valores.franjas.map((f, i) => ({ ...f, i }));
+  const horas = valores.horas.map((h, i) => ({ ...h, i }));
+  const modo = valores.horariosFijos ? 'fijos' : 'franjas';
+  const MODOS = [['franjas', 'Franjas horarias', 'Clock'], ['fijos', 'Horarios fijos', 'CalendarClock']];
 %>
 <%- volver('/servicios', 'Servicios') %>
 <%- encabezado(servicio
@@ -39,9 +42,18 @@
   <section class="<%= ui.tarjeta %> grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-4">
     <h2 class="font-display font-bold sm:col-span-2 lg:col-span-4">Tiempos y capacidad</h2>
     <%- campo({ nombre: 'duracionMinutos', etiqueta: 'Duración (min)', tipo: 'number', valor: v('duracionMinutos'), error: errores.duracionMinutos, ayuda: 'Tiempo estimado del trabajo', atributos: { min: 5, step: 5 } }) %>
-    <%- campo({ nombre: 'intervaloMinutos', etiqueta: 'Turnos cada (min)', tipo: 'number', valor: v('intervaloMinutos'), error: errores.intervaloMinutos, ayuda: 'Cada cuánto se ofrece un horario', atributos: { min: 5, step: 5 } }) %>
+    <%# Con horarios fijos los turnos empiezan a las horas cargadas: no hay intervalo. %>
+    <div data-mostrar-si="modoHorario=franjas"<% if (modo !== 'franjas') { %> hidden<% } %>>
+      <%- campo({ nombre: 'intervaloMinutos', etiqueta: 'Turnos cada (min)', tipo: 'number', valor: v('intervaloMinutos'), error: errores.intervaloMinutos, ayuda: 'Cada cuánto se ofrece un horario', atributos: { min: 5, step: 5 } }) %>
+    </div>
     <%- campo({ nombre: 'margenMinutos', etiqueta: 'Margen entre trabajos (min)', tipo: 'number', valor: v('margenMinutos'), error: errores.margenMinutos, ayuda: 'Limpieza o preparación', atributos: { min: 0, step: 5 } }) %>
-    <%- campo({ nombre: 'capacidad', etiqueta: 'Vehículos a la vez', tipo: 'number', valor: v('capacidad'), error: errores.capacidad, ayuda: 'Boxes u operarios disponibles', atributos: { min: 1 } }) %>
+    <div class="space-y-2">
+      <%- campo({ nombre: 'capacidad', etiqueta: 'Vehículos a la vez', tipo: 'number', valor: v('capacidad'), error: errores.capacidad, ayuda: 'Boxes u operarios disponibles', atributos: { min: 1, disabled: valores.sinLimite } }) %>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="sinLimite" data-desactiva="capacidad" class="<%= ui.casilla %>"<% if (valores.sinLimite) { %> checked<% } %>>
+        Sin límite
+      </label>
+    </div>
     <%- campo({ nombre: 'anticipacionMinutos', etiqueta: 'Anticipación mínima', tipo: 'select', valor: v('anticipacionMinutos'), error: errores.anticipacionMinutos, claseContenedor: 'sm:col-span-2',
                 opciones: ANTICIPACIONES.map(([valor, texto]) => ({ valor: String(valor), texto })) }) %>
   </section>
@@ -50,17 +62,32 @@
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div>
         <h2 class="font-display font-bold">Días y horarios de atención</h2>
-        <p class="text-sm text-texto-suave">Podés cargar más de una franja por día (horario cortado).</p>
+        <p data-mostrar-si="modoHorario=franjas" class="text-sm text-texto-suave"<% if (modo !== 'franjas') { %> hidden<% } %>>Podés cargar más de una franja por día (horario cortado).</p>
+        <p data-mostrar-si="modoHorario=fijos" class="text-sm text-texto-suave"<% if (modo !== 'fijos') { %> hidden<% } %>>Solo se ofrecen las horas que cargues; cada una recibe tantos vehículos como indica "Vehículos a la vez".</p>
       </div>
       <button type="button" data-copiar-lunes class="<%= ui.boton.secundario %> <%= ui.boton.chico %>"><%- icono('Copy', 'size-3.5') %> Copiar lunes a días hábiles</button>
     </div>
+
+    <fieldset class="space-y-1.5">
+      <legend class="text-sm font-medium">Cómo se ofrecen los turnos</legend>
+      <div class="inline-flex flex-wrap rounded-lg border border-borde bg-superficie p-1">
+        <% for (const [valor, texto, icon] of MODOS) { %>
+          <label class="flex min-h-10 cursor-pointer items-center gap-2 rounded-md px-4 text-sm font-semibold text-texto-suave transition-colors hover:text-texto has-checked:bg-marca has-checked:text-sobre-marca has-focus-visible:ring-2 has-focus-visible:ring-acento">
+            <input type="radio" name="modoHorario" value="<%= valor %>" class="sr-only"<% if (modo === valor) { %> checked<% } %>>
+            <%- icono(icon, 'size-4') %><%= texto %>
+          </label>
+        <% } %>
+      </div>
+    </fieldset>
+
     <% if (errores.horarios) { %><p role="alert" class="text-sm text-peligro"><%= errores.horarios %></p><% } %>
+    <% if (errores.horasFijas) { %><p role="alert" class="text-sm text-peligro"><%= errores.horasFijas %></p><% } %>
 
     <div class="divide-y divide-borde">
-      <% for (const dia of SEMANA) { const delDia = franjas.filter((f) => f.diaSemana === dia); %>
-        <div class="flex flex-col gap-2 py-3 sm:flex-row sm:items-start" data-dia-horario>
+      <% for (const dia of SEMANA) { const delDia = franjas.filter((f) => f.diaSemana === dia); const horasDelDia = horas.filter((h) => h.diaSemana === dia); %>
+        <div class="flex flex-col gap-2 py-3 sm:flex-row sm:items-start">
           <span class="w-28 pt-2 text-sm font-semibold"><%= DIAS_LARGOS[dia] %></span>
-          <div class="flex flex-1 flex-wrap items-center gap-2">
+          <div class="flex flex-1 flex-wrap items-center gap-2" data-dia-horario data-mostrar-si="modoHorario=franjas"<% if (modo !== 'franjas') { %> hidden<% } %>>
             <span data-cerrado class="py-2 text-sm text-texto-suave <%= delDia.length ? 'hidden' : '' %>">Cerrado</span>
             <div id="franjas-<%= dia %>" class="contents">
               <% for (const f of delDia) { %>
@@ -68,8 +95,20 @@
               <% } %>
             </div>
             <template data-plantilla="franja-<%= dia %>"><%- include('../parciales/fila-franja', { dia, desde: '08:30', hasta: '12:30', falla: null }) %></template>
-            <button type="button" data-agregar="franja-<%= dia %>" data-destino="franjas-<%= dia %>" class="<%= ui.boton.fantasma %> <%= ui.boton.chico %>">
+            <button type="button" data-agregar="franja-<%= dia %>" data-destino="franjas-<%= dia %>" data-texto-mas="Franja" class="<%= ui.boton.fantasma %> <%= ui.boton.chico %>">
               <%- icono('Plus', 'size-3.5') %> <span data-texto><%= delDia.length ? 'Franja' : 'Abrir' %></span>
+            </button>
+          </div>
+          <div class="flex flex-1 flex-wrap items-center gap-2" data-dia-horario data-mostrar-si="modoHorario=fijos"<% if (modo !== 'fijos') { %> hidden<% } %>>
+            <span data-cerrado class="py-2 text-sm text-texto-suave <%= horasDelDia.length ? 'hidden' : '' %>">Cerrado</span>
+            <div id="horas-<%= dia %>" class="contents">
+              <% for (const h of horasDelDia) { %>
+                <%- include('../parciales/fila-hora', { dia, hora: h.hora, falla: errores[`horasFijas.${h.i}.hora`] }) %>
+              <% } %>
+            </div>
+            <template data-plantilla="hora-<%= dia %>"><%- include('../parciales/fila-hora', { dia, hora: '09:00', falla: null }) %></template>
+            <button type="button" data-agregar="hora-<%= dia %>" data-destino="horas-<%= dia %>" data-texto-mas="Horario" class="<%= ui.boton.fantasma %> <%= ui.boton.chico %>">
+              <%- icono('Plus', 'size-3.5') %> <span data-texto><%= horasDelDia.length ? 'Horario' : 'Abrir' %></span>
             </button>
           </div>
         </div>
