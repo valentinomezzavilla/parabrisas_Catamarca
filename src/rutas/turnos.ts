@@ -7,7 +7,7 @@ import { diaSemana, fechaLocal, formatearFecha, formatearHora, hoy, sumarDias } 
 import { z } from "@/lib/zod";
 import { buscarCristales, obtenerCatalogos, StockInsuficienteError } from "@/modules/inventario/cristal.service";
 import { liberarVencidos } from "@/modules/pagos/pagos.service";
-import { enlaceWhatsapp } from "@/modules/pagos/transferencia";
+import { enlaceWhatsapp, leerDatosTransferencia } from "@/modules/pagos/transferencia";
 import { mensajeAvisoTurno, numeroWhatsappCliente } from "@/modules/turnos/aviso-cliente";
 import { puedeEditar } from "@/modules/turnos/edicion";
 import { listarServicios, obtenerDisponibilidad, TurnoNoDisponibleError } from "@/modules/turnos/servicio.service";
@@ -34,6 +34,7 @@ function enlaceAviso(t: TurnoDelDia): string | null {
   const numero = numeroWhatsappCliente(t.cliente.telefono);
   if (!numero) return null;
   const pendiente = t.pagos.find((p) => p.estado === "PENDIENTE");
+  const { alias, titular } = leerDatosTransferencia();
   const mensaje = mensajeAvisoTurno(t.estado, {
     nombre: t.cliente.nombre,
     servicio: t.servicio.nombre,
@@ -41,6 +42,8 @@ function enlaceAviso(t: TurnoDelDia): string | null {
     hora: formatearHora(t.inicio),
     codigo: t.codigo,
     senaPendiente: pendiente ? pesos(pendiente.monto) : null,
+    alias,
+    titular,
   });
   return mensaje ? enlaceWhatsapp(numero, mensaje) : null;
 }

@@ -42,6 +42,9 @@ export interface DatosAviso {
   codigo: string;
   /** Seña pendiente ya formateada ("$ 2.000"), o `null` si no hay. */
   senaPendiente: string | null;
+  /** Cuenta del local para transferir la seña; solo se usa si el turno espera el pago. */
+  alias: string | null;
+  titular: string | null;
 }
 
 /** Mensaje para el cliente según cómo está su turno. `null` si en ese estado no hay nada que avisarle. */
@@ -54,7 +57,10 @@ export function mensajeAvisoTurno(estado: string, d: DatosAviso): string | null 
     case "ESPERANDO_PAGO":
       return [
         `Hola ${nombre}! Te escribimos de Parabrisas Catamarca por ${turno}.`,
-        d.senaPendiente ? `Para confirmarlo necesitamos la seña de ${d.senaPendiente}. Nos mandás el comprobante de la transferencia?` : "Para confirmarlo necesitamos la seña. Nos mandás el comprobante de la transferencia?",
+        d.senaPendiente ? `Para confirmarlo necesitamos la seña de ${d.senaPendiente}.` : "Para confirmarlo necesitamos la seña.",
+        ...(d.alias ? [`Alias: ${d.alias}`] : []),
+        ...(d.titular ? [`A nombre de: ${d.titular}`] : []),
+        "Nos mandás el comprobante de la transferencia?",
       ].join("\n");
     case "PENDIENTE":
       return [`Hola ${nombre}! Te escribimos de Parabrisas Catamarca por ${turno}.`, "Nos confirmás que vas a venir?"].join("\n");
