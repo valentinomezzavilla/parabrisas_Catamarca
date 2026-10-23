@@ -50,7 +50,12 @@ export async function contarTurnosPorDia(desde: string, dias: number) {
 export function obtenerTurno(id: string) {
   return db.turno.findUnique({
     where: { id },
-    include: { servicio: true, cliente: true, pagos: { orderBy: { creadoEn: "desc" }, take: 1 } },
+    include: {
+      servicio: true,
+      cliente: true,
+      cristal: { select: { id: true, codigo: true, descripcion: true, cantidad: true } },
+      pagos: { orderBy: { creadoEn: "desc" }, take: 1 },
+    },
   });
 }
 
@@ -98,15 +103,6 @@ export async function cambiarEstadoTurno(id: string, estado: EstadoTurno) {
 /** Asigna (o quita, con null) el cristal a colocar en un turno. */
 export function asignarCristal(turnoId: string, cristalId: string | null) {
   return db.turno.update({ where: { id: turnoId }, data: { cristalId } });
-}
-
-/** Cristales activos con stock, para elegir en los turnos de colocación. */
-export function cristalesDisponibles() {
-  return db.cristal.findMany({
-    where: { activo: true, cantidad: { gt: 0 } },
-    select: { id: true, codigo: true, descripcion: true, cantidad: true },
-    orderBy: { descripcion: "asc" },
-  });
 }
 
 export class TurnoNoEditableError extends Error {

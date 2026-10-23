@@ -40,8 +40,16 @@
       <%- campo({ nombre: 'patente', etiqueta: 'Patente (opcional)', valor: valores.patente, error: errores.patente, clase: `${ui.input} uppercase` }) %>
       <%- campo({ nombre: 'precio', etiqueta: 'Precio (opcional)', tipo: 'number', valor: valores.precio, error: errores.precio, atributos: { min: 0, step: '0.01' } }) %>
       <% if (mostrarCristal) { %>
-        <%- campo({ nombre: 'cristalId', etiqueta: 'Cristal a colocar', tipo: 'select', valor: valores.cristalId, error: errores.cristalId, claseContenedor: 'sm:col-span-2',
-                    opciones: [{ valor: '', texto: 'Sin cristal asignado' }, ...opcionesCristal] }) %>
+        <div class="space-y-1.5 sm:col-span-2">
+          <span class="block text-sm font-medium">Cristal a colocar</span>
+          <input type="hidden" name="cristalId" value="<%= valores.cristalId %>">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <p class="text-sm"><%= turno.cristal ? `${turno.cristal.codigo} · ${turno.cristal.descripcion}` : 'Sin cristal asignado' %></p>
+            <%- enlaceBoton({ href: `/turnos/${turno.id}/cristal?desde=editar`, texto: turno.cristal ? 'Cambiar cristal' : 'Elegir cristal', icono: 'Search', chico: true }) %>
+          </div>
+          <% if (errores.cristalId) { %><p role="alert" class="text-sm text-peligro"><%= errores.cristalId %></p><% } %>
+          <p class="text-xs text-texto-suave">Al elegir otro cristal se guarda de inmediato: guardá antes los demás cambios de este formulario.</p>
+        </div>
       <% } %>
       <%- campo({ nombre: 'notas', etiqueta: 'Notas', tipo: 'textarea', valor: valores.notas, error: errores.notas, claseContenedor: 'sm:col-span-2', atributos: { rows: 3 } }) %>
     </div>

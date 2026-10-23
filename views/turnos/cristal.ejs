@@ -1,0 +1,90 @@
+<%- volver(urlVolver, desde === 'editar' ? 'Editar turno' : 'Agenda') %>
+<%- encabezado({
+  seccion: 'Agenda',
+  titulo: 'Elegir cristal',
+  descripcion: `Turno ${turno.codigo} · ${turno.cliente.nombre}${turno.vehiculo ? ` · ${turno.vehiculo}` : ''}`,
+}) %>
+
+<% if (turno.cristal) { %>
+  <section class="<%= ui.tarjeta %> flex flex-wrap items-center justify-between gap-3 p-4">
+    <div class="min-w-0">
+      <p class="text-xs font-semibold tracking-wide text-texto-suave uppercase">Cristal asignado</p>
+      <p class="font-semibold"><span class="font-mono text-acento"><%= turno.cristal.codigo %></span> · <%= turno.cristal.descripcion %><%= turno.cristal.cantidad === 0 ? ' (sin stock)' : '' %></p>
+    </div>
+    <form method="post" action="/turnos/<%= turno.id %>/cristal">
+      <input type="hidden" name="desde" value="<%= desde %>">
+      <input type="hidden" name="cristalId" value="">
+      <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.secundario %> <%= ui.boton.chico %>">Quitar cristal</button>
+    </form>
+  </section>
+<% } %>
+
+<form method="get" action="/turnos/<%= turno.id %>/cristal" class="<%= ui.tarjeta %> space-y-3 p-3 sm:p-4">
+  <input type="hidden" name="desde" value="<%= desde %>">
+  <div class="flex gap-2">
+    <input name="texto" value="<%= f.texto ?? '' %>" placeholder="Código o descripción" aria-label="Buscar por código o descripción" class="<%= ui.input %>">
+    <button class="<%= ui.boton.primario %> shrink-0" aria-label="Buscar"><%- icono('Search') %> <span class="hidden sm:inline">Buscar</span></button>
+  </div>
+
+  <%# En celular los filtros se pliegan detrás de un botón; desde `md` se muestran siempre. %>
+  <button type="button" data-plegar aria-expanded="<%= filtrosAvanzados > 0 %>" aria-controls="filtros-avanzados"
+          class="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-borde px-3 text-sm font-semibold md:hidden">
+    <span class="flex items-center gap-2">
+      <%- icono('SlidersHorizontal') %> Filtros
+      <% if (filtrosAvanzados > 0) { %><span class="rounded-full bg-marca px-2 py-0.5 text-xs text-sobre-marca"><%= filtrosAvanzados %></span><% } %>
+    </span>
+    <span data-flecha class="transition-transform <%= filtrosAvanzados > 0 ? 'rotate-180' : '' %>"><%- icono('ChevronDown') %></span>
+  </button>
+  <div id="filtros-avanzados" class="<%= filtrosAvanzados > 0 ? 'grid' : 'hidden' %> gap-3 md:grid md:grid-cols-2 lg:grid-cols-4">
+    <%- control({ nombre: 'modeloId', tipo: 'select', valor: f.modeloId ?? '', atributos: { 'aria-label': 'Vehículo' },
+                  opciones: [{ valor: '', texto: 'Cualquier vehículo' }],
+                  grupos: catalogos.marcasVehiculo.map((m) => ({ etiqueta: m.nombre, opciones: m.modelos.map((mo) => ({ valor: mo.id, texto: `${m.nombre} ${mo.nombre}` })) })) }) %>
+    <%- control({ nombre: 'anio', tipo: 'number', valor: f.anio ?? '', atributos: { placeholder: 'Año', 'aria-label': 'Año del vehículo' } }) %>
+    <%- control({ nombre: 'ubicacionId', tipo: 'select', valor: f.ubicacionId ?? '', atributos: { 'aria-label': 'Ubicación' },
+                  opciones: [{ valor: '', texto: 'Toda ubicación' }, ...catalogos.ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))] }) %>
+    <%- control({ nombre: 'lado', tipo: 'select', valor: f.lado ?? '', atributos: { 'aria-label': 'Lado' },
+                  opciones: [{ valor: '', texto: 'Cualquier lado' }, { valor: 'IZQUIERDO', texto: 'Izquierdo' }, { valor: 'DERECHO', texto: 'Derecho' }] }) %>
+    <%- control({ nombre: 'tipoId', tipo: 'select', valor: f.tipoId ?? '', atributos: { 'aria-label': 'Tipo' },
+                  opciones: [{ valor: '', texto: 'Todo tipo' }, ...catalogos.tipos.map((t) => ({ valor: t.id, texto: t.nombre }))] }) %>
+    <%- control({ nombre: 'marcaId', tipo: 'select', valor: f.marcaId ?? '', atributos: { 'aria-label': 'Fábrica' },
+                  opciones: [{ valor: '', texto: 'Toda fábrica' }, ...catalogos.marcas.map((m) => ({ valor: m.id, texto: m.nombre }))] }) %>
+    <div class="flex gap-2 md:col-span-2 md:justify-end">
+      <% if (hayFiltros) { %><%- enlaceBoton({ href: `/turnos/${turno.id}/cristal${desde ? `?desde=${desde}` : ''}`, texto: 'Limpiar', variante: 'fantasma' }) %><% } %>
+      <button class="<%= ui.boton.secundario %> flex-1 md:flex-none"><%- icono('Search') %> Aplicar</button>
+    </div>
+  </div>
+</form>
+
+<% if (cristales.length === 0) { %>
+  <%- vacio(hayFiltros ? 'No hay cristales con stock que coincidan con la búsqueda.' : 'No hay cristales con stock.', 'Package') %>
+<% } else { %>
+  <p class="text-sm text-texto-suave">
+    <%= total > maximo ? `Mostrando ${maximo} de ${total} cristales con stock. Afiná los filtros para ver el resto.` : plural(total, 'cristal con stock', 'cristales con stock') %>
+  </p>
+  <ul class="space-y-3">
+    <% for (const c of cristales) { const elegido = turno.cristal?.id === c.id; %>
+      <li class="<%= ui.tarjeta %> flex flex-wrap items-center justify-between gap-3 p-4">
+        <div class="min-w-0 flex-1">
+          <p class="font-mono text-xs font-semibold text-acento"><%= c.codigo %></p>
+          <p class="mt-0.5 font-semibold leading-snug"><%= c.descripcion %></p>
+          <p class="mt-0.5 text-xs text-texto-suave">
+            <%= c.marca.nombre %> · <%= c.tipo.nombre %> · <%= c.ubicacion.nombre %> <%= NOMBRE_LADO[c.lado] %>
+            <% const med = medidas(c.anchoMm, c.altoMm, c.espesorMm); if (med && med !== '—') { %> · <%= med %><% } %>
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <%- insignia('exito', `${c.cantidad} u.`) %>
+          <% if (elegido) { %>
+            <%- insignia('marca', 'Asignado') %>
+          <% } else { %>
+            <form method="post" action="/turnos/<%= turno.id %>/cristal">
+              <input type="hidden" name="desde" value="<%= desde %>">
+              <input type="hidden" name="cristalId" value="<%= c.id %>">
+              <button type="submit" data-enviando="Guardando…" class="<%= ui.boton.primario %> <%= ui.boton.chico %>">Elegir</button>
+            </form>
+          <% } %>
+        </div>
+      </li>
+    <% } %>
+  </ul>
+<% } %>
