@@ -28,7 +28,7 @@ describe("numeroWhatsappCliente", () => {
 });
 
 describe("mensajeAvisoTurno", () => {
-  const datos = { nombre: "Ana Pérez", servicio: "Colocación", dia: "lunes 5 de octubre", hora: "09:30", codigo: "ABC123", senaPendiente: "$ 2.000" };
+  const datos = { nombre: "Ana Pérez", servicio: "Colocación", dia: "lunes 5 de octubre", hora: "09:30", codigo: "ABC123", senaPendiente: "$ 2.000", alias: "parabrisas.cat", titular: "Juan Gómez" };
 
   it("avisa que el turno quedó confirmado", () => {
     const m = mensajeAvisoTurno("CONFIRMADO", datos)!;
@@ -41,6 +41,22 @@ describe("mensajeAvisoTurno", () => {
     expect(m).toContain("código ABC123");
     expect(m).toContain("seña de $ 2.000");
     expect(m).toContain("comprobante");
+  });
+
+  it("si espera la transferencia, pasa el alias y el nombre de la cuenta", () => {
+    const m = mensajeAvisoTurno("ESPERANDO_PAGO", datos)!;
+    expect(m).toContain("Alias: parabrisas.cat");
+    expect(m).toContain("A nombre de: Juan Gómez");
+  });
+
+  it("sin datos de la cuenta cargados, no deja renglones vacíos", () => {
+    const m = mensajeAvisoTurno("ESPERANDO_PAGO", { ...datos, alias: null, titular: null })!;
+    expect(m).not.toContain("Alias");
+    expect(m).not.toContain("A nombre de");
+  });
+
+  it("los turnos que no esperan la seña no llevan los datos de la cuenta", () => {
+    for (const estado of ["CONFIRMADO", "PENDIENTE"]) expect(mensajeAvisoTurno(estado, datos)).not.toContain("parabrisas.cat");
   });
 
   it("si la seña no está cargada, igual pide la seña", () => {
