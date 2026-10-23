@@ -73,6 +73,8 @@ export const busquedaCristalSchema = z.object({
   anio: anio.optional(),
   ubicacionId: z.string().optional(),
   tipoId: z.string().optional(),
+  marcaId: z.string().optional(),
+  lado: z.enum(["IZQUIERDO", "DERECHO"]).optional(),
   soloConStock: z.boolean().default(false),
   incluirInactivos: z.boolean().default(false),
 });

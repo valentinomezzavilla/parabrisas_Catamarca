@@ -120,6 +120,8 @@ export async function buscarCristales(input: BusquedaCristalInput = {}) {
     activo: f.incluirInactivos ? undefined : true,
     ubicacionId: f.ubicacionId,
     tipoId: f.tipoId,
+    marcaId: f.marcaId,
+    lado: f.lado,
     ...(f.soloConStock && { cantidad: { gt: 0 } }),
     ...(f.texto && {
       OR: [

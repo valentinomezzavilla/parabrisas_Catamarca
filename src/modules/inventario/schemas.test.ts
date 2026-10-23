@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actualizarCristalSchema, crearCristalSchema } from "./schemas";
+import { actualizarCristalSchema, busquedaCristalSchema, crearCristalSchema } from "./schemas";
 
 const minimo = { codigo: "a", descripcion: "abc", marcaId: "m", tipoId: "t", ubicacionId: "u" };
 
@@ -32,5 +32,15 @@ describe("crearCristalSchema", () => {
   it("ya no tiene `caracteristicas`: los campos propios viajan en extrasEntrada", () => {
     expect(crearCristalSchema.parse({ ...minimo, caracteristicas: [{ caracteristicaId: "x", valor: "y" }] })).not.toHaveProperty("caracteristicas");
     expect(crearCristalSchema.parse({ ...minimo, extrasEntrada: { extra_nota: "hola" } }).extrasEntrada).toEqual({ extra_nota: "hola" });
+  });
+});
+
+describe("busquedaCristalSchema", () => {
+  it("acepta la fábrica y el lado como filtros", () => {
+    expect(busquedaCristalSchema.parse({ marcaId: "m", lado: "DERECHO" })).toMatchObject({ marcaId: "m", lado: "DERECHO" });
+  });
+
+  it("el lado solo filtra por izquierdo o derecho", () => {
+    expect(busquedaCristalSchema.safeParse({ lado: "NO_APLICA" }).success).toBe(false);
   });
 });

@@ -46,6 +46,7 @@ const PANEL = [
   "/turnos",
   "/turnos/abc/editar",
   "/turnos/abc/estado",
+  "/turnos/abc/cristal",
   "/stock",
   "/stock/nuevo",
   "/stock/abc/movimientos",

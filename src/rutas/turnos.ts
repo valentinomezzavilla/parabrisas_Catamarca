@@ -5,7 +5,7 @@ import { erroresDeZod, numero, texto, type Errores } from "@/lib/formularios";
 import { pesos } from "@/lib/formato";
 import { diaSemana, fechaLocal, formatearFecha, formatearHora, hoy, sumarDias } from "@/lib/tiempo";
 import { z } from "@/lib/zod";
-import { StockInsuficienteError } from "@/modules/inventario/cristal.service";
+import { buscarCristales, obtenerCatalogos, StockInsuficienteError } from "@/modules/inventario/cristal.service";
 import { liberarVencidos } from "@/modules/pagos/pagos.service";
 import { enlaceWhatsapp } from "@/modules/pagos/transferencia";
 import { mensajeAvisoTurno, numeroWhatsappCliente } from "@/modules/turnos/aviso-cliente";
@@ -15,7 +15,6 @@ import {
   asignarCristal,
   cambiarEstadoTurno,
   contarTurnosPorDia,
-  cristalesDisponibles,
   editarTurno,
   listarTurnosDelDia,
   obtenerTurno,
@@ -53,11 +52,10 @@ rutasTurnos.get("/", async (req, res) => {
   const fecha = paramFecha(req) ?? hoy();
   const lunes = sumarDias(fecha, -((diaSemana(fecha) + 6) % 7));
 
-  const [turnos, porDia, servicios, cristales] = await Promise.all([
+  const [turnos, porDia, servicios] = await Promise.all([
     listarTurnosDelDia(fecha),
     contarTurnosPorDia(lunes, 7),
     listarServicios(),
-    cristalesDisponibles(),
   ]);
   const activos = servicios.filter((s) => s.activo);
   const libres = await Promise.all(activos.map((s) => obtenerDisponibilidad(s.id, fecha)));
@@ -69,7 +67,6 @@ rutasTurnos.get("/", async (req, res) => {
     porDia: [...porDia],
     activos,
     libres,
-    cristales,
     sumarDias,
     puedeEditar,
     enlaceAviso,
@@ -98,11 +95,68 @@ rutasTurnos.post("/:id/estado", async (req, res, next) => {
   res.redirect(303, agendaDe(turno.inicio, turno.id));
 });
 
+// --- Elegir el cristal a colocar -------------------------------------------------
+
+/** Cuántos cristales se listan como máximo: si hay más, se pide afinar los filtros. */
+const MAXIMO_CRISTALES = 50;
+
+/** Desde dónde se llegó al buscador, para volver al mismo lugar: la agenda (por defecto) o la edición del turno. */
+const desdeEditar = (req: Request) => (req.method === "GET" ? param(req, "desde") : texto(req.body, "desde")) === "editar";
+
+rutasTurnos.get("/:id/cristal", async (req, res, next) => {
+  const turno = await obtenerTurno(req.params.id);
+  if (!turno) return next();
+  const volverAEditar = desdeEditar(req);
+  if (["COMPLETADO", "CANCELADO", "AUSENTE"].includes(turno.estado)) {
+    return res.redirect(303, agendaDe(turno.inicio, turno.id));
+  }
+
+  const f = {
+    texto: param(req, "texto"),
+    modeloId: param(req, "modeloId"),
+    anio: param(req, "anio"),
+    ubicacionId: param(req, "ubicacionId"),
+    lado: param(req, "lado"),
+    tipoId: param(req, "tipoId"),
+    marcaId: param(req, "marcaId"),
+  };
+  const lado = f.lado === "IZQUIERDO" || f.lado === "DERECHO" ? f.lado : undefined;
+  const anio = f.anio && /^\d{4}$/.test(f.anio) ? Number(f.anio) : undefined;
+  const [catalogos, encontrados] = await Promise.all([
+    obtenerCatalogos(),
+    buscarCristales({
+      texto: f.texto,
+      modeloId: f.modeloId,
+      anio,
+      ubicacionId: f.ubicacionId,
+      lado,
+      tipoId: f.tipoId,
+      marcaId: f.marcaId,
+      soloConStock: true,
+    }),
+  ]);
+  const filtrosAvanzados = [f.modeloId, f.anio, f.ubicacionId, f.lado, f.tipoId, f.marcaId].filter(Boolean).length;
+
+  await mostrar(res, "turnos/cristal", {
+    titulo: "Elegir cristal",
+    turno,
+    f,
+    catalogos,
+    cristales: encontrados.slice(0, MAXIMO_CRISTALES),
+    total: encontrados.length,
+    maximo: MAXIMO_CRISTALES,
+    hayFiltros: Object.values(f).some(Boolean),
+    filtrosAvanzados,
+    desde: volverAEditar ? "editar" : "",
+    urlVolver: volverAEditar ? `/turnos/${turno.id}/editar` : agendaDe(turno.inicio, turno.id),
+  });
+});
+
 rutasTurnos.post("/:id/cristal", async (req, res, next) => {
   const turno = await obtenerTurno(req.params.id);
   if (!turno) return next();
   await asignarCristal(turno.id, texto(req.body, "cristalId") ?? null);
-  res.redirect(303, agendaDe(turno.inicio, turno.id));
+  res.redirect(303, desdeEditar(req) ? `/turnos/${turno.id}/editar` : agendaDe(turno.inicio, turno.id));
 });
 
 // --- Editar un turno ------------------------------------------------------------
@@ -142,14 +196,6 @@ async function paginaEditar(req: Request, res: Response, formulario: EstadoFormu
       ? candidato
       : undefined;
 
-  const cristales = await cristalesDisponibles();
-  const opcionesCristal = [
-    ...(turno.cristal && !cristales.some((c) => c.id === turno.cristal!.id)
-      ? [{ valor: turno.cristal.id, texto: `${turno.cristal.codigo} · sin stock` }]
-      : []),
-    ...cristales.map((c) => ({ valor: c.id, texto: `${c.codigo} · ${c.descripcion} (${c.cantidad})` })),
-  ];
-
   const guardados: Record<(typeof CAMPOS)[number], string> = {
     nombre: turno.cliente.nombre,
     telefono: turno.cliente.telefono,
@@ -175,7 +221,6 @@ async function paginaEditar(req: Request, res: Response, formulario: EstadoFormu
       libres,
       inicio,
       inicioPedido,
-      opcionesCristal,
       mostrarCristal: servicio.requiereCristal || !!turno.cristalId,
       sena: turno.pagos[0] ? pesos(turno.pagos[0].monto) : null,
       urlHorario: (iso: string) => url(`/turnos/${turno.id}/editar`, { servicio: servicioId, fecha, inicio: iso }),
