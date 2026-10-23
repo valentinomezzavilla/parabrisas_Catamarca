@@ -18,6 +18,7 @@ import * as componentes from "./componentes";
 import { attrs, esc } from "./html";
 import { icono } from "./iconos";
 import { esActiva, gruposVisibles, inicialDe, nombreDeRol } from "./navegacion";
+import { jsonLdNegocio, urlBase } from "./seo";
 import { ESTADOS_ORDEN, ESTADOS_TURNO, SITUACION_COBRO, ui } from "./ui";
 
 export type Layout = "panel" | "publico" | "auth";
@@ -76,6 +77,8 @@ export const ayudas = {
   gruposVisibles,
   inicialDe,
   nombreDeRol,
+  urlBase,
+  jsonLdNegocio,
 };
 
 export function renderizar(app: Application, vista: string, datos: object): Promise<string> {

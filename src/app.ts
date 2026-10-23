@@ -10,6 +10,7 @@ import { rutasInicio } from "@/rutas/inicio";
 import { rutasMercadoPago } from "@/rutas/mercadopago";
 import { rutasOrdenes } from "@/rutas/ordenes";
 import { rutasReservar } from "@/rutas/reservar";
+import { rutasSeo } from "@/rutas/seo";
 import { rutasServicios } from "@/rutas/servicios";
 import { rutasStock } from "@/rutas/stock";
 import { rutasTurnos } from "@/rutas/turnos";
@@ -55,6 +56,7 @@ export function crearApp() {
   app.use(["/servicios", "/usuarios", "/administracion"], requerirRol("ADMIN"));
 
   app.use(rutasAuth);
+  app.use(rutasSeo);
   app.use("/reservar", rutasReservar);
   app.use(rutasInicio);
   app.use("/turnos", rutasTurnos);

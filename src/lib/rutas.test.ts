@@ -8,6 +8,12 @@ describe("esRutaPublica", () => {
     }
   });
 
+  it("permite robots.txt y sitemap.xml", () => {
+    expect(esRutaPublica("/robots.txt")).toBe(true);
+    expect(esRutaPublica("/sitemap.xml")).toBe(true);
+    expect(esRutaPublica("/sitemap.xml.bak")).toBe(false);
+  });
+
   it("permite el webhook de Mercado Pago y nada más de /api", () => {
     expect(esRutaPublica("/api/mercadopago/webhook")).toBe(true);
     for (const ruta of ["/api", "/api/mercadopago", "/api/mercadopago/otra", "/api/mercadopago/webhook-x", "/x/api/mercadopago/webhook"]) {

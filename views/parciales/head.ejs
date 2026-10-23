@@ -1,7 +1,30 @@
+<%#
+  `indexable: true` (solo la portada de reservas) la deja en los buscadores; el resto (login, panel, pasos internos)
+  lleva `noindex`. `descripcion` reemplaza la descripción general.
+%>
+<%
+  const base = urlBase();
+  const tituloCompleto = locals.titulo ? `${titulo} · Parabrisas Catamarca` : "Parabrisas Catamarca";
+  const descripcionPagina = locals.descripcion || "Cristales para tu vehículo, colocación, polarizados y lavados.";
+  const indexable = locals.indexable === true;
+%>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><%= locals.titulo ? `${titulo} · Parabrisas Catamarca` : "Parabrisas Catamarca" %></title>
-<meta name="description" content="Cristales para tu vehículo, colocación, polarizados y lavados.">
+<title><%= tituloCompleto %></title>
+<meta name="description" content="<%= descripcionPagina %>">
+<meta name="robots" content="<%= indexable ? 'index, follow' : 'noindex, nofollow' %>">
+<% if (indexable) { %>
+<link rel="canonical" href="<%= base %><%= ruta %>">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_AR">
+<meta property="og:site_name" content="Parabrisas Catamarca">
+<meta property="og:title" content="<%= tituloCompleto %>">
+<meta property="og:description" content="<%= descripcionPagina %>">
+<meta property="og:url" content="<%= base %><%= ruta %>">
+<meta property="og:image" content="<%= base %>/brand/logo-amarillo.png">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json"><%- jsonLdNegocio() %></script>
+<% } %>
 <link rel="icon" href="/icon.png" type="image/png">
 <link rel="apple-touch-icon" href="/apple-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">

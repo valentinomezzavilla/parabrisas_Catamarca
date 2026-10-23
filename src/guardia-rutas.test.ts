@@ -108,6 +108,19 @@ describe("sin sesión", () => {
     expect((await pedir("/login")).status).toBe(200);
     expect((await pedir("/reservar/nada")).status).toBe(404);
   });
+
+  it("robots.txt y sitemap.xml se sirven sin sesión", async () => {
+    const robots = await pedir("/robots.txt");
+    expect(robots.status).toBe(200);
+    expect(await robots.text()).toContain("Disallow: /stock");
+    const sitemap = await pedir("/sitemap.xml");
+    expect(sitemap.status).toBe(200);
+    expect(sitemap.headers.get("content-type")).toContain("xml");
+  });
+
+  it("el login no se indexa", async () => {
+    expect(await (await pedir("/login")).text()).toContain('<meta name="robots" content="noindex, nofollow">');
+  });
 });
 
 describe("con rol Empleado", () => {

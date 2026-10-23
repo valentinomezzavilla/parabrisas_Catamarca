@@ -41,7 +41,14 @@ async function paginaReservar(req: Request, res: Response, formulario: EstadoFor
 
   if (!servicio) {
     const servicios = (await listarServicios()).filter((s) => s.activo);
-    return mostrar(res, "reservar/servicios", { titulo: "Reservar turno", layout: "publico", servicios });
+    return mostrar(res, "reservar/servicios", {
+      titulo: "Turnos online para cristales y polarizados",
+      descripcion:
+        "Sacá tu turno online en Parabrisas Catamarca: colocación de parabrisas y cristales, polarizados y lavados. Elegí el servicio, el día y el horario.",
+      indexable: estado === 200,
+      layout: "publico",
+      servicios,
+    });
   }
 
   const dias = Array.from({ length: DIAS_A_MOSTRAR }, (_, i) => sumarDias(hoy(), i));
